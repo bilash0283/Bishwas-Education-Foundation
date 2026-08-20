@@ -1,49 +1,46 @@
 <?php include 'include/header.php'; ?>
-<div class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        <!-- Top Branding Header -->
-        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-center text-white">
-            <div class="w-16 h-16 bg-white rounded-full p-2 mx-auto mb-3 shadow-md">
-                <img src="../public/assets/logo.png" alt="Logo" class="w-full h-full object-cover rounded-full" onerror="this.onerror=null; this.src='https://via.placeholder.com/64?text=BEF';">
-            </div>
-            <h2 class="text-2xl font-bold">bishwas<span class="text-emerald-200">.org</span></h2>
-            <p class="text-xs text-emerald-100 mt-1 uppercase tracking-wider font-semibold">Admin & Volunteer Portal</p>
+
+<div class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-4xl w-full bg-white rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 border border-slate-100">
+        
+        <!-- Left Side: Login Form -->
+        <div class="p-6 md:p-8 flex flex-col justify-center">
+            <h2 class="text-xl md:text-2xl font-bold text-emerald-800 mb-6">
+                আপনার অ্যাকাউন্টে লগইন করুন।
+            </h2>
+
+            <form action="#" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                        ইমেইল <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="identity" placeholder="মোবাইল নম্বর / ইমেইল লিখুন" required
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                        পাসওয়ার্ড <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" name="password" placeholder="পাসওয়ার্ড লিখুন" required
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-md transition-all duration-200">
+                        <span>লগইন</span>
+                        <i class="fa-solid fa-arrow-right text-sm"></i>
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <!-- Login Form -->
-        <form class="p-6 space-y-4" action="#" method="POST">
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email or Phone Number</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-envelope"></i>
-                    </span>
-                    <input type="text" placeholder="example@mail.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition-all">
-                </div>
-            </div>
+        <!-- Right Side: Full Cover Image (No margin/padding) -->
+        <div class="relative w-full h-full min-h-[250px] md:min-h-full">
+            <img src="public/assets/login_img.png" alt="Illustration" class="w-full h-full object-cover block" onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Banner+Image';">
+        </div>
 
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input type="password" placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition-all">
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between text-xs">
-                <label class="flex items-center text-slate-600 cursor-pointer">
-                    <input type="checkbox" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 mr-2"> Remember me
-                </label>
-                <a href="#" class="text-emerald-600 font-semibold hover:underline">Forgot password?</a>
-            </div>
-
-            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md shadow-emerald-600/20 transition-all duration-200 flex items-center justify-center gap-2">
-                <span>Login</span>
-                <i class="fa-solid fa-arrow-right text-xs"></i>
-            </button>
-        </form>
     </div>
 </div>
+
 <?php include 'include/footer.php'; ?>
