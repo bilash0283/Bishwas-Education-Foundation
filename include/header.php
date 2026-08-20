@@ -43,7 +43,7 @@
                 </a>
 
                 <!-- Login / Profile Icon -->
-                <a href="login.php" id="profile-btn" title="লগইন / প্রোফাইল"
+                <a href="portal/" id="profile-btn" title="লগইন / প্রোফাইল"
                     class="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 transition duration-300">
                     <i class="fa-solid fa-user text-lg"></i>
                 </a>
