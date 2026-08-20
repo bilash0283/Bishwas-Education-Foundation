@@ -69,7 +69,7 @@
 
         <!-- Footer -->
         <div class="bg-slate-50 border-t border-slate-100 py-4 text-center">
-            <p class="text-xs text-slate-500">&copy; Bishwas Foundation. All rights reserved.</p>
+            <p class="text-xs text-slate-500">&copy; Bishwas Education Foundation. All rights reserved.</p>
         </div>
 
     </div>
