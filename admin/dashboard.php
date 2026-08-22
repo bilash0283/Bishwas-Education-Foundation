@@ -31,7 +31,6 @@
         <!-- Fixed Top Header -->
         <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 fixed top-0 left-0 right-0 z-50 shadow-sm h-[65px]">
             <div class="px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
-                
                 <!-- Left Header: Mobile Toggle & Enhanced Logo -->
                 <div class="flex items-center gap-3">
                     <button id="sidebarToggle" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100 lg:hidden focus:outline-none transition-colors">
@@ -77,13 +76,11 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </header>
 
         <!-- Main Body Layout (Offset for fixed header) -->
         <div class="flex-1 flex pt-[65px] h-full overflow-hidden">
-
             <!-- Sidebar Overlay for Mobile -->
             <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden"></div>
 
@@ -268,7 +265,6 @@
 
             </main>
         </div>
-
     </div>
 
     <!-- ================= ADD CONTENT MODAL ================= -->
