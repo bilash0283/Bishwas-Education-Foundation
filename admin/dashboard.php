@@ -37,7 +37,7 @@
                         <i class="fa-solid fa-bars text-xl"></i>
                     </button>
                     
-                    <a href="#" class="flex items-center gap-3.5 group py-1">
+                    <a href="?page=dashboard" class="flex items-center gap-3.5 group py-1">
                         <!-- Clean Rounded Logo Container Without Active Signal -->
                         <div class="w-11 h-11 shrink-0 rounded-full overflow-hidden flex items-center justify-center border border-slate-200/60 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:border-emerald-500/40">
                             <img 
@@ -101,7 +101,7 @@
                               </main>";
                     }
                 } else {
-                    include_once "pages/dashboard.php";
+                    include_once "pages/dashboard.php?page=dashboard";
                 }
             ?>
         </div>

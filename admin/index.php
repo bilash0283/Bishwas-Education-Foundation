@@ -15,7 +15,7 @@
         // Validate credentials
         if ($email === 'admin@example.com' && $password === '12345678') {
             $_SESSION['cms_admin_id'] = true; // Set session variable to indicate successful login
-            header("Location: dashboard.php");
+            header("Location: dashboard.php?page=dashboard");
             exit();
         } else {
             $error_message = "Invalid email or password.";
