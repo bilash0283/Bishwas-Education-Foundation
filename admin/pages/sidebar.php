@@ -12,6 +12,11 @@
                     <i class="fa-solid fa-chart-pie w-5 text-center"></i>
                     Dashboard
                 </a>
+                 <a href="?page=hero_section"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'hero_section') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
+                    <i class="fa-solid fa-newspaper w-5 text-center"></i>
+                    Hero Section
+                </a>
                 <a href="?page=blog"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'blog') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
                     <i class="fa-solid fa-newspaper w-5 text-center"></i>
