@@ -1,3 +1,11 @@
+<?php 
+    include_once '../component/session_manage.php';
+    if (!isset($_SESSION['cms_admin_id']) || $_SESSION['cms_admin_id'] !== true) {
+        header("Location: index.php");
+        exit();
+    }
+?>
+
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
 <head>
@@ -60,7 +68,6 @@
                         <i class="fa-solid fa-plus text-xs"></i>
                         <span class="hidden sm:inline">Add Content</span>
                     </button>
-
                     <!-- User Profile -->
                     <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
                         <img class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500 shadow-sm" src="https://ui-avatars.com/api/?name=Bilash+Vai&background=059669&color=fff" alt="User Avatar">
@@ -134,7 +141,7 @@
 
                 <!-- Sidebar Logout -->
                 <div class="p-4 border-t border-slate-200 bg-white">
-                    <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium text-sm transition-colors">
+                    <a href="../component/logout.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium text-sm transition-colors">
                         <i class="fa-solid fa-right-from-bracket w-5 text-center"></i>
                         Logout
                     </a>
