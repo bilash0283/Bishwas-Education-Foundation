@@ -72,7 +72,7 @@
                     <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
                         <img class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500 shadow-sm" src="https://ui-avatars.com/api/?name=Bilash+Vai&background=059669&color=fff" alt="User Avatar">
                         <div class="hidden md:block text-left">
-                            <p class="text-sm font-semibold leading-none text-slate-700">Md Admin</p>
+                            <p class="text-sm font-semibold leading-none text-slate-700">Admin</p>
                             <p class="text-xs text-slate-500 mt-0.5">Super Admin</p>
                         </div>
                     </div>
