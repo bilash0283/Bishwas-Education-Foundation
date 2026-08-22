@@ -36,7 +36,7 @@
         </div>
 
         <!-- Right Side: Full Cover Image (No margin/padding) -->
-        <div class="relative w-full h-full min-h-[250px] md:min-h-full">
+        <div class="relative w-full h-full min-h-[200px] md:min-h-full">
             <img src="public/assets/login_img.png" alt="Illustration" class="w-full h-full object-cover block" onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Banner+Image';">
         </div>
 
