@@ -83,27 +83,32 @@
         <div class="flex-1 flex pt-[65px] h-full overflow-hidden">
             <!-- Sidebar Overlay for Mobile -->
             <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden"></div>
-            
             <!-- sidebar  -->
             <?php include_once 'pages/sidebar.php'; ?>
-
-            <!-- main content area -->
-            <?php 
-                if(isset($_GET['page']) && !empty($_GET['page'])) {
-                    $page = $_GET['page'];
-                    $allowed_pages = ['dashboard', 'hero_section', 'blog', 'projects', 'media', 'header-footer', 'logo-branding', 'profile-settings', 'site-settings'];
-                    if (in_array($page, $allowed_pages)) {
-                        include_once "pages/{$page}.php";
+            <!-- main content area start-->
+            <main class="flex-1 overflow-y-auto h-[calc(100vh-65px)] flex flex-col justify-between">
+                <?php 
+                    if(isset($_GET['page']) && !empty($_GET['page'])) {
+                        $page = $_GET['page'];
+                        $allowed_pages = ['dashboard', 'hero_section', 'blog', 'projects', 'media', 'header-footer', 'logo-branding', 'profile-settings', 'site-settings'];
+                        if (in_array($page, $allowed_pages)) {
+                            include_once "pages/{$page}.php";
+                        } else {
+                            echo "<main class='flex-1 overflow-y-auto h-[calc(100vh-65px)] flex flex-col justify-center items-center text-slate-500'>
+                                    <h2 class='text-lg font-semibold'>404 - Page Not Found</h2>
+                                    <p class='mt-2'>The requested page does not exist.</p>
+                                </main>";
+                        }
                     } else {
-                        echo "<main class='flex-1 overflow-y-auto h-[calc(100vh-65px)] flex flex-col justify-center items-center text-slate-500'>
-                                <h2 class='text-lg font-semibold'>404 - Page Not Found</h2>
-                                <p class='mt-2'>The requested page does not exist.</p>
-                              </main>";
+                        include_once "pages/dashboard.php?page=dashboard";
                     }
-                } else {
-                    include_once "pages/dashboard.php?page=dashboard";
-                }
-            ?>
+                ?>
+
+                <!-- Dashboard Footer inside main scroll area -->
+                <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500 mt-auto">
+                    <p>&copy; 2026 bishwas.org - All Rights Reserved. Powered by Bishwas Foundation.</p>
+                </footer>
+            </main>
         </div>
     </div>
 
