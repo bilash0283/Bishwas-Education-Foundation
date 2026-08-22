@@ -25,18 +25,18 @@
 
             <!-- Desktop Navigation Menu -->
             <nav class="hidden md:flex space-x-8 font-medium text-gray-600">
-                <a href="#"
+                <a href="index.php"
                     class="hover:text-emerald-600 transition duration-300 text-emerald-600 font-semibold">মূলপাতা</a>
-                <a href="#about" class="hover:text-emerald-600 transition duration-300">আমাদের সম্পর্কে</a>
-                <a href="#ongoing-activities" class="hover:text-emerald-600 transition duration-300">চলমান প্রকল্প</a>
-                <a href="#volunteer"
+                <a href="index.php#about" class="hover:text-emerald-600 transition duration-300">আমাদের সম্পর্কে</a>
+                <a href="index.php#ongoing-activities" class="hover:text-emerald-600 transition duration-300">চলমান প্রকল্প</a>
+                <a href="index.php#volunteer"
                     class="hover:text-emerald-600 transition duration-300 font-semibold">ভলান্টিয়ার</a>
-                <a href="#contact" class="hover:text-emerald-600 transition duration-300">যোগাযোগ</a>
+                <a href="index.php#contact" class="hover:text-emerald-600 transition duration-300">যোগাযোগ</a>
             </nav>
 
             <!-- Right Side: Donation + Login/Profile + Mobile Menu -->
             <div class="flex items-center space-x-3 sm:space-x-4">
-                <a href="#projects"
+                <a href="index.php#projects"
                     class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full font-semibold shadow-md transition duration-300 flex items-center space-x-2">
                     <i class="fa-solid fa-heart"></i>
                     <span class="hidden sm:inline">অনুদান দিন</span>
@@ -77,17 +77,17 @@
 
         <!-- Mobile Menu Links -->
         <nav class="flex flex-col p-6 space-y-4 text-lg font-medium text-gray-700">
-            <a href="#"
+            <a href="index.php"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50 text-emerald-600 font-semibold">মূলপাতা</a>
-            <a href="#about"
+            <a href="index.php#about"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">আমাদের
                 সম্পর্কে</a>
-            <a href="#ongoing-activities"
+            <a href="index.php#ongoing-activities"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">চলমান
                 প্রকল্প</a>
-            <a href="#volunteer"
+            <a href="index.php#volunteer"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">ভলান্টিয়ার</a>
-            <a href="#contact"
+            <a href="index.php#contact"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">যোগাযোগ</a>
 
             <!-- Login / Profile link in mobile menu -->
