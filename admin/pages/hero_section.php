@@ -22,7 +22,7 @@
   <form id="heroForm" action="update_hero.php" method="POST" enctype="multipart/form-data" class="space-y-6">
 
     <!-- Card 1: Background & Overlay Settings -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <!-- <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
         <h3 class="font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-image text-emerald-600"></i>
@@ -47,7 +47,7 @@
           <input type="number" step="0.05" min="0" max="1" name="overlay_opacity" value="0.85" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Card 2: Main Hero Texts -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -97,10 +97,10 @@
             <label class="block text-xs text-slate-500 mb-1 font-medium">Button Label</label>
             <input type="text" name="cta_primary_text" value="আজই শরীক হোন" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
-          <div>
+          <!-- <div>
             <label class="block text-xs text-slate-500 mb-1 font-medium">Button Target Link</label>
             <input type="text" name="cta_primary_link" value="/donate" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          </div>
+          </div> -->
         </div>
         <!-- Secondary Button -->
         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
@@ -109,10 +109,10 @@
             <label class="block text-xs text-slate-500 mb-1 font-medium">Button Label</label>
             <input type="text" name="cta_secondary_text" value="আমাদের লক্ষ্য জানুন" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
-          <div>
+          <!-- <div>
             <label class="block text-xs text-slate-500 mb-1 font-medium">Button Target Link</label>
             <input type="text" name="cta_secondary_link" value="/about-us" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
