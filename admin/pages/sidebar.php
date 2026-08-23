@@ -36,23 +36,23 @@
                     <i class="fa-solid fa-circle-info w-5 text-center"></i>
                     About Us
                 </a>
-                
+
                 <a href="?page=volunteer"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'volunteer') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
                     <i class="fa-solid fa-hands-helping w-5 text-center"></i>
                     Volunteer
                 </a>
 
-                <a href="?page=blog"
-                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'blog') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
-                    <i class="fa-solid fa-newspaper w-5 text-center"></i>
-                    Blog Posts
-                </a>
-                
                 <a href="?page=media"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'media') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
                     <i class="fa-solid fa-images w-5 text-center"></i>
                     Media Gallery
+                </a>
+
+                <a href="?page=blog"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'blog') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
+                    <i class="fa-solid fa-newspaper w-5 text-center"></i>
+                    Blog Posts
                 </a>
             </nav>
         </div>
