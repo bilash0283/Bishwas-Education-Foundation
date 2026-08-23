@@ -13,7 +13,7 @@
         $password = $_POST['password'];
 
         // Validate credentials
-        if ($email === 'admin@example.com' && $password === '12345678') {
+        if ($email === 'admin@gmail.com' && $password === '12345') {
             $_SESSION['cms_admin_id'] = true; // Set session variable to indicate successful login
             header("Location: dashboard.php?page=dashboard");
             exit();
