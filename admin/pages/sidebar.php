@@ -77,7 +77,7 @@
                     <i class="fa-solid fa-image w-5 text-center"></i>
                     Logo & Branding
                 </a>
-                <a href="?page=profile-settings"
+                <!-- <a href="?page=profile-settings"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'profile-settings') echo 'bg-emerald-50 text-emerald-700'; ?> text-slate-600 hover:bg-slate-100 font-medium text-sm transition-colors">
                     <i class="fa-solid fa-user-gear w-5 text-center"></i>
                     Profile Settings
@@ -86,7 +86,7 @@
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'site-settings') echo 'bg-emerald-50 text-emerald-700'; ?> text-slate-600 hover:bg-slate-100 font-medium text-sm transition-colors">
                     <i class="fa-solid fa-sliders w-5 text-center"></i>
                     Site Settings
-                </a>
+                </a> -->
             </nav>
         </div>
 
