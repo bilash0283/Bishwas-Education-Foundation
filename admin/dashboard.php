@@ -90,7 +90,7 @@
                 <?php 
                     if(isset($_GET['page']) && !empty($_GET['page'])) {
                         $page = $_GET['page'];
-                        $allowed_pages = ['dashboard', 'hero_section', 'blog', 'projects', 'media', 'header-footer', 'logo-branding', 'profile-settings', 'site-settings'];
+                        $allowed_pages = ['dashboard', 'hero_section', 'donation', 'blog', 'projects', 'media', 'header-footer', 'logo-branding', 'profile-settings', 'site-settings'];
                         if (in_array($page, $allowed_pages)) {
                             include_once "pages/{$page}.php";
                         } else {
