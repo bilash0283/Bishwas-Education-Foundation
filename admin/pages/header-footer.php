@@ -86,10 +86,18 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                            <i class="fa-brands fa-x-twitter text-slate-800 mr-1"></i> Twitter / X URL
+                            <i class="fa-brands fa-x text-slate-800 mr-1"></i> Twitter URL
                         </label>
                         <input type="url" name="twitter_url" value="https://twitter.com/bishwas" placeholder="https://..." class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                            <i class="fa-brands fa-linkedin text-blue-600 mr-1"></i> Linkedin
+                        </label>
+                        <input type="url" name="linkedin_url" value="https://linkedin.com/company/bishwas" placeholder="https://..." class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
                 </div>
             </div>
 
