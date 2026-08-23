@@ -54,6 +54,12 @@
                     <i class="fa-solid fa-newspaper w-5 text-center"></i>
                     Blog Posts
                 </a>
+
+                <a href="?page=contacts"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?php if(isset($_GET['page']) && $_GET['page'] === 'contacts') echo 'bg-emerald-50 text-emerald-700'; ?> font-medium text-sm transition-colors">
+                    <i class="fa-solid fa-address-book w-5 text-center"></i>
+                    Contacts
+                </a>
             </nav>
         </div>
 
