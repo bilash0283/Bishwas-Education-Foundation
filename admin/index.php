@@ -2,7 +2,7 @@
     include_once '../component/session_manage.php';
 
     if (isset($_SESSION['cms_admin_id']) && $_SESSION['cms_admin_id'] === true) {
-        header("Location: dashboard.php");
+        header("Location: dashboard.php?page=dashboard");
         exit();
     }
 
