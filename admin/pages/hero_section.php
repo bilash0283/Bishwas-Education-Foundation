@@ -14,13 +14,13 @@ $default = [
     'description'        => 'বিশ্বাস এডুকেশন ফাউন্ডেশন একটি অলাভজনক ও সম্পূর্ণ দাতব্য সংস্থা যা মানুষের কল্যাণ, শিক্ষা বিস্তার, ও দুস্থদের কর্মসংস্থান তৈরিতে নিরলসভাবে কাজ করে যাচ্ছে। আপনার একটি ছোট অনুদান বদলে দিতে পারে একটি অসহায় পরিবারের ভাগ্য।',
     'cta_primary_text'   => 'আজই শরীক হোন',
     'cta_secondary_text' => 'আমাদের লক্ষ্য জানুন',
-    'stat_1_number'      => '১৭০০+',
+    'stat_1_number'      => '1700',
     'stat_1_label'       => 'উপকারভোগী মানুষ',
-    'stat_2_number'      => '১০+',
+    'stat_2_number'      => '10',
     'stat_2_label'       => 'সক্রিয় প্রজেক্ট',
-    'stat_3_number'      => '১০০%',
+    'stat_3_number'      => '100',
     'stat_3_label'       => 'স্বচ্ছতা ও আমানত',
-    'stat_4_number'      => '১০০+',
+    'stat_4_number'      => '100',
     'stat_4_label'       => 'নিবন্ধিত ভলান্টিয়ার'
 ];
 
@@ -229,7 +229,7 @@ if (!$hero) {
           <span class="text-xs font-bold text-slate-400 uppercase">Stat Box 1</span>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Number / Value</label>
-            <input type="text" name="stat_1_number" value="<?php echo htmlspecialchars($hero['stat_1_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <input type="number" name="stat_1_number" value="<?php echo htmlspecialchars($hero['stat_1_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Label Text</label>
@@ -242,7 +242,7 @@ if (!$hero) {
           <span class="text-xs font-bold text-slate-400 uppercase">Stat Box 2</span>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Number / Value</label>
-            <input type="text" name="stat_2_number" value="<?php echo htmlspecialchars($hero['stat_2_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <input type="number" name="stat_2_number" value="<?php echo htmlspecialchars($hero['stat_2_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Label Text</label>
@@ -255,7 +255,7 @@ if (!$hero) {
           <span class="text-xs font-bold text-slate-400 uppercase">Stat Box 3</span>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Number / Value</label>
-            <input type="text" name="stat_3_number" value="<?php echo htmlspecialchars($hero['stat_3_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <input type="number" name="stat_3_number" value="<?php echo htmlspecialchars($hero['stat_3_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Label Text</label>
@@ -268,7 +268,7 @@ if (!$hero) {
           <span class="text-xs font-bold text-slate-400 uppercase">Stat Box 4</span>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Number / Value</label>
-            <input type="text" name="stat_4_number" value="<?php echo htmlspecialchars($hero['stat_4_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <input type="number" name="stat_4_number" value="<?php echo htmlspecialchars($hero['stat_4_number']); ?>" class="w-full text-sm font-bold text-emerald-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Label Text</label>
