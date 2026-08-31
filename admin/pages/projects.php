@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     // ----------------------------------------------------
     // Activity Delete প্রসেসিং (FIXED)
     // ----------------------------------------------------
-    if ($_POST['action_type'] === 'delete_activity') {
+    if (isset($_POST['action_type'])) {
         $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
 
         if ($delete_id > 0) {
@@ -435,6 +435,26 @@ $activities_result = mysqli_query($db, "SELECT * FROM activities $where_clause O
 </div>
 
 <script>
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Data Attributes থেকে id এবং title রিড করা
+            const id = this.getAttribute('data-id');
+            const title = this.getAttribute('data-title');
+
+            // Modals-এর hidden input এবং title text সেট করা
+            document.getElementById('delete_id_input').value = id;
+            document.getElementById('deleteItemTitle').textContent = title;
+
+            // Modal ওপেন করা (hidden class রিমুভ করে)
+            document.getElementById('deleteModal').classList.remove('hidden');
+        });
+    });
+
+    // Modal বন্ধ করার ফাংশন
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+
     function openActivityModal() {
         document.getElementById('activity_id').value = '';
         document.getElementById('form_title').value = '';
@@ -463,11 +483,7 @@ $activities_result = mysqli_query($db, "SELECT * FROM activities $where_clause O
         document.getElementById('activityModal').classList.add('hidden');
     }
 
-    function openDeleteModal(id, title) {
-        document.getElementById('delete_id_input').value = id;
-        document.getElementById('deleteItemTitle').textContent = title;
-        document.getElementById('deleteModal').classList.remove('hidden');
-    }
+
 
     function closeDeleteModal() {
         document.getElementById('deleteModal').classList.add('hidden');
@@ -482,15 +498,6 @@ $activities_result = mysqli_query($db, "SELECT * FROM activities $where_clause O
             } catch (e) {
                 console.error('Failed to parse activity data', e);
             }
-        });
-    });
-
-    // ---- Bind Delete buttons (data-attribute based, safe from quote-breaking) ----
-    document.querySelectorAll('.delete-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var id = btn.getAttribute('data-id');
-            var title = btn.getAttribute('data-title');
-            openDeleteModal(id, title);
         });
     });
 </script>
