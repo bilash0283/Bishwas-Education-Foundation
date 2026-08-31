@@ -63,10 +63,10 @@
                 <!-- Right Header: Actions & User Profile -->
                 <div class="flex items-center gap-4">
                     <!-- Global Add Button -->
-                    <button onclick="openContentModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-all duration-200">
+                    <!-- <button onclick="openContentModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-all duration-200">
                         <i class="fa-solid fa-plus text-xs"></i>
                         <span class="hidden sm:inline">Add Content</span>
-                    </button>
+                    </button> -->
                     <!-- User Profile -->
                     <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
                         <img class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500 shadow-sm" src="https://ui-avatars.com/api/?name=Bilash+Vai&background=059669&color=fff" alt="User Avatar">
