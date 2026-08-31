@@ -105,7 +105,7 @@
                 style="scrollbar-width: none; -ms-overflow-style: none;">
 
                 <?php
-                    $query = "SELECT * FROM activities ORDER BY id DESC";
+                    $query = "SELECT * FROM activities WHERE status = 'active' ORDER BY id DESC";
                     $result = mysqli_query($db, $query);
 
                     if ($result && mysqli_num_rows($result) > 0) {
