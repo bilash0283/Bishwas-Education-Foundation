@@ -37,7 +37,7 @@
 
             <!-- Right Side: Donation + Login/Profile + Mobile Menu -->
             <div class="flex items-center space-x-3 sm:space-x-4">
-                <a href="index.php#projects"
+                <a href="donation.php" title="অনুদান দিন"
                     class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full font-semibold shadow-md transition duration-300 flex items-center space-x-2">
                     <i class="fa-solid fa-heart"></i>
                     <span class="hidden sm:inline">অনুদান দিন</span>
