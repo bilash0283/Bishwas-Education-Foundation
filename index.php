@@ -104,92 +104,60 @@
                 class="flex overflow-x-auto gap-6 scroll-smooth snap-x snap-mandatory pb-6 px-4 no-scrollbar"
                 style="scrollbar-width: none; -ms-overflow-style: none;">
 
+                <?php
+                    $query = "SELECT * FROM activities ORDER BY id DESC";
+                    $result = mysqli_query($db, $query);
+
+                    if ($result && mysqli_num_rows($result) > 0) {
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            
+                            // ২. প্রতিটি কলামকে ভেরিয়েবলে সাজানো (XSS Protection সহ)
+                            $id          = (int)$row['id'];
+                            $title       = htmlspecialchars($row['title'] ?? '', ENT_QUOTES, 'UTF-8');
+                            $badge_text  = htmlspecialchars($row['badge_text'] ?? '', ENT_QUOTES, 'UTF-8');
+                            $status      = htmlspecialchars($row['status'] ?? 'active', ENT_QUOTES, 'UTF-8');
+                            $description = htmlspecialchars($row['description'] ?? '', ENT_QUOTES, 'UTF-8');
+                            $created_at  = htmlspecialchars($row['created_at'] ?? '', ENT_QUOTES, 'UTF-8'); // যদি টেবিলে থাকে
+                            
+                            // ৩. ইমেজের জন্য ডিফল্ট হ্যান্ডলিং
+                            $raw_image   = $row['image'] ?? '';
+                            $image       = (!empty($raw_image) && file_exists('admin/'.$raw_image)) 
+                                            ? htmlspecialchars('admin/'.$raw_image, ENT_QUOTES, 'UTF-8') 
+                                            : 'admin/public/project_img/default.jpg'; // ডিফল্ট ছবি
+
+                            // ৪. স্ট্যাটাস অনুযায়ী ব্যাজের রঙ/স্টাইল ভেরিয়েবল (ঐচ্ছিক UI সাজানোর জন্য)
+                            $status_badge_class = ($status === 'active') 
+                                                ? 'bg-emerald-100 text-emerald-700' 
+                                                : 'bg-rose-100 text-rose-700';
+                    
+
+                ?>
                 <!-- কার্ড ১ -->
                 <div
                     class="min-w-[290px] mouse sm:min-w-[350px] md:min-w-[380px] max-w-[380px] bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden snap-start flex flex-col justify-between">
                     <div>
                         <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=600"
-                                alt="বৃক্ষরোপণ" class="w-full h-full object-cover">
+                            <img src="<?= $image ?>"
+                                alt="<?= $badge_text ?? '' ?>" class="w-full h-full object-cover">
                         </div>
                         <div class="p-6 space-y-3">
                             <div class="flex items-center space-x-1 space-x-reverse text-amber-600 text-sm font-medium">
                                 <i class="fa-solid fa-rocket text-xs mr-1"></i>
-                                <span>নিয়মিত কার্যক্রম</span>
+                                <span><?= $badge_text ?? '' ?></span>
                             </div>
-                            <h3 class="text-2xl font-bold text-slate-800">বৃক্ষরোপণ</h3>
-                            <p class="text-gray-500 text-base leading-relaxed line-clamp-3">
-                                গাছ লাগিয়ে সবুজ পৃথিবী গড়ার এই মহতী উদ্যোগে শামিল হতে পারেন আপনিও। একটি গাছের চারা হতে
-                                পারে আপনার জন্য সদকায়ে জারিয়ার মাধ্যম...
+                            <h3 class="text-2xl font-bold text-slate-800"><?= htmlspecialchars($row['title'] ?? '', ENT_QUOTES, 'UTF-8') ?></h3>
+                            <p class="text-gray-500 text-base leading-relaxed">
+                                <?= htmlspecialchars(mb_strimwidth($description ?? '', 0, 100, '...'), ENT_QUOTES, 'UTF-8') ?>
                             </p>
                         </div>
                     </div>
                 </div>
-
-                <!-- কার্ড ২ -->
-                <div
-                    class="min-w-[290px] sm:min-w-[350px] md:min-w-[380px] max-w-[380px] bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden snap-start flex flex-col justify-between">
-                    <div>
-                        <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="public/assets/gallery_img/12.jpg"
-                                alt="সবার জন্য খাদ্য ও বস্ত্র" class="w-full h-full object-cover">
-                        </div>
-                        <div class="p-6 space-y-3">
-                            <div class="flex items-center space-x-1 space-x-reverse text-amber-600 text-sm font-medium">
-                                <i class="fa-solid fa-rocket text-xs mr-1"></i>
-                                <span>নিয়মিত কার্যক্রম</span>
-                            </div>
-                            <h3 class="text-2xl font-bold text-slate-800">সবার জন্য খাদ্য ও বস্ত্র</h3>
-                            <p class="text-gray-500 text-base leading-relaxed line-clamp-3">
-                                অসহায় ও সুবিধাবঞ্চিত মানুষের পাশে থেকে তাদের খাদ্য ও বস্ত্রের মৌলিক চাহিদা পূরণে নিরলসভাবে কাজ করাই আমাদের অঙ্গীকার। মানবিক সহায়তার মাধ্যমে প্রতিটি মানুষের জীবনে স্বস্তি ও আশার আলো পৌঁছে দেওয়াই আমাদের লক্ষ্য...
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- কার্ড 3 -->
-                <div
-                    class="min-w-[290px] sm:min-w-[350px] md:min-w-[380px] max-w-[380px] bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden snap-start flex flex-col justify-between">
-                    <div>
-                        <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="public/assets/gallery_img/100.jpeg"
-                                alt="শিক্ষা প্রজেক্ট" class="w-full h-full object-cover">
-                        </div>
-                        <div class="p-6 space-y-3">
-                            <div class="flex items-center space-x-1 space-x-reverse text-amber-600 text-sm font-medium">
-                                <i class="fa-solid fa-rocket text-xs mr-1"></i>
-                                <span>নিয়মিত কার্যক্রম</span>
-                            </div>
-                            <h3 class="text-2xl font-bold text-slate-800">সুবিধাবঞ্চিত শিশুদের শিক্ষা</h3>
-                            <p class="text-gray-500 text-base leading-relaxed line-clamp-3">
-                                আলোর দিশারী হয়ে সুবিধাবঞ্চিত শিশুদের মাঝে বিনামূল্যে দ্বীনি ও সাধারণ শিক্ষার আলো ছড়িয়ে
-                                দেওয়ার চমৎকার একটি চলমান প্রজেক্ট...
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- কার্ড 4 -->
-                <div
-                    class="min-w-[290px] sm:min-w-[350px] md:min-w-[380px] max-w-[380px] bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden snap-start flex flex-col justify-between">
-                    <div>
-                        <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="public/assets/gallery_img/400.jpeg"
-                                alt="শিক্ষা প্রজেক্ট" class="w-full h-full object-cover">
-                        </div>
-                        <div class="p-6 space-y-3">
-                            <div class="flex items-center space-x-1 space-x-reverse text-amber-600 text-sm font-medium">
-                                <i class="fa-solid fa-rocket text-xs mr-1"></i>
-                                <span>নিয়মিত কার্যক্রম</span>
-                            </div>
-                            <h3 class="text-2xl font-bold text-slate-800">আল-কুরআন শিক্ষা কেন্দ্র ও গবেষণাগার </h3>
-                            <p class="text-gray-500 text-base leading-relaxed line-clamp-3">
-                                আমাদের ফাউন্ডেশনের এই চলমান প্রকল্পে শিশু-কিশোরদের কুরআন শিক্ষা, হিফজ এবং নৈতিক শিক্ষার মাধ্যমে আদর্শবান মানুষ হিসেবে গড়ে তোলার জন্য নিয়মিত কার্যক্রম পরিচালনা করা হয়।
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
+                <?php  
+                        } // while loop end
+                    } else {
+                        echo '<p class="text-gray-500 text-center w-full">কোনো কার্যক্রম পাওয়া যায়নি।</p>';
+                    }
+                ?>
             </div>
         </div>
     </section>
