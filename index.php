@@ -323,19 +323,29 @@
         </div>
     </section>
 
-    <!-- Volunter Section -->
+   <?php
+    // ডাটাবেস থেকে Volunteer CTA সেটিংস নিয়ে আসা
+    $volunteer_cta_query = mysqli_query($db, "SELECT * FROM volunteer_cta_settings ORDER BY id ASC LIMIT 1");
+    $volunteer_cta_data  = mysqli_fetch_assoc($volunteer_cta_query);
+
+    // ডাইনামিক ডাটা অথবা ফলব্যাক ডিফল্ট মান
+    $vol_title       = $volunteer_cta_data['banner_title']       ?? 'আপনিও হতে পারেন আমাদের একজন গর্বিত ভলান্টিয়ার';
+    $vol_description = $volunteer_cta_data['banner_description'] ?? 'আপনার মেধা, সময় ও শ্রম দিয়ে মানবতার সেবায় অবদান রাখুন। দেশব্যাপী আমাদের বিভিন্ন সামাজিক ও ধর্মীয় উদ্যোগে স্বেচ্ছাসেবক হিসেবে কাজ করতে আজই নিবন্ধন করুন।';
+    $vol_button_text = $volunteer_cta_data['button_text']        ?? 'ভলান্টিয়ার হিসেবে যোগ দিন';
+    ?>
+
+    <!-- Volunteer Section -->
     <section id="volunteer" class="py-20 lg:px-10 px-4 bg-emerald-600 text-white text-center relative overflow-hidden">
         <div class="container mx-auto px-4 max-w-3xl space-y-6 relative z-10">
-            <h2 class="text-3xl md:text-4xl font-bold">আপনিও হতে পারেন আমাদের একজন গর্বিত ভলান্টিয়ার</h2>
+            <h2 class="text-3xl md:text-4xl font-bold"><?= htmlspecialchars($vol_title) ?></h2>
             <p class="text-emerald-100 text-lg leading-relaxed">
-                আপনার মেধা, সময় ও শ্রম দিয়ে মানবতার সেবায় অবদান রাখুন। দেশব্যাপী আমাদের বিভিন্ন সামাজিক ও ধর্মীয়
-                উদ্যোগে স্বেচ্ছাসেবক হিসেবে কাজ করতে আজই নিবন্ধন করুন।
+                <?= htmlspecialchars($vol_description) ?>
             </p>
             <div class="pt-4">
-                <a href="#"
+                <a href="volunteer_register.php"
                     class="bg-white text-emerald-700 hover:bg-gray-100 font-bold px-8 py-3.5 rounded-xl shadow-lg transition duration-300 inline-flex items-center space-x-2">
                     <i class="fa-solid fa-user-plus"></i>
-                    <span>ভলান্টিয়ার হিসেবে যোগ দিন</span>
+                    <span><?= htmlspecialchars($vol_button_text) ?></span>
                 </a>
             </div>
         </div>
