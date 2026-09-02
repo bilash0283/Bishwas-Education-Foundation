@@ -247,10 +247,12 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Category</label>
                     <select name="category" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="relief">ত্রাণ ও সাহায্য</option>
-                        <option value="event">ইভেন্ট</option>
-                        <option value="education">শিক্ষা</option>
-                        <option value="general">সাধারণ</option>
+                        <option value="সাধারণ তহবিল">সাধারণ তহবিল</option>
+                        <option value="নিয়মিত অনুদান তহবিল">নিয়মিত অনুদান তহবিল</option>
+                        <option value="যাকাত তহবিল">যাকাত তহবিল</option>
+                        <option value="জরুরি ত্রাণ তহবিল">জরুরি ত্রাণ তহবিল</option>
+                        <option value="শিক্ষা তহবিল">শিক্ষা তহবিল</option>
+                        <option value="অন্যান্য তহবিল">অন্যান্য তহবিল</option>
                     </select>
                 </div>
             </div>
