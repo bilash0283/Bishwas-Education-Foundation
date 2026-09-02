@@ -257,36 +257,67 @@
         </div>
     </section>
 
-    <!-- About Me -->
+    <?php
+    // ডাটাবেস থেকে সেটিং তুলে আনা
+    $about_query = mysqli_query($db, "SELECT * FROM about_vision ORDER BY id ASC LIMIT 1");
+    $about_data  = mysqli_fetch_assoc($about_query);
+
+    // ডাটাবেসে তথ্য না থাকলে ডিফল্ট ডাটা ফলব্যাক হিসেবে ব্যবহার হবে
+    $top_subtitle = !empty($about_data['top_subtitle']) ? $about_data['top_subtitle'] : 'আমাদের লক্ষ্য ও উদ্দেশ্য';
+    $main_title   = !empty($about_data['main_title']) ? $about_data['main_title'] : 'একটি আদর্শ ও আত্মনির্ভরশীল সমাজ বিনির্মাণ';
+    $description  = !empty($about_data['description']) ? $about_data['description'] : 'বিশ্বাস এডুকেশন ফাউন্ডেশন (Bishwas Education Foundation.) একটি সম্পূর্ণ অরাজনৈতিক ও জনকল্যাণমূলক সেবা সংস্থা। সমাজের অবহেলিত ও দরিদ্র শ্রেণির মানুষের মৌলিক চাহিদা পূরণ এবং তাদের কারিগরি শিক্ষার মাধ্যমে স্বাবলম্বী করে তোলাই আমাদের মূল ব্রত।';
+    $point_1      = !empty($about_data['point_1']) ? $about_data['point_1'] : 'স্বচ্ছ ও জবাবদিহিতামূলক তহবিল বণ্টন ব্যবস্থা।';
+    $point_2      = !empty($about_data['point_2']) ? $about_data['point_2'] : 'জ্ঞান, নৈতিকতা ও মানবিক মূল্যবোধের বিকাশ।';
+    $point_3      = !empty($about_data['point_3']) ? $about_data['point_3'] : 'দক্ষতা বৃদ্ধি ও বেকারত্ব দূরীকরণে প্রশিক্ষণ ইনস্টিটিউট।';
+    $quote_badge  = !empty($about_data['quote_badge']) ? $about_data['quote_badge'] : '"মানব সেবাই ইসলামের মূল শিক্ষা।"';
+    $image_src    = !empty($about_data['image']) ? $about_data['image'] : 'public/assets/gallery_img/img-1.jpg';
+    ?>
+
+    <!-- About Me Section -->
     <section id="about" class="bg-gray-100 lg:px-10 px-4 py-20">
         <div class="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
             <div class="relative">
-                <img src="public/assets/gallery_img/img-1.jpg" alt="About Bishwas Education Foundation"
+                <img src="admin/<?= htmlspecialchars($image_src) ?>" alt="<?= htmlspecialchars($main_title) ?>"
                     class="rounded-2xl shadow-xl w-full object-cover h-[400px]">
-                <div
-                    class="absolute -bottom-6 -right-6 bg-emerald-600 text-white p-6 rounded-2xl hidden lg:block shadow-lg max-w-[250px]">
-                    <p class="text-xl font-bold">"মানব সেবাই ইসলামের মূল শিক্ষা।"</p>
-                </div>
+                <?php if (!empty($quote_badge)): ?>
+                    <div class="absolute -bottom-6 -right-6 bg-emerald-600 text-white p-6 rounded-2xl hidden lg:block shadow-lg max-w-[250px]">
+                        <p class="text-xl font-bold">" <?= htmlspecialchars($quote_badge) ?> "</p>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="space-y-6">
                 <div class="space-y-2">
-                    <h3 class="text-emerald-600 font-bold uppercase tracking-wider text-sm">আমাদের লক্ষ্য ও উদ্দেশ্য
+                    <h3 class="text-emerald-600 font-bold uppercase tracking-wider text-sm">
+                        <?= htmlspecialchars($top_subtitle) ?>
                     </h3>
-                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">একটি আদর্শ ও আত্মনির্ভরশীল সমাজ বিনির্মাণ
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
+                        <?= htmlspecialchars($main_title) ?>
                     </h2>
                 </div>
                 <p class="text-gray-700 leading-relaxed">
-                    বিশ্বাস এডুকেশন ফাউন্ডেশন (Bishwas Education Foundation.) একটি সম্পূর্ণ অরাজনৈতিক ও জনকল্যাণমূলক
-                    সেবা সংস্থা। সমাজের অবহেলিত ও দরিদ্র শ্রেণির মানুষের মৌলিক চাহিদা পূরণ এবং তাদের কারিগরি শিক্ষার
-                    মাধ্যমে স্বাবলম্বী করে তোলাই আমাদের মূল ব্রত।
+                    <?= nl2br(htmlspecialchars($description)) ?>
                 </p>
                 <ul class="space-y-3 font-medium text-gray-800">
-                    <li class="flex items-center space-x-3"><i class="fa-solid fa-circle-check text-emerald-600"></i>
-                        <span>স্বচ্ছ ও জবাবদিহিতামূলক তহবিল বণ্টন ব্যবস্থা।</span></li>
-                    <li class="flex items-center space-x-3"><i class="fa-solid fa-circle-check text-emerald-600"></i>
-                        <span>জ্ঞান, নৈতিকতা ও মানবিক মূল্যবোধের বিকাশ।</span></li>
-                    <li class="flex items-center space-x-3"><i class="fa-solid fa-circle-check text-emerald-600"></i>
-                        <span>দক্ষতা বৃদ্ধি ও বেকারত্ব দূরীকরণে প্রশিক্ষণ ইনস্টিটিউট।</span></li>
+                    <?php if (!empty($point_1)): ?>
+                        <li class="flex items-center space-x-3">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span><?= htmlspecialchars($point_1) ?></span>
+                        </li>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($point_2)): ?>
+                        <li class="flex items-center space-x-3">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span><?= htmlspecialchars($point_2) ?></span>
+                        </li>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($point_3)): ?>
+                        <li class="flex items-center space-x-3">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span><?= htmlspecialchars($point_3) ?></span>
+                        </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>
