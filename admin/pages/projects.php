@@ -97,12 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         exit;
     }
 
-    // ----------------------------------------------------
-    // Activity Delete প্রসেসিং (FIXED)
-    // ----------------------------------------------------
-    if (isset($_POST['action_type'])) {
-        $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
-
+    //  Delete প্রসেসিং (FIXED)
+    if (isset($_POST['action_type'])) {  $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
         if ($delete_id > 0) {
             // ১. ছবি খুঁজে বের করে ডিলিট করা
             $stmt = mysqli_prepare($db, "SELECT image FROM activities WHERE id = ?");
@@ -482,8 +478,6 @@ $activities_result = mysqli_query($db, "SELECT * FROM activities $where_clause O
     function closeActivityModal() {
         document.getElementById('activityModal').classList.add('hidden');
     }
-
-
 
     function closeDeleteModal() {
         document.getElementById('deleteModal').classList.add('hidden');
