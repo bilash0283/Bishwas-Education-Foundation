@@ -358,56 +358,35 @@
                 <p class="text-gray-600">আমাদের বিভিন্ন প্রজেক্ট, ত্রাণ বিতরণ এবং মানবিক উদ্যোগের কিছু বাস্তব চিত্র নিচে তুলে ধরা হলো।</p>
             </div>
 
+           <?php
+            // ১. ডাটাবেস সংযোগ (যদি ফাইলে পূর্বে কানেক্ট না করা থাকে)
+            // include 'database/db.php';
+
+            // ২. একটিভ ছবিগুলো ডাটাবেস থেকে ফেচ করা
+            $gallery_query = "SELECT * FROM galleries WHERE status = 'active' ORDER BY id DESC";
+            $gallery_result = mysqli_query($db, $gallery_query);
+            ?>
+
             <!-- গ্যালারি গ্রিড -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
-                <!-- ছবি ১ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/5.jpg">
-                    <img src="public/assets/gallery_img/5.jpg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ২ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/6.jpg">
-                    <img src="public/assets/gallery_img/6.jpg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ৩ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/7.jpg">
-                    <img src="public/assets/gallery_img/7.jpg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ৪ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/8.jpg">
-                    <img src="public/assets/gallery_img/8.jpg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ৫ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/16.jpg">
-                    <img src="public/assets/gallery_img/16.jpg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ৬ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/100.jpeg">
-                    <img src="public/assets/gallery_img/100.jpeg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ৭ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/18.jpg">
-                    <img src="public/assets/gallery_img/18.jpg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
-
-                <!-- ছবি ৮ -->
-                <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
-                    data-src="public/assets/gallery_img/300.jpeg">
-                    <img src="public/assets/gallery_img/300.jpeg" alt="গ্যালারি ইমেজ" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                </div>
+                <?php if ($gallery_result && mysqli_num_rows($gallery_result) > 0): ?>
+                    <?php while ($row = mysqli_fetch_assoc($gallery_result)): ?>
+                        <?php 
+                            $img_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'admin/public/assets/gallery_img/default.jpg';
+                            $caption = !empty($row['caption']) ? htmlspecialchars($row['caption']) : 'গ্যালারি ইমেজ';
+                        ?>
+                        <!-- ছবি আইটেম -->
+                        <div class="gallery-item group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 aspect-[4/3] cursor-pointer"
+                            data-src="admin/<?= $img_src ?>">
+                            <img src="admin/<?= $img_src ?>" alt="<?= $caption ?>" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="col-span-full text-center py-8 text-slate-400">
+                        কোনো ছবি পাওয়া যায়নি।
+                    </div>
+                <?php endif; ?>
 
             </div>
         </div>
