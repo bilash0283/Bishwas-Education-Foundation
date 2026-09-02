@@ -161,7 +161,6 @@
             </div>
         </div>
     </section>
-
     <!-- Running Fund -->
     <section id="projects" class="py-20 lg:px-10 px-4 container mx-auto">
         <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
@@ -272,7 +271,6 @@
     $quote_badge  = !empty($about_data['quote_badge']) ? $about_data['quote_badge'] : '"মানব সেবাই ইসলামের মূল শিক্ষা।"';
     $image_src    = !empty($about_data['image']) ? $about_data['image'] : 'public/assets/gallery_img/img-1.jpg';
     ?>
-
     <!-- About Me Section -->
     <section id="about" class="bg-gray-100 lg:px-10 px-4 py-20">
         <div class="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
@@ -323,7 +321,7 @@
         </div>
     </section>
 
-   <?php
+    <?php
     // ডাটাবেস থেকে Volunteer CTA সেটিংস নিয়ে আসা
     $volunteer_cta_query = mysqli_query($db, "SELECT * FROM volunteer_cta_settings ORDER BY id ASC LIMIT 1");
     $volunteer_cta_data  = mysqli_fetch_assoc($volunteer_cta_query);
@@ -333,7 +331,6 @@
     $vol_description = $volunteer_cta_data['banner_description'] ?? 'আপনার মেধা, সময় ও শ্রম দিয়ে মানবতার সেবায় অবদান রাখুন। দেশব্যাপী আমাদের বিভিন্ন সামাজিক ও ধর্মীয় উদ্যোগে স্বেচ্ছাসেবক হিসেবে কাজ করতে আজই নিবন্ধন করুন।';
     $vol_button_text = $volunteer_cta_data['button_text']        ?? 'ভলান্টিয়ার হিসেবে যোগ দিন';
     ?>
-
     <!-- Volunteer Section -->
     <section id="volunteer" class="py-20 lg:px-10 px-4 bg-emerald-600 text-white text-center relative overflow-hidden">
         <div class="container mx-auto px-4 max-w-3xl space-y-6 relative z-10">
