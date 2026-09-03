@@ -405,121 +405,76 @@
         </div>
     </div>
 
+    <?php
+    // ড্যাটাবেজ কানেকশন চেক (যদি আপনার পেজের ওপরে অলরেডি ইনক্লুড থাকে তবে এটি বাদ দিতে পারেন)
+    if (!isset($db)) {
+        include 'database/db.php'; 
+    }
+
+    // ড্যাটাবেজ থেকে সর্বশেষ ৩টি অ্যাক্টিভ ব্লগ ফেচ করা
+    $blogs_query = "SELECT * FROM blogs WHERE status = 'active' ORDER BY id DESC LIMIT 3";
+    $blogs_result = mysqli_query($db, $blogs_query);
+    ?>
+
     <!-- Vlog/Blog Section -->
     <section id="vlogs" class="py-20 lg:px-10 px-4 bg-white">
         <div class="container mx-auto px-4">
             <!-- সেকশন হেডার -->
             <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900">আমাদের ব্লগসমূহ ও ডায়েরি</h2>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900">আমাদের ব্লগসমূহ ও ডায়েরি</h2>
                 <div class="h-1 w-20 bg-emerald-600 mx-auto rounded"></div>
-                <p class="text-gray-600">আমাদের মাঠপর্যায়ের কাজের আপডেট, ডকুমেন্টারি এবং সচেতনতামূলক বিভিন্ন ভিডিও ও
-                    নিবন্ধগুলো নিচে দেখে নিন।</p>
+                <p class="text-gray-600">আমাদের মাঠপর্যায়ের কাজের আপডেট, ডকুমেন্টারি এবং সচেতনতামূলক বিভিন্ন ভিডিও ও নিবন্ধগুলো নিচে দেখে নিন।</p>
             </div>
 
             <!-- ব্লগ গ্রিড লেআউট -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- কার্ড ১ -->
-                <div
-                    class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group transform hover:-translate-y-1">
-                    <!-- থাম্বনেইল ইমেজ এবং ভিডিও ব্যাজ -->
-                    <div class="relative aspect-[16/9] overflow-hidden bg-gray-100">
-                        <img src="public/assets/gallery_img/8.jpg"
-                            alt="ত্রাণ বিতরণের ডকুমেন্টারি"
-                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                    </div>
-                    <!-- কন্টেন্ট -->
-                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <div
-                                class="flex items-center space-x-2 space-x-reverse text-xs font-semibold text-gray-400">
-                                <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">ব্লগ</span>
-                                <span>•</span>
-                                <span>১০ জুলাই, ২০২৬</span>
+                <?php if ($blogs_result && mysqli_num_rows($blogs_result) > 0): ?>
+                    <?php while ($blog = mysqli_fetch_assoc($blogs_result)): 
+                        // ইমেজের পাথ ফিল্টার
+                        $image_src = !empty($blog['blog_image']) ? 'admin/' . htmlspecialchars($blog['blog_image']) : 'public/assets/gallery_img/8.jpg';
+                    ?>
+                        <!-- ডায়নামিক ব্লগ কার্ড -->
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group transform hover:-translate-y-1">
+                            
+                            <!-- থাম্বনেইল ইমেজ -->
+                            <div class="relative aspect-[16/9] overflow-hidden bg-gray-100">
+                                <img src="<?= $image_src ?>"
+                                    alt="<?= htmlspecialchars($blog['blog_title']) ?>"
+                                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                             </div>
-                            <h3
-                                class="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition">
-                                শীতের উষ্ণতা পৌঁছে যাক সবার জীবনে
-                            </h3>
-                            <p class="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                                শীতের তীব্রতায় কষ্ট পাওয়া দুঃস্থ, অসহায় ও সুবিধাবঞ্চিত মানুষের পাশে দাঁড়িয়ে তাদের মাঝে শীতবস্ত্র ও প্রয়োজনীয় সহায়তা পৌঁছে দেওয়ার মাধ্যমে মানবতা, ভালোবাসা ও সহমর্মিতার উষ্ণতা ছড়িয়ে দেওয়াই আমাদের অঙ্গীকার
-                            </p>
-                        </div>
-                        <a href="#"
-                            class="inline-flex items-center space-x-2 space-x-reverse text-sm font-bold text-emerald-600 hover:text-emerald-700 transition pt-2">
-                            <span>বিস্তারিত পড়ুন</span>
-                            <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </a>
-                    </div>
-                </div>
 
-                <!-- কার্ড ২ -->
-                <div
-                    class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group transform hover:-translate-y-1">
-                    <!-- থাম্বনেইল ইমেজ -->
-                    <div class="relative aspect-[16/9] overflow-hidden bg-gray-100">
-                        <img src="public/assets/gallery_img/3.jpg"
-                            alt="এতিম শিশুদের গল্প"
-                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                    </div>
-                    <!-- কন্টেন্ট -->
-                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <div
-                                class="flex items-center space-x-2 space-x-reverse text-xs font-semibold text-gray-400">
-                                <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">ব্লগ</span>
-                                <span>•</span>
-                                <span>০৫ জুলাই, ২০২৬</span>
+                            <!-- কন্টেন্ট -->
+                            <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                                <div class="space-y-2">
+                                    <div class="flex items-center space-x-2 text-xs font-semibold text-gray-400">
+                                        <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">
+                                            <?= htmlspecialchars($blog['category'] ?? 'ব্লগ') ?>
+                                        </span>
+                                        <span>•</span>
+                                        <span><?= htmlspecialchars($blog['publish_date']) ?></span>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition">
+                                        <?= htmlspecialchars($blog['blog_title']) ?>
+                                    </h3>
+                                    <p class="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                                        <?= htmlspecialchars($blog['short_description']) ?>
+                                    </p>
+                                </div>
+                                
+                                <a href="blog-details.php?id=<?= $blog['id'] ?>"
+                                class="inline-flex items-center space-x-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition pt-2">
+                                    <span>বিস্তারিত পড়ুন</span>
+                                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                                </a>
                             </div>
-                            <h3
-                                class="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition">
-                                একটি শিশুর ভবিষ্যৎ গড়ার আনন্দ: এতিমখানা প্রজেক্টের গল্প
-                            </h3>
-                            <p class="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                                সমাজের অবহেলিত শিশুদের দ্বীনি ও আধুনিক শিক্ষায় শিক্ষিত করে তুলতে আমাদের দীর্ঘমেয়াদী
-                                পরিকল্পনার রূপরেখা এবং আপনার দায়িত্ব।
-                            </p>
-                        </div>
-                        <a href="#"
-                            class="inline-flex items-center space-x-2 space-x-reverse text-sm font-bold text-emerald-600 hover:text-emerald-700 transition pt-2">
-                            <span>বিস্তারিত পড়ুন</span>
-                            <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </a>
-                    </div>
-                </div>
 
-                <!-- কার্ড ৩ -->
-                <div
-                    class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group transform hover:-translate-y-1">
-                    <!-- থাম্বনেইল ইমেজ এবং ভিডিও ব্যাজ -->
-                    <div class="relative aspect-[16/9] overflow-hidden bg-gray-100">
-                        <img src="public/assets/gallery_img/19.jpg"
-                            alt="বিশুদ্ধ পানির প্রজেক্ট ডকুমেন্টারি"
-                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                    </div>
-                    <!-- কন্টেন্ট -->
-                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <div
-                                class="flex items-center space-x-2 space-x-reverse text-xs font-semibold text-gray-400">
-                                <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">ব্লগ</span>
-                                <span>•</span>
-                                <span>২২ জুন, ২০২৬</span>
-                            </div>
-                            <h3
-                                class="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition">
-                                মানবতার সেবায় খাদ্য ও বিশুদ্ধ পানির সহায়তা
-                            </h3>
-                            <p class="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                                অসহায়, দুঃস্থ ও অবহেলিত মানুষের মৌলিক চাহিদা পূরণে খাদ্য ও বিশুদ্ধ পানি পৌঁছে দিয়ে তাদের জীবনে স্বস্তি, নিরাপত্তা ও মানবিক সহায়তার বার্তা ছড়িয়ে দেওয়াই আমাদের অঙ্গীকার।
-                            </p>
                         </div>
-                        <a href="#"
-                            class="inline-flex items-center space-x-2 space-x-reverse text-sm font-bold text-emerald-600 hover:text-emerald-700 transition pt-2">
-                            <span>বিস্তারিত পড়ুন</span>
-                            <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </a>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        বর্তমানে কোনো প্রকাশিত ব্লগ পাওয়া যায়নি।
                     </div>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </section>
