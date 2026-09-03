@@ -27,9 +27,7 @@ function get_bengali_date() {
     return $day_bn . ' ' . $month_bn . ', ' . $year_bn; // যেমন: ৩ সেপ্টেম্বর, ২০২৬
 }
 
-// ----------------------------------------------------
 // ১. Blog Add / Update / Delete Processing
-// ----------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 
     // --- Save or Update Blog Post ---
@@ -109,32 +107,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         exit;
     }
 
-    // --- Delete Blog Post ---
-    if ($_POST['action_type'] === 'delete_blog') {
-        $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
 
+
+    //  Delete প্রসেসিং (FIXED)
+    if (isset($_POST['action_type'])) {  $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
         if ($delete_id > 0) {
-            // ১. ছবি ফাইল ডিলিট
+            // ১. ছবি খুঁজে বের করে ডিলিট করা
             $stmt = mysqli_prepare($db, "SELECT blog_image FROM blogs WHERE id = ?");
             if ($stmt) {
                 mysqli_stmt_bind_param($stmt, "i", $delete_id);
                 mysqli_stmt_execute($stmt);
                 $res = mysqli_stmt_get_result($stmt);
+
                 if ($res && ($row = mysqli_fetch_assoc($res))) {
-                    if (!empty($row['blog_image']) && file_exists($row['blog_image'])) {
-                        @unlink($row['blog_image']);
+                    $img_path = $row['blog_image'];
+                    if (!empty($img_path) && file_exists($img_path)) {
+                        @unlink($img_path);
                     }
                 }
                 mysqli_stmt_close($stmt);
+            } else {
+                db_log_error($db, "delete image select prepare");
             }
 
-            // ২. রেকর্ড ডিলিট
+            // ২. রেকর্ড ডিলিট করা
             $del_stmt = mysqli_prepare($db, "DELETE FROM blogs WHERE id = ?");
             if ($del_stmt) {
                 mysqli_stmt_bind_param($del_stmt, "i", $delete_id);
-                mysqli_stmt_execute($del_stmt);
+                if (!mysqli_stmt_execute($del_stmt)) {
+                    db_log_error($db, "delete blog execute");
+                }
                 mysqli_stmt_close($del_stmt);
+            } else {
+                db_log_error($db, "delete blog prepare");
             }
+        } else {
+            error_log("[Blogs Page] delete_blog called with invalid delete_id: " . ($_POST['delete_id'] ?? 'not set'));
         }
 
         if (ob_get_length()) ob_end_clean();
@@ -300,10 +308,11 @@ $blogs_result = mysqli_query($db, "SELECT * FROM blogs $where_clause ORDER BY id
                                             data-blog='<?= json_encode($row, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'>
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    <button type="button" 
-                                            onclick="openDeleteModal(<?= (int)$row['id'] ?>)" 
-                                            class="text-slate-400 hover:text-rose-600 p-1.5 transition-colors" 
-                                            title="Delete">
+                                    <button type="button"
+                                        class="delete-btn text-slate-400 hover:text-rose-600 p-1.5 transition-colors"
+                                        title="Delete"
+                                        data-id="<?= (int)$row['id'] ?>"
+                                        data-title="<?= htmlspecialchars($row['blog_title'], ENT_QUOTES) ?>">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
@@ -416,23 +425,48 @@ $blogs_result = mysqli_query($db, "SELECT * FROM blogs $where_clause ORDER BY id
 
 <!-- Delete Confirmation Modal -->
 <div id="deleteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl border border-slate-200 shadow-2xl w-full max-w-md p-6 text-center">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden p-6 text-center">
         <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl mx-auto mb-4">
             <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
-        <h3 class="text-lg font-bold text-slate-800 mb-2">আপনি কি এই ব্লগটি মুছে ফেলতে চান?</h3>
-        <p class="text-sm text-slate-500 mb-6">এই কাজটি আর ফিরিয়ে আনা সম্ভব হবে না।</p>
-        
-        <form method="POST" action="" class="flex items-center justify-center gap-3">
-            <input type="hidden" name="action_type" value="delete_blog">
-            <input type="hidden" name="delete_id" id="delete_blog_id" value="0">
-            <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
-            <button type="submit" class="px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg">Confirm Delete</button>
+        <h3 class="text-lg font-bold text-slate-800 mb-2">আপনি কি নিশ্চিত?</h3>
+        <p class="text-xs text-slate-500 mb-6"><b id="deleteItemTitle" class="text-slate-700"></b> আইটেমটি স্থায়ীভাবে ডিলিট হয়ে যাবে!</p>
+
+        <form action="" method="POST" class="flex items-center justify-center gap-3">
+            <input type="hidden" name="action_type" value="delete_activity">
+            <input type="hidden" name="delete_id" id="delete_id_input" value="">
+
+            <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                বাতিল করুন
+            </button>
+            <button type="submit" class="px-4 py-2 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow transition-colors">
+                হ্যাঁ, ডিলিট করুন
+            </button>
         </form>
     </div>
 </div>
 
 <script>
+        document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Data Attributes থেকে id এবং title রিড করা
+            const id = this.getAttribute('data-id');
+            const title = this.getAttribute('data-title');
+
+            // Modals-এর hidden input এবং title text সেট করা
+            document.getElementById('delete_id_input').value = id;
+            document.getElementById('deleteItemTitle').textContent = title;
+
+            // Modal ওপেন করা (hidden class রিমুভ করে)
+            document.getElementById('deleteModal').classList.remove('hidden');
+        });
+    });
+
+    // Modal বন্ধ করার ফাংশন
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+
     function openBlogModal() {
         document.getElementById('blog_id').value = 0;
         document.getElementById('blog_title').value = '';
@@ -446,15 +480,6 @@ $blogs_result = mysqli_query($db, "SELECT * FROM blogs $where_clause ORDER BY id
 
     function closeBlogModal() {
         document.getElementById('blogModal').classList.add('hidden');
-    }
-
-    function openDeleteModal(id) {
-        document.getElementById('delete_blog_id').value = id;
-        document.getElementById('deleteModal').classList.remove('hidden');
-    }
-
-    function closeDeleteModal() {
-        document.getElementById('deleteModal').classList.add('hidden');
     }
 
     // Edit Button JavaScript Handler
