@@ -107,8 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         exit;
     }
 
-
-
     //  Delete প্রসেসিং (FIXED)
     if (isset($_POST['action_type'])) {  $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
         if ($delete_id > 0) {
