@@ -55,40 +55,6 @@
         </div>
     </div>
 
-    <!-- 1. Section Header Settings Card -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
-        <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-            <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-heading text-emerald-600"></i>
-                Section Header & Subtitle Settings
-            </h3>
-            <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-1 rounded-full">Frontend Display</span>
-        </div>
-        <form action="update_blog_header.php" method="POST" class="p-6 space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Section Title</label>
-                    <input type="text" name="section_title" value="আমাদের ব্লগসমূহ ও ডায়রি" required 
-                        placeholder="যেমন: আমাদের ব্লগসমূহ ও ডায়রি" 
-                        class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Section Subtitle / Description</label>
-                    <textarea name="section_subtitle" rows="2" required 
-                        placeholder="যেমন: আমাদের মাঠপর্যায়ের কাজের আপডেট..." 
-                        class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">আমাদের মাঠপর্যায়ের কাজের আপডেট, ডকুমেন্টারি এবং সচেতনতামূলক বিভিন্ন ভিডিও ও নিবন্ধগুলো নিচে দেখে নিন।</textarea>
-                </div>
-            </div>
-            <div class="flex justify-end pt-2">
-                <button type="submit" 
-                    class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg shadow text-xs transition-all">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    Update Section Header
-                </button>
-            </div>
-        </form>
-    </div>
-
     <!-- 2. Blog Posts Table Card -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
         
