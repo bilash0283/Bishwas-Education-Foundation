@@ -1,6 +1,31 @@
 <?php
 ob_start();
+
+// ড্যাটাবেজ কানেকশন
 include '../database/db.php';
+
+// ---------- Helper: Log DB Errors ----------
+function db_log_error($db, $label) {
+    error_log("[Blog Page] $label mysqli error: " . mysqli_error($db));
+}
+
+// ---------- Helper: English Date to Bengali Date String ----------
+function get_bengali_date() {
+    $en_months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    $bn_months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+    $en_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    $bn_numbers = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+
+    $day   = date('j');
+    $month = date('F');
+    $year  = date('Y');
+
+    $day_bn   = str_replace($en_numbers, $bn_numbers, $day);
+    $month_bn = str_replace($en_months, $bn_months, $month);
+    $year_bn  = str_replace($en_numbers, $bn_numbers, $year);
+
+    return $day_bn . ' ' . $month_bn . ', ' . $year_bn; // যেমন: ৩ সেপ্টেম্বর, ২০২৬
+}
 
 // ----------------------------------------------------
 // ১. Blog Add / Update / Delete Processing
@@ -12,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $id                = isset($_POST['blog_id']) ? (int)$_POST['blog_id'] : 0;
         $blog_title        = mysqli_real_escape_string($db, trim($_POST['blog_title'] ?? ''));
         $category          = mysqli_real_escape_string($db, trim($_POST['category'] ?? 'ব্লগ'));
-        $publish_date      = mysqli_real_escape_string($db, trim($_POST['publish_date'] ?? ''));
+        $publish_date      = get_bengali_date(); // কারেন্ট তারিখ অটোমেটিক তৈরি হবে
         $short_description = mysqli_real_escape_string($db, trim($_POST['short_description'] ?? ''));
         $full_content      = mysqli_real_escape_string($db, trim($_POST['full_content'] ?? ''));
         $status            = mysqli_real_escape_string($db, trim($_POST['status'] ?? 'active'));
@@ -21,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 
         // ইমেজ আপলোড প্রসেসিং
         if (isset($_FILES['blog_image']) && $_FILES['blog_image']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = 'uploads/';
+            $upload_dir = 'public/blogs_img/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -54,14 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         if ($id > 0) {
             // Update Query
             if (!empty($image_name)) {
-                $stmt = mysqli_prepare($db, "UPDATE blogs SET blog_title=?, category=?, publish_date=?, blog_image=?, short_description=?, full_content=?, status=? WHERE id=?");
+                $stmt = mysqli_prepare($db, "UPDATE blogs SET blog_title=?, category=?, blog_image=?, short_description=?, full_content=?, status=? WHERE id=?");
                 if ($stmt) {
-                    mysqli_stmt_bind_param($stmt, "sssssssi", $blog_title, $category, $publish_date, $image_name, $short_description, $full_content, $status, $id);
+                    mysqli_stmt_bind_param($stmt, "ssssssi", $blog_title, $category, $image_name, $short_description, $full_content, $status, $id);
                 }
             } else {
-                $stmt = mysqli_prepare($db, "UPDATE blogs SET blog_title=?, category=?, publish_date=?, short_description=?, full_content=?, status=? WHERE id=?");
+                $stmt = mysqli_prepare($db, "UPDATE blogs SET blog_title=?, category=?, short_description=?, full_content=?, status=? WHERE id=?");
                 if ($stmt) {
-                    mysqli_stmt_bind_param($stmt, "ssssssi", $blog_title, $category, $publish_date, $short_description, $full_content, $status, $id);
+                    mysqli_stmt_bind_param($stmt, "sssssi", $blog_title, $category, $short_description, $full_content, $status, $id);
                 }
             }
 
@@ -70,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 mysqli_stmt_close($stmt);
             }
         } else {
-            // Insert Query
+            // Insert Query (কারেন্ট পব্লিশ ডেট সেভ হবে)
             $stmt = mysqli_prepare($db, "INSERT INTO blogs (blog_title, category, publish_date, blog_image, short_description, full_content, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
             if ($stmt) {
                 mysqli_stmt_bind_param($stmt, "sssssss", $blog_title, $category, $publish_date, $image_name, $short_description, $full_content, $status);
@@ -80,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         }
 
         if (ob_get_length()) ob_end_clean();
-        header("Location: dashboard.php?page=blog");
+        header("Location: dashboard.php?page=blogs");
         exit;
     }
 
@@ -113,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         }
 
         if (ob_get_length()) ob_end_clean();
-        header("Location: dashboard.php?page=blog");
+        header("Location: dashboard.php?page=blogs");
         exit;
     }
 }
@@ -348,17 +373,10 @@ $blogs_result = mysqli_query($db, "SELECT * FROM blogs $where_clause ORDER BY id
                     class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Category Tag</label>
-                    <input type="text" name="category" id="category" value="ব্লগ" required placeholder="যেমন: ব্লগ, ডায়রি, খবর" 
-                        class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Publish Date</label>
-                    <input type="text" name="publish_date" id="publish_date" placeholder="যেমন: ১০ জুলাই, ২০২৩" required 
-                        class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Category Tag</label>
+                <input type="text" name="category" id="category" value="ব্লগ" required placeholder="যেমন: ব্লগ, ডায়রি, খবর" 
+                    class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
             <div>
@@ -419,7 +437,6 @@ $blogs_result = mysqli_query($db, "SELECT * FROM blogs $where_clause ORDER BY id
         document.getElementById('blog_id').value = 0;
         document.getElementById('blog_title').value = '';
         document.getElementById('category').value = 'ব্লগ';
-        document.getElementById('publish_date').value = '';
         document.getElementById('short_description').value = '';
         document.getElementById('full_content').value = '';
         document.getElementById('blog_image').required = true;
@@ -449,7 +466,6 @@ $blogs_result = mysqli_query($db, "SELECT * FROM blogs $where_clause ORDER BY id
                 document.getElementById('blog_id').value = data.id;
                 document.getElementById('blog_title').value = data.blog_title || '';
                 document.getElementById('category').value = data.category || 'ব্লগ';
-                document.getElementById('publish_date').value = data.publish_date || '';
                 document.getElementById('short_description').value = data.short_description || '';
                 document.getElementById('full_content').value = data.full_content || '';
                 
