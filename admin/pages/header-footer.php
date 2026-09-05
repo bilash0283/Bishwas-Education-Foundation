@@ -62,6 +62,12 @@
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Footer Text / Description</label>
                         <textarea name="footer_about_text" rows="3" required class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">একটি স্বচ্ছ, নির্ভরযোগ্য ও অলাভজনক দাতব্য প্রতিষ্ঠান, যা মানবতার কল্যাণ ও ইসলামের সুমহান আদর্শ প্রসারে কাজ করছে।</textarea>
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Footer Text / Social Media Title</label>
+                        <textarea name="footer_social_title" rows="3" required class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">আমাদের কাজের সর্বশেষ আপডেট জানতে যুক্ত থাকুন।</textarea>
+                    </div>
+
                 </div>
 
                 <!-- Right Side: Social Media Links -->
