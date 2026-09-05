@@ -99,11 +99,6 @@
                         <input type="text" name="phone_number" value="+৮৮০ ১৭১৫-৪৮২৩৬৩" required 
                             placeholder="যেমন: +৮৮০ ১৭১৫-৪৮২৩৬৩" 
                             class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3">
-                        
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">সাপোর্ট ঘণ্টা (Optional)</label>
-                        <input type="text" name="support_hours" value="সকাল ৯টা - সন্ধ্যা ৬টা" 
-                            placeholder="যেমন: সকাল ৯টা - সন্ধ্যা ৬টা" 
-                            class="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
 
                     <!-- Email Address -->
@@ -114,11 +109,6 @@
                         <input type="email" name="email_address" value="info@bishwas.org" required 
                             placeholder="যেমন: info@bishwas.org" 
                             class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3">
-
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">বিকল্প ইমেইল (Optional)</label>
-                        <input type="email" name="alt_email_address" value="support@bishwas.org" 
-                            placeholder="যেমন: support@bishwas.org" 
-                            class="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
                 </div>
             </div>
@@ -132,13 +122,6 @@
                     <textarea name="google_map_url" rows="3" required 
                         placeholder="Google Maps Embed URL..." 
                         class="w-full text-xs bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3651.5367... (Google Map Embed Link)</textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Form Notification Email</label>
-                    <input type="email" name="form_receiver_email" value="info@bishwas.org" required 
-                        placeholder="যে ইমেইলে ফর্মের মেসেজগুলো যাবে" 
-                        class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-2">
-                    <p class="text-xs text-slate-400">ইউজাররা যোগাযোগের ফর্মে কোনো মেসেজ পাঠালে এই ইমেইলে তা ফরওয়ার্ড হবে।</p>
                 </div>
             </div>
 
