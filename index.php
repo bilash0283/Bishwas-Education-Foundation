@@ -492,53 +492,77 @@
 
             <div class="grid lg:grid-cols-3 gap-10 items-start">
                 <!-- বাম পাশ: যোগাযোগের তথ্য (২ কলাম জুড়ে বড় স্ক্রিনে দেখাতে পারেন বা ১ কলাম) -->
+                <?php
+                    $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
+
+                    if ($connection) {
+                        mysqli_set_charset($connection, "utf8mb4");
+                        
+                        // ২. ডাটাবেস থেকে কনট্যাক্ট ইনফরমেশন ফেচ করা (ID = 1)
+                        $sql = "SELECT * FROM contact_settings WHERE id = 1 LIMIT 1";
+                        $result = mysqli_query($connection, $sql);
+                        $contact_data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+                    }
+
+                    // ৩. ডাটা না পাওয়া গেলে ফলব্যাক ডিফল্ট ভ্যালু
+                    $office_address = $contact_data['office_address'] ?? '১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ';
+                    $phone_number   = $contact_data['phone_number'] ?? '+৮৮০ ১৭১৫-৪৮২৩৬৩';
+                    $email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
+                    $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd';
+                ?>
+
                 <div class="lg:col-span-1 space-y-6">
-                    <div
-                        class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                    <!-- কার্যালয়ের ঠিকানা -->
+                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="fa-solid fa-location-dot"></i>
                         </div>
                         <div class="space-y-1">
-                            <h4 class="text-lg font-bold text-gray-900">কার্যালয়ের ঠিকানা</h4>
-                            <p class="text-gray-600 text-sm leading-relaxed">১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ
+                            <h4 class="text-lg font-bold text-gray-900">কার্যালয়ের ঠিকানা</h4>
+                            <p class="text-gray-600 text-sm leading-relaxed">
+                                <?php echo htmlspecialchars($office_address); ?>
                             </p>
                         </div>
                     </div>
 
-                    <div
-                        class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                    <!-- সরাসরি ফোন করুন -->
+                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="fa-solid fa-phone"></i>
                         </div>
                         <div class="space-y-1">
                             <h4 class="text-lg font-bold text-gray-900">সরাসরি ফোন করুন</h4>
-                            <p class="text-gray-600 text-sm">+৮৮০ ১৭১৫-৪৮২৩৬৩</p>
+                            <p class="text-gray-600 text-sm">
+                                <a href="tel:<?php echo htmlspecialchars($phone_number); ?>" class="hover:text-emerald-600 transition-colors">
+                                    <?php echo htmlspecialchars($phone_number); ?>
+                                </a>
+                            </p>
                         </div>
                     </div>
 
-                    <div
-                        class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                    <!-- ইমেইল করুন -->
+                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="fa-solid fa-envelope"></i>
                         </div>
                         <div class="space-y-1">
                             <h4 class="text-lg font-bold text-gray-900">ইমেইল করুন</h4>
-                            <p class="text-gray-600 text-sm">info@bishwas.org</p>
+                            <p class="text-gray-600 text-sm">
+                                <a href="mailto:<?php echo htmlspecialchars($email_address); ?>" class="hover:text-emerald-600 transition-colors">
+                                    <?php echo htmlspecialchars($email_address); ?>
+                                </a>
+                            </p>
                         </div>
                     </div>
 
-                    <!-- গুগল ম্যাপের জন্য ডামি প্লেসহোল্ডার (আপনি চাইলে আসল ম্যাপ ইমবেড করতে পারেন) -->
-                    <div
-                        class="bg-gray-100 rounded-2xl h-48 overflow-hidden relative shadow-inner border border-gray-200 group">
-                        <div
-                            class="absolute inset-0 bg-emerald-950/10 z-10 pointer-events-none group-hover:bg-transparent transition duration-300">
-                        </div>
+                    <!-- গুগল ম্যাপ (Dynamic Embed Source) -->
+                    <div class="bg-gray-100 rounded-2xl h-48 overflow-hidden relative shadow-inner border border-gray-200 group">
+                        <div class="absolute inset-0 bg-emerald-950/10 z-10 pointer-events-none group-hover:bg-transparent transition duration-300"></div>
                         <iframe class="w-full h-full border-0"
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            src="<?php echo htmlspecialchars($google_map_url); ?>" 
+                            width="600" height="450" style="border:0;" 
+                            allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
                     </div>
                 </div>
 
