@@ -1,3 +1,16 @@
+<?php
+    include 'database/db.php';
+    // ২. ডাটাবেস থেকে বর্তমান সেটিংস লোড করা (ID = 1)
+    $sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($db, $sql);
+    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+
+    // ডিফল্ট ভ্যালু সেটআপ
+    $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
+    $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
+    $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
+?>
+
 <?php include 'database/db.php'; ?>
 <!DOCTYPE html>
 <html lang="bn" class="scroll-smooth">
@@ -5,8 +18,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bishwas Education Foundation.</title>
-    <link rel="icon" href="public/assets/logo.png" type="image/png">
+    <title><?php echo htmlspecialchars($site_title); ?></title>
+    <link rel="icon" href="public/assets/<?php echo htmlspecialchars($favicon_icon); ?>" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +33,7 @@
             <!-- Logo -->
             <div class="flex items-center space-x-3 space-x-reverse">
                 <a href="index.php" class="text-2xl font-bold text-emerald-600 flex items-center space-x-2">
-                    <img src="public/assets/logo_BG.png" alt="Logo" class="h-12">
+                    <img src="public/assets/<?php echo htmlspecialchars($site_logo); ?>" alt="Logo" class="h-12">
                 </a>
             </div>
 
