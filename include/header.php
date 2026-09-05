@@ -9,6 +9,15 @@
     $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
     $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
     $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
+
+
+    //header button text 
+    $sql = "SELECT * FROM site_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($db, $sql);
+    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+
+    // ইনপুট ফিল্ডের ভ্যালু সেট করা (ডাটা না থাকলে ডিফল্ট মান ব্যবহার হবে)
+    $donate_btn_text   = $data['donate_btn_text'] ?? $default_donate_btn_text;
 ?>
 
 <?php include 'database/db.php'; ?>
@@ -53,7 +62,7 @@
                 <a href="donation.php" title="অনুদান দিন"
                     class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full font-semibold shadow-md transition duration-300 flex items-center space-x-2">
                     <i class="fa-solid fa-heart"></i>
-                    <span class="hidden sm:inline">অনুদান দিন</span>
+                    <span class="hidden sm:inline"><?php echo htmlspecialchars($donate_btn_text); ?></span>
                 </a>
 
                 <!-- Login / Profile Icon -->
@@ -81,7 +90,7 @@
         <div class="p-4 border-b flex justify-between items-center">
             <div class="flex items-center space-x-3 space-x-reverse">
                 <a href="#" class="text-2xl font-bold text-emerald-600 flex items-center space-x-2">
-                    <img src="public/assets/logo_BG.png" alt="Logo" class="h-12">
+                    <img src="public/assets/<?php echo htmlspecialchars($site_logo); ?>" alt="Logo" class="h-12">
                 </a>
             </div>
             <button id="close-btn" class="text-gray-500 hover:text-red-600 text-2xl focus:outline-none">
