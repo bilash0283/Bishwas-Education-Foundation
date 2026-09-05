@@ -33,13 +33,25 @@
     $linkedin_url      = $data['linkedin_url'] ?? $default_linkedin_url;
 ?>
 
+<?php
+    // ২. ডাটাবেস থেকে বর্তমান সেটিংস লোড করা (ID = 1)
+    $sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($db, $sql);
+    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+
+    // ডিফল্ট ভ্যালু সেটআপ
+    $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
+    $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
+    $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
+?>
+
 <!-- Footer -->
 <footer id="contact" class="bg-gray-900 lg:px-10 px-4 text-gray-400 pt-16 pb-8 border-t border-gray-800">
     <div
         class="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 pb-12 border-b border-gray-800">
         <div class="space-y-4">
             <a href="#" class="text-xl font-bold text-white flex items-center space-x-2">
-                <img src="public/assets/logo_BG.png" alt="Logo" class="h-12 rounded-md border border-gray-700">
+                <img src="public/assets/<?php echo htmlspecialchars($site_logo); ?>" alt="Logo" class="h-12 rounded-md border border-gray-700">
             </a>
             <p class="text-sm leading-relaxed">
                 <?php echo htmlspecialchars($footer_about_text); ?>
@@ -85,7 +97,7 @@
     </div>
 
     <div class="container mx-auto px-4 pt-8 text-center text-sm text-gray-600">
-        <p>&copy; 2026 Bishwas Education Foundation.</p>
+        <p>&copy; 2026 <?php echo htmlspecialchars($site_title); ?>.</p>
     </div>
 </footer>
 <script src="./assets/main.js"></script>
