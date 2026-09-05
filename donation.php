@@ -5,7 +5,7 @@
         
         <div class="p-6 md:p-8 bg-slate-50 flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-slate-100">
             <h3 class="text-lg font-bold text-slate-800 mb-2 text-center">
-                স্ক্যান করে পেমেন্ট করুন
+                Bangla QR দিয়ে পেমেন্ট করুন
             </h3>
             <p class="text-xs text-slate-500 mb-4 text-center">
                 যেকোনো ব্যাংক অ্যাপ বা MFS (bKash, Nagad, Rocket) অ্যাপ দিয়ে স্ক্যান করুন
