@@ -490,30 +490,59 @@
                     আমাদের প্রতিনিধি দ্রুত আপনার সাথে যোগাযোগ করবেন।</p>
             </div>
 
-            <div class="grid lg:grid-cols-3 gap-10 items-start">
-                <!-- বাম পাশ: যোগাযোগের তথ্য (২ কলাম জুড়ে বড় স্ক্রিনে দেখাতে পারেন বা ১ কলাম) -->
-                <?php
-                    $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
+            <?php
+                $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
+                $success_msg = "";
+                $error_msg   = "";
 
-                    if ($connection) {
-                        mysqli_set_charset($connection, "utf8mb4");
-                        
-                        // ২. ডাটাবেস থেকে কনট্যাক্ট ইনফরমেশন ফেচ করা (ID = 1)
-                        $sql = "SELECT * FROM contact_settings WHERE id = 1 LIMIT 1";
-                        $result = mysqli_query($connection, $sql);
-                        $contact_data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+                if ($connection) {
+                    mysqli_set_charset($connection, "utf8mb4");
+
+                    // ১. ফর্ম সাবমিশন হ্যান্ডলিং
+                    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_contact'])) {
+                        $name    = trim($_POST['name'] ?? '');
+                        $email   = trim($_POST['email'] ?? '');
+                        $phone   = trim($_POST['phone'] ?? '');
+                        $subject = trim($_POST['subject'] ?? '');
+                        $message = trim($_POST['message'] ?? '');
+
+                        if (!empty($name) && !empty($email) && !empty($phone) && !empty($subject) && !empty($message)) {
+                            // Prepared Statement ব্যবহার করে ডাটাবেজে ডাটা ইনসার্ট
+                            $stmt = mysqli_prepare($connection, "INSERT INTO contact_messages (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)");
+                            if ($stmt) {
+                                mysqli_stmt_bind_param($stmt, "sssss", $name, $email, $phone, $subject, $message);
+                                if (mysqli_stmt_execute($stmt)) {
+                                    $success_msg = "ধন্যবাদ <strong>" . htmlspecialchars($name) . "</strong>! আপনার বার্তাটি আমরা পেয়েছি। আমাদের প্রতিনিধি দ্রুত আপনার সাথে যোগাযোগ করবেন।";
+                                } else {
+                                    $error_msg = "দুঃখিত, কোনো সমস্যা হয়েছে! বার্তা পাঠানো যায়নি।";
+                                }
+                                mysqli_stmt_close($stmt);
+                            } else {
+                                $error_msg = "ডাটাবেজ ক্যোয়ারিতে সমস্যা তৈরি হয়েছে!";
+                            }
+                        } else {
+                            $error_msg = "অনুগ্রহ করে ফর্মের সকল ঘর সঠিকভাবে পূরণ করুন।";
+                        }
                     }
 
-                    // ৩. ডাটা না পাওয়া গেলে ফলব্যাক ডিফল্ট ভ্যালু
-                    $office_address = $contact_data['office_address'] ?? '১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ';
-                    $phone_number   = $contact_data['phone_number'] ?? '+৮৮০ ১৭১৫-৪৮২৩৬৩';
-                    $email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
-                    $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd';
-                ?>
+                    // ২. ডাটাবেজ থেকে কনট্যাক্ট ইনফরমেশন ফেচ করা (ID = 1)
+                    $sql = "SELECT * FROM contact_settings WHERE id = 1 LIMIT 1";
+                    $result = mysqli_query($connection, $sql);
+                    $contact_data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+                }
 
+                // ৩. ডাটা না পাওয়া গেলে ফলFallback ডিফল্ট ভ্যালু
+                $office_address = $contact_data['office_address'] ?? '১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ';
+                $phone_number   = $contact_data['phone_number'] ?? '+৮৮০ ১৭১৫-৪৮২৩৬৩';
+                $email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
+                $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd';
+            ?>
+
+            <div class="grid lg:grid-cols-3 gap-10 items-start">
+                <!-- বাম পাশ: যোগাযোগের তথ্য -->
                 <div class="lg:col-span-1 space-y-6">
                     <!-- কার্যালয়ের ঠিকানা -->
-                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
+                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start gap-4">
                         <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="fa-solid fa-location-dot"></i>
                         </div>
@@ -526,7 +555,7 @@
                     </div>
 
                     <!-- সরাসরি ফোন করুন -->
-                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
+                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start gap-4">
                         <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="fa-solid fa-phone"></i>
                         </div>
@@ -541,7 +570,7 @@
                     </div>
 
                     <!-- ইমেইল করুন -->
-                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start space-x-4 gap-4 space-x-reverse">
+                    <div class="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex items-start gap-4">
                         <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="fa-solid fa-envelope"></i>
                         </div>
@@ -568,7 +597,24 @@
 
                 <!-- ডান পাশ: কন্টাক্ট ফর্ম -->
                 <div class="lg:col-span-2 bg-gray-50 border border-gray-100 p-8 rounded-3xl shadow-sm">
-                    <form action="#" method="POST" class="space-y-6">
+                    
+                    <!-- সাফল্যের মেসেজ প্রদর্শন -->
+                    <?php if (!empty($success_msg)): ?>
+                        <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3">
+                            <i class="fa-solid fa-circle-check text-2xl text-emerald-600"></i>
+                            <div><?php echo $success_msg; ?></div>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- এরর মেসেজ প্রদর্শন (যদি থাকে) -->
+                    <?php if (!empty($error_msg)): ?>
+                        <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 flex items-center gap-3">
+                            <i class="fa-solid fa-circle-exclamation text-2xl text-red-600"></i>
+                            <div><?php echo $error_msg; ?></div>
+                        </div>
+                    <?php endif; ?>
+
+                    <form action="#contact" method="POST" class="space-y-6">
                         <div class="grid sm:grid-cols-2 gap-6">
                             <!-- নাম -->
                             <div class="space-y-2">
@@ -591,15 +637,15 @@
                                 <input type="tel" id="phone" name="phone" placeholder="০১৬XXXXXXXX" required
                                     class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition bg-white">
                             </div>
-                            <!-- বিষয় -->
+                            <!-- বিষয় -->
                             <div class="space-y-2">
-                                <label for="subject" class="text-sm font-semibold text-gray-700">যোগাযোগের বিষয়</label>
+                                <label for="subject" class="text-sm font-semibold text-gray-700">যোগাযোগের বিষয়</label>
                                 <select id="subject" name="subject" required
                                     class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition bg-white text-gray-600">
-                                    <option value="" disabled selected>একটি বিষয় নির্বাচন করুন</option>
+                                    <option value="" disabled selected>একটি বিষয় নির্বাচন করুন</option>
                                     <option value="donation">অনুদান সংক্রান্ত</option>
                                     <option value="zakat">যাকাত ফান্ড</option>
-                                    <option value="volunteer">ভলান্টিয়ার হতে চাই</option>
+                                    <option value="volunteer">ভলান্টিয়ার হতে চাই</option>
                                     <option value="other">অন্যান্য জিজ্ঞাসা</option>
                                 </select>
                             </div>
@@ -614,7 +660,7 @@
                         </div>
 
                         <!-- সাবমিট বাটন -->
-                        <button type="submit"
+                        <button type="submit" name="submit_contact"
                             class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-md hover:shadow-lg transition duration-300 flex items-center justify-center space-x-2 transform hover:-translate-y-0.5">
                             <i class="fa-solid fa-paper-plane"></i>
                             <span>মেসেজ পাঠান</span>
