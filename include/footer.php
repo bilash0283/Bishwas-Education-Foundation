@@ -87,11 +87,18 @@
             <h4 class="text-white font-semibold uppercase tracking-wider text-sm">সোশ্যাল মিডিয়া</h4>
             <p class="text-sm"><?php echo htmlspecialchars($footer_social_title); ?></p>
             <div class="flex space-x-4 text-xl">
-                <a href="<?php echo htmlspecialchars($facebook_url); ?>" target="_blank"
-                    class="hover:text-white text-gray-500 transition"><i class="fa-brands fa-facebook"></i></a>
-                <a href="<?php echo htmlspecialchars($youtube_url); ?>" class="hover:text-white text-gray-500 transition"><i class="fa-brands fa-youtube"></i></a>
-                <a href="<?php echo htmlspecialchars($twitter_url); ?>" class="hover:text-white text-gray-500 transition"><i class="fa-brands fa-twitter"></i></a>
-                <a href="<?php echo htmlspecialchars($linkedin_url); ?>" class="hover:text-white text-gray-500 transition"><i class="fa-brands fa-linkedin"></i></a>
+                <a href="<?php echo htmlspecialchars($facebook_url); ?>" target="_blank" class="hover:text-white text-gray-500 transition">
+                    <i class="fa-brands fa-facebook"></i>
+                </a>
+                <a href="<?php echo htmlspecialchars($youtube_url); ?>" target="_blank" class="hover:text-white text-gray-500 transition">
+                    <i class="fa-brands fa-youtube"></i>
+                </a>
+                <a href="<?php echo htmlspecialchars($twitter_url); ?>" target="_blank" class="hover:text-white text-gray-500 transition">
+                    <i class="fa-brands fa-twitter"></i>
+                </a>
+                <a href="<?php echo htmlspecialchars($linkedin_url); ?>" target="_blank" class="hover:text-white text-gray-500 transition">
+                    <i class="fa-brands fa-linkedin"></i>
+                </a>
             </div>
         </div>
     </div>
