@@ -4,6 +4,20 @@
         header("Location: index.php");
         exit();
     }
+
+    include '../database/db.php';
+    // ২. ডাটাবেস থেকে বর্তমান সেটিংস লোড করা (ID = 1)
+    $sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($db, $sql);
+    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+
+    // ডিফল্ট ভ্যালু সেটআপ
+    $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
+    $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
+    $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
+
+
+    
 ?>
 
 <!DOCTYPE html>
@@ -11,8 +25,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Bishwas Education Foundation</title>
-    <link rel="icon" href="../public/assets/logo.png" type="image/png">
+    <title>Admin Dashboard - <?php echo htmlspecialchars($site_title); ?></title>
+    <link rel="icon" href="../public/assets/<?php echo $favicon_icon; ?>" type="image/png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -41,10 +55,10 @@
                         <!-- Clean Rounded Logo Container Without Active Signal -->
                         <div class="w-11 h-11 shrink-0 rounded-full overflow-hidden flex items-center justify-center border border-slate-200/60 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:border-emerald-500/40">
                             <img 
-                                src="../public/assets/logo.png" 
+                                src="../public/assets/<?php echo $favicon_icon; ?>" 
                                 alt="Logo" 
                                 class="w-full h-full object-cover filter drop-shadow-sm transition-transform duration-300 group-hover:scale-110" 
-                                onerror="this.onerror=null; this.src='https://via.placeholder.com/44?text=BF';"
+                                onerror="this.onerror=null; this.src='../public/assets/<?php echo $favicon_icon; ?>';"
                             >
                         </div>
 
@@ -106,7 +120,7 @@
 
                 <!-- Dashboard Footer inside main scroll area -->
                 <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500 mt-auto">
-                    <p>&copy; 2026 bishwas.org - All Rights Reserved. Powered by Bishwas Foundation.</p>
+                    <p>&copy; 2026 <?php echo htmlspecialchars($site_title); ?> - All Rights Reserved.</p>
                 </footer>
             </main>
         </div>

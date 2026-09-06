@@ -21,6 +21,17 @@
             $error_message = "Invalid email or password.";
         }
     }
+
+    include '../database/db.php';
+    // ২. ডাটাবেস থেকে বর্তমান সেটিংস লোড করা (ID = 1)
+    $sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($db, $sql);
+    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+
+    // ডিফল্ট ভ্যালু সেটআপ
+    $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
+    $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
+    $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
 ?>
 
 
@@ -29,8 +40,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Bishwas Education Foundation</title>
-    <link rel="icon" href="../public/assets/logo.png" type="image/png">
+    <title>Admin Login - <?php echo htmlspecialchars($site_title); ?></title>
+    <link rel="icon" href="../public/assets/<?php echo $favicon_icon; ?>" type="image/png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -44,7 +55,7 @@
         <!-- Header Banner -->
         <div class="bg-emerald-600 p-6 text-center text-white relative">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-full mb-3 backdrop-blur-sm overflow-hidden p-2">
-                <img src="../public/assets/logo.png" alt="Logo" class="w-full h-full object-cover rounded-full">
+                <img src="../public/assets/<?php echo $favicon_icon; ?>" alt="Logo" class="w-full h-full object-cover rounded-full">
             </div>
             <h1 class="text-2xl font-bold tracking-wide">Welcome to Admin Panel</h1>
         </div>
@@ -100,7 +111,7 @@
 
         <!-- Footer -->
         <div class="bg-slate-50 border-t border-slate-100 py-4 text-center">
-            <p class="text-xs text-slate-500">&copy; Bishwas Education Foundation. All rights reserved.</p>
+            <p class="text-xs text-slate-500">&copy; <?php echo htmlspecialchars($site_title); ?>. All rights reserved.</p>
         </div>
 
     </div>
