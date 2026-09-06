@@ -44,7 +44,7 @@
                     <h1 class="font-bold text-lg leading-none tracking-tight text-slate-800 group-hover:text-emerald-600 transition-colors">
                         bishwas<span class="text-emerald-600 font-black">.org</span>
                     </h1>
-                    <span class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase block mt-0.5">
+                    <span class="text-[10px] text-slate-800 font-semibold tracking-wider uppercase block mt-0.5">
                         Foundation Portal
                     </span>
                 </div>
@@ -54,7 +54,7 @@
         <!-- Middle: Global Search -->
         <div class="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div class="relative w-full">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-800">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
                 <input type="text" placeholder="Search records, volunteers, or transactions..." class="w-full pl-9 pr-4 py-2 bg-slate-100/70 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition-all">
@@ -88,41 +88,41 @@
         <div id="sidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-20 hidden lg:hidden"></div>
 
         <!-- 2. SIDEBAR NAVIGATION (INDEPENDENT SCROLL - SLATE LIGHT/PROFESSIONAL) -->
-        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900/95 lg:bg-slate-900 text-slate-300 border-r border-slate-800 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col shrink-0 h-full">
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64  text-slate-300 border-r  transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col shrink-0 h-full">
             <!-- Sidebar Navigation Links with Independent Scroll -->
-            <div class="flex-1 overflow-y-auto mt-16 lg:mt-0 px-3 py-4 space-y-1 text-xs font-medium">
+            <div class="flex-1 bg-[#F8FAFC] overflow-y-auto mt-16 lg:mt-0 px-3 py-4 space-y-1 text-xs font-medium ">
                 
-                <div class="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Main Menu</div>
+                <div class="px-3 py-2 text-[10px] font-bold text-slate-800 uppercase tracking-wider">Main Menu</div>
 
                 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold shadow-sm transition-all">
                     <i class="fa-solid fa-chart-pie w-4 text-sm"></i> Dashboard Overview
                 </button>
 
-                <button onclick="switchTab('beneficiaries')" id="nav-beneficiaries" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all">
+                <button onclick="switchTab('beneficiaries')" id="nav-beneficiaries" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-slate-800 hover:text-slate-200 transition-all">
                     <i class="fa-solid fa-hand-holding-heart w-4 text-sm text-emerald-400"></i> Service Beneficiaries
                 </button>
 
-                <button onclick="switchTab('volunteers')" id="nav-volunteers" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all">
+                <button onclick="switchTab('volunteers')" id="nav-volunteers" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-slate-800 hover:text-slate-200 transition-all">
                     <i class="fa-solid fa-user-ninja w-4 text-sm text-teal-400"></i> Volunteers Team
                 </button>
 
-                <button onclick="switchTab('members')" id="nav-members" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all">
+                <button onclick="switchTab('members')" id="nav-members" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-slate-800 hover:text-slate-200 transition-all">
                     <i class="fa-solid fa-users-rectangle w-4 text-sm text-sky-400"></i> Members & Donors
                 </button>
 
-                <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Management</div>
+                <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-800 uppercase tracking-wider">Management</div>
 
-                <button onclick="switchTab('projects')" id="nav-projects" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all">
+                <button onclick="switchTab('projects')" id="nav-projects" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-slate-800 hover:text-slate-200 transition-all">
                     <i class="fa-solid fa-folder-open w-4 text-sm text-amber-400"></i> Projects & Funds
                 </button>
 
-                <button onclick="switchTab('reports')" id="nav-reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all">
+                <button onclick="switchTab('reports')" id="nav-reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-800 hover:bg-slate-800 hover:text-slate-200 transition-all">
                     <i class="fa-solid fa-file-invoice-dollar w-4 text-sm text-rose-400"></i> Reports & Audits
                 </button>
             </div>
 
             <!-- Sidebar Bottom Logout Footer -->
-            <div class="p-3 border-t border-slate-800 shrink-0">
+            <div class="p-3 bg-[#F8FAFC] shrink-0">
                 <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors text-xs font-semibold">
                     <i class="fa-solid fa-right-from-bracket w-4 text-sm"></i> Sign Out
                 </a>
@@ -148,28 +148,28 @@
                     <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-hand-holding-heart"></i></div>
                         <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase">Beneficiaries</p>
+                            <p class="text-[11px] font-bold text-slate-800 uppercase">Beneficiaries</p>
                             <h3 class="text-2xl font-bold text-slate-800 mt-0.5">1,700+</h3>
                         </div>
                     </div>
                     <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-user-ninja"></i></div>
                         <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase">Active Volunteers</p>
+                            <p class="text-[11px] font-bold text-slate-800 uppercase">Active Volunteers</p>
                             <h3 class="text-2xl font-bold text-slate-800 mt-0.5">100+</h3>
                         </div>
                     </div>
                     <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-users"></i></div>
                         <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase">Active Donors</p>
+                            <p class="text-[11px] font-bold text-slate-800 uppercase">Active Donors</p>
                             <h3 class="text-2xl font-bold text-slate-800 mt-0.5">450</h3>
                         </div>
                     </div>
                     <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-box-archive"></i></div>
                         <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase">Active Projects</p>
+                            <p class="text-[11px] font-bold text-slate-800 uppercase">Active Projects</p>
                             <h3 class="text-2xl font-bold text-slate-800 mt-0.5">10+</h3>
                         </div>
                     </div>
@@ -194,12 +194,12 @@
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <tr class="hover:bg-slate-50/80">
-                                    <td class="p-4 font-semibold text-slate-800">Billal Hossain <span class="block text-[10px] font-normal text-slate-400">Mirpur, Dhaka</span></td>
+                                    <td class="p-4 font-semibold text-slate-800">Billal Hossain <span class="block text-[10px] font-normal text-slate-800">Mirpur, Dhaka</span></td>
                                     <td class="p-4"><span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px]">Beneficiary</span></td>
                                     <td class="p-4">+8801700000000</td>
                                     <td class="p-4"><span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-bold text-[10px]">Pending</span></td>
                                     <td class="p-4 text-right space-x-1">
-                                        <button onclick="openDeleteModal('Billal Hossain')" class="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"><i class="fa-solid fa-trash"></i></button>
+                                        <button onclick="openDeleteModal('Billal Hossain')" class="p-1.5 text-slate-800 hover:text-rose-600 transition-colors"><i class="fa-solid fa-trash"></i></button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -296,7 +296,7 @@
                     <i class="fa-solid fa-square-plus text-emerald-400"></i>
                     <span id="modalTypeTitle">Add Record</span>
                 </h3>
-                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeAddModal()" class="text-slate-800 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form class="p-6 space-y-4" onsubmit="event.preventDefault(); closeAddModal();">
                 <div>
@@ -354,7 +354,7 @@
             // Remove active classes from navigation items
             document.querySelectorAll('.nav-item').forEach(btn => {
                 btn.classList.remove('bg-emerald-600', 'text-white', 'font-semibold', 'shadow-sm');
-                btn.classList.add('text-slate-400', 'hover:bg-slate-800', 'hover:text-slate-200');
+                btn.classList.add('text-slate-800', 'hover:bg-slate-800', 'hover:text-slate-200');
             });
 
             // Show current target page
@@ -363,7 +363,7 @@
             // Set current nav tab style
             const activeNav = document.getElementById(`nav-${tabId}`);
             activeNav.classList.add('bg-emerald-600', 'text-white', 'font-semibold', 'shadow-sm');
-            activeNav.classList.remove('text-slate-400', 'hover:bg-slate-800', 'hover:text-slate-200');
+            activeNav.classList.remove('text-slate-800', 'hover:bg-slate-800', 'hover:text-slate-200');
 
             // Auto-close drawer on mobile
             if (window.innerWidth < 1024) {
