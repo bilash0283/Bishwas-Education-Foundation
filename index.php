@@ -161,6 +161,7 @@
             </div>
         </div>
     </section>
+
     <!-- Running Fund -->
     <section id="projects" class="py-20 lg:px-10 px-4 container mx-auto">
         <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
@@ -188,68 +189,6 @@
                     <button
                         class="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white font-bold py-2.5 rounded-xl transition duration-300 flex items-center justify-center space-x-2">
                         <span>অনুদানে শরীক হোন</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- কার্ড ২ -->
-            <div
-                class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between overflow-hidden group">
-                <div class="p-6 space-y-4">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold shadow-sm">
-                        <i class="fa-solid fa-coins"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition">যাকাত তহবিল</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">সম্পূর্ণ শরীয়াহ সম্মত উপায়ে আপনার যাকাত সংগ্রহ
-                        করে তা দরিদ্র ও বেকার পরিবারের স্বাবলম্বী করার প্রজেক্টে ব্যয় করা হয়।</p>
-                </div>
-                <div class="p-6 pt-0">
-                    <button
-                        class="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white font-bold py-2.5 rounded-xl transition duration-300 flex items-center justify-center space-x-2">
-                        <span>যাকাত দিন</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- কার্ড ৩ -->
-            <div
-                class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between overflow-hidden group">
-                <div class="p-6 space-y-4">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold shadow-sm">
-                        <i class="fa-solid fa-calendar-check"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition">নিয়মিত অনুদান
-                        তহবিল</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">প্রতি মাসে বা সপ্তাহে নির্দিষ্ট অংকের টাকা
-                        স্বয়ংক্রিয়ভাবে দেওয়ার সুবিধা, যা ফাউন্ডেশনের স্থায়ী প্রজেক্টগুলোকে সচল রাখে।</p>
-                </div>
-                <div class="p-6 pt-0">
-                    <button
-                        class="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white font-bold py-2.5 rounded-xl transition duration-300 flex items-center justify-center space-x-2">
-                        <span>নিয়মিত দাতা হোন</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- কার্ড ৪ -->
-            <div
-                class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between overflow-hidden group">
-                <div class="p-6 space-y-4">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl font-bold shadow-sm">
-                        <i class="fa-solid fa-box-open"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition">সাধারণ তহবিল
-                    </h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">ফাউন্ডেশনের প্রশাসনিক খরচ, জনকল্যাণমূলক বহুমুখী
-                        প্রজেক্ট পরিচালনা এবং যেকোনো ভালো কাজের তাৎক্ষণিক সহায়তায় এই ফান্ড ব্যবহৃত হয়।</p>
-                </div>
-                <div class="p-6 pt-0">
-                    <button
-                        class="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white font-bold py-2.5 rounded-xl transition duration-300 flex items-center justify-center space-x-2">
-                        <span>সাধারণ অনুদান</span>
                     </button>
                 </div>
             </div>
@@ -406,16 +345,10 @@
     </div>
 
     <?php
-    // ড্যাটাবেজ কানেকশন চেক (যদি আপনার পেজের ওপরে অলরেডি ইনক্লুড থাকে তবে এটি বাদ দিতে পারেন)
-    if (!isset($db)) {
-        include 'database/db.php'; 
-    }
-
     // ড্যাটাবেজ থেকে সর্বশেষ ৩টি অ্যাক্টিভ ব্লগ ফেচ করা
     $blogs_query = "SELECT * FROM blogs WHERE status = 'active' ORDER BY id DESC LIMIT 3";
     $blogs_result = mysqli_query($db, $blogs_query);
     ?>
-
     <!-- Vlog/Blog Section -->
     <section id="vlogs" class="py-20 lg:px-10 px-4 bg-white">
         <div class="container mx-auto px-4">
