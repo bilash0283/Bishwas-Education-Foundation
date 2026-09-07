@@ -1,5 +1,12 @@
 <?php 
+    include '../database/db.php';
+    $sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($db, $sql);
+    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
 
+    $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
+    $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
+    $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
 
 ?>
 
@@ -8,8 +15,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bishwas Education Foundation - Admin Portal</title>
-    <link rel="icon" href="../public/assets/logo.png" type="image/png">
+    <title><?php echo $site_title; ?></title>
+    <link rel="icon" href="../public/assets/<?php echo $favicon_icon; ?>" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -34,7 +41,6 @@
 
     <!-- 1. FIXED TOP HEADER -->
     <header class="h-16 bg-white border-b border-slate-200/80 shadow-xs z-40 shrink-0 flex items-center justify-between px-4 lg:px-6">
-        
         <!-- Left: Mobile Menu & Logo -->
         <div class="flex items-center gap-3">
             <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded-lg transition-colors">
@@ -43,7 +49,7 @@
 
             <a href="#" class="flex items-center gap-3 group">
                 <div class="w-10 h-10 shrink-0 rounded-full overflow-hidden flex items-center justify-center border border-slate-200 shadow-xs group-hover:scale-105 transition-all">
-                    <img src="../public/assets/logo.png" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/40?text=BF';">
+                    <img src="../public/assets/<?php echo $favicon_icon; ?>" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/40?text=BF';">
                 </div>
                 <div class="hidden sm:block">
                     <h1 class="font-bold text-lg leading-none tracking-tight text-slate-800 group-hover:text-emerald-600 transition-colors">
