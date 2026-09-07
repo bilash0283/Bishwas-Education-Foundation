@@ -1,5 +1,4 @@
 <?php
-
 include '../database/db.php';
 
 // ১. ডাটা ইনসার্ট এবং আপডেট হ্যান্ডলিং (Prepared Statement সহ)
@@ -30,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_sector'])) {
     exit;
 }
 
- //  Delete প্রসেসিং (FIXED)
+//  Delete প্রসেসিং (FIXED)
 if (isset($_POST['action_type'])) {  $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
     if ($delete_id > 0) {
         // ২. রেকর্ড ডিলিট করা
@@ -100,7 +99,6 @@ $active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sector
 ?>
 
 <div class="p-4 sm:p-6 lg:p-8">
-    
     <!-- Header -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -158,7 +156,6 @@ $active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sector
 
     <!-- Table Card -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
-        
         <!-- Table Header Controls -->
         <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3">
@@ -273,14 +270,12 @@ $active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sector
             </div>
             <?php endif; ?>
         </div>
-
     </div>
 </div>
 
 <!-- ================= ADD / EDIT MODAL FORM ================= -->
 <div id="sectorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden">
-        
         <div class="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <h3 id="modalTitle" class="font-bold text-slate-800 text-lg flex items-center gap-2">
                 <i class="fa-solid fa-square-plus text-emerald-600"></i>

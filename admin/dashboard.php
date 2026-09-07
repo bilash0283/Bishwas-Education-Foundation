@@ -15,9 +15,6 @@
     $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
     $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
     $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
-
-
-    
 ?>
 
 <!DOCTYPE html>
