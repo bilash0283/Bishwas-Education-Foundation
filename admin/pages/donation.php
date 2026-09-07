@@ -182,7 +182,7 @@ $active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sector
                     <tr>
                         <th class="px-6 py-3.5">Icon & Title</th>
                         <th class="px-6 py-3.5">Description</th>
-                        <th class="px-6 py-3.5">Button Text & Link</th>
+                        <!-- <th class="px-6 py-3.5">Button Text & Link</th> -->
                         <th class="px-6 py-3.5">Status</th>
                         <th class="px-6 py-3.5 text-right">Actions</th>
                     </tr>
@@ -202,11 +202,11 @@ $active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sector
                             <td class="px-6 py-4">
                                 <p class="text-xs text-slate-500 line-clamp-2 max-w-xs"><?= htmlspecialchars($sector['description']); ?></p>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <!-- <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="bg-slate-100 text-slate-700 text-xs font-medium px-2.5 py-1 rounded border border-slate-200">
                                     <?= htmlspecialchars($sector['button_text']); ?> <span class="text-slate-400">(<?= htmlspecialchars($sector['button_link']); ?>)</span>
                                 </span>
-                            </td>
+                            </td> -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php if ($sector['status'] === 'active'): ?>
                                     <span class="text-emerald-600 bg-emerald-50 border border-emerald-200 text-xs font-semibold px-2.5 py-1 rounded-full">Active</span>
@@ -311,7 +311,7 @@ $active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sector
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Button Link</label>
-                    <input type="text" name="button_link" id="form_btn_link" required placeholder="যেমন: /donate-relief" 
+                    <input type="text" name="button_link" id="form_btn_link"  placeholder="/donate-relief or N/A" 
                         class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
                 <div>
