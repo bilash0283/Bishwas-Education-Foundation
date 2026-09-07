@@ -173,17 +173,26 @@
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <!-- কার্ড ১ -->
+            <?php 
+                $sql = mysqli_query($db, "SELECT * FROM donation_sectors WHERE status = 'active' ORDER BY id DESC");
+                $row_count = mysqli_num_rows($sql);
+                if($row_count > 0) {
+                    while($sector = mysqli_fetch_assoc($sql)) {
+                        $icon_class = htmlspecialchars($sector['icon_class'] ?? '', ENT_QUOTES, 'UTF-8');
+                        $title      = htmlspecialchars($sector['title'] ?? '', ENT_QUOTES, 'UTF-8');
+                        $description= htmlspecialchars($sector['description'] ?? '', ENT_QUOTES, 'UTF-8');
+                        $button_text= htmlspecialchars($sector['button_text'] ?? '', ENT_QUOTES, 'UTF-8');
+                        $button_link= htmlspecialchars($sector['button_link'] ?? '', ENT_QUOTES, 'UTF-8');
+            ?>
             <div
                 class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between overflow-hidden group">
                 <div class="p-6 space-y-4">
                     <div
                         class="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-xl font-bold shadow-sm">
-                        <i class="fa-solid fa-kit-medical"></i>
+                        <i class="<?= $icon_class; ?>"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition">জরুরি ত্রাণ
-                        তহবিল</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">বন্যা, ঝড় কিংবা যেকোনো প্রাকৃতিক দুর্যোগে
-                        ক্ষতিগ্রস্ত অসহায় মানুষের পাশে তাৎক্ষণিক খাবার ও চিকিৎসা সহায়তা নিয়ে দাঁড়ানোর তহবিল।</p>
+                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition"><?= $title; ?></h3>
+                    <p class="text-gray-600 text-sm leading-relaxed"><?= $description; ?></p>
                 </div>
                 <div class="p-6 pt-0">
                     <button
@@ -192,6 +201,9 @@
                     </button>
                 </div>
             </div>
+            <?php } }else { ?>
+                <p class="text-gray-500 align-center">কোন ডোনেশন সেক্টর নেই।</p>
+            <?php }  ?>
         </div>
     </section>
 
