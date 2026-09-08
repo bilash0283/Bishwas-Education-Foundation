@@ -8,7 +8,7 @@
         <!-- 3. MAIN CONTENT AREA -->
         <main class="flex-1 overflow-y-auto flex flex-col justify-between bg-slate-50">
             <div class="p-4 sm:p-6 lg:p-8 space-y-6">
-                <?php include 'pages/dashboard.php'; ?>
+                <?php include 'pages/index.php'; ?>
             </div>
 
             <!-- FOOTER SECTION -->
