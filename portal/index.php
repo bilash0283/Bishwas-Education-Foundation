@@ -3,7 +3,7 @@
     <!-- MAIN BODY WORKSPACE (INDEPENDENT SCROLL LAYOUT) -->
     <div class="flex-1 flex overflow-hidden relative">
         <!-- sidebar menu -->
-        <?php include 'includes/sidebar.php'; ?>        
+        <?php include 'includes/sidebar.php'; ?>    
 
         <!-- 3. MAIN CONTENT AREA -->
         <main class="flex-1 overflow-y-auto flex flex-col justify-between bg-slate-50">
