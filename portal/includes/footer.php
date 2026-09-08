@@ -33,32 +33,7 @@
             backdrop.classList.toggle('hidden');
         }
 
-        // Modal Helpers
-        function openAddModal(type) {
-            document.getElementById('modalTypeTitle').innerText = `Add New ${type}`;
-            const modal = document.getElementById('addModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeAddModal() {
-            const modal = document.getElementById('addModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function openDeleteModal(name) {
-            document.getElementById('deleteTargetName').innerText = name;
-            const modal = document.getElementById('deleteModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
+       
     </script>
 </body>
 </html>
