@@ -1,22 +1,12 @@
-<!-- PAGE 1: DASHBOARD OVERVIEW PAGE -->
-<?php include 'dashboard.php'; ?>
 
-<!-- PAGE 2: BENEFICIARIES PAGE -->
-<section id="page-beneficiaries" class="page-content hidden space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-2xl font-bold text-slate-800">Service Beneficiaries</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Manage individuals and families receiving support.</p>
-        </div>
-        <button onclick="openAddModal('Beneficiary')"
-            class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 flex items-center gap-2">
-            <i class="fa-solid fa-plus"></i> Add Beneficiary
-        </button>
-    </div>
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-        <p class="text-xs text-slate-500">Beneficiary Management Directory loaded.</p>
-    </div>
-</section>
+<?php
+    include 'dashboard.php';
+    include 'beneficiaries.php';
+
+
+?>
+
+
 
 <!-- PAGE 3: VOLUNTEERS PAGE -->
 <section id="page-volunteers" class="page-content hidden space-y-6">
