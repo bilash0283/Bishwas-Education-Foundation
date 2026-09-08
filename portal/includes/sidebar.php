@@ -13,9 +13,9 @@
                     <i class="fa-solid fa-hand-holding-heart w-4 text-sm text-emerald-500"></i> Service Beneficiaries
                 </button>
 
-                <button onclick="switchTab('volunteers')" id="nav-volunteers" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 transition-all">
+                <a href="?page=volunteers" class="text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 transition-all">
                     <i class="fa-solid fa-user-ninja w-4 text-sm text-teal-500"></i> Volunteers Team
-                </button>
+                </a>
 
                 <button onclick="switchTab('members')" id="nav-members" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 transition-all">
                     <i class="fa-solid fa-users-rectangle w-4 text-sm text-sky-500"></i> Members & Donors
