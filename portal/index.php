@@ -45,7 +45,6 @@
             <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded-lg transition-colors">
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
-
             <a href="#" class="flex items-center gap-3 group">
                 <div class="w-10 h-10 shrink-0 rounded-full overflow-hidden flex items-center justify-center border border-slate-200 shadow-xs group-hover:scale-105 transition-all">
                     <img src="../public/assets/<?php echo $favicon_icon; ?>" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/40?text=BF';">
