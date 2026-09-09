@@ -1,5 +1,5 @@
 <!-- PAGE 1: DASHBOARD OVERVIEW PAGE -->
-<section id="page-dashboard" class="page-content space-y-6">
+<section class="page-content space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Executive Dashboard</h2>

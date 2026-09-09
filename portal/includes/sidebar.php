@@ -1,5 +1,4 @@
 <?php
-    // বর্তমান পেজ ব্যাকগ্রাউন্ড চেক (ডিফল্ট: dashboard)
     $currentPage = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
     // Active Class যোগ করার জন্য হেলপার ফাংশন
     function getNavClass($pageName, $currentPage) {
