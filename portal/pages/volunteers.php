@@ -5,7 +5,7 @@
             <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Beneficiaries</h2>
             <p class="text-xs text-slate-500 mt-0.5">Real-time stats and foundation activity metrics.</p>
         </div>
-         <button onclick="openModal('volunteerAddModal')"
+         <button onclick="openModal('volunteersAddModal')"
             class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Add Volunteer
         </button>
@@ -143,18 +143,18 @@
 </section>
 
 <!-- VOLUNTEER ADD MODAL (Unique ID) -->
-<div id="volunteerAddModal"
+<div id="volunteersAddModal"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
     <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
         <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
             <h3 class="font-bold text-sm flex items-center gap-2">
                 <i class="fa-solid fa-square-plus text-emerald-400"></i>
-                <span>Add Volunteers</span>
+                <span>Add Volunteer</span>
             </h3>
-            <button onclick="closeModal('volunteerAddModal')" class="text-slate-400 hover:text-white"><i
+            <button onclick="closeModal('volunteersAddModal')" class="text-slate-400 hover:text-white"><i
                     class="fa-solid fa-xmark text-lg"></i></button>
         </div>
-        <form class="p-6 space-y-4" onsubmit="event.preventDefault(); closeModal('volunteerAddModal');">
+        <form class="p-6 space-y-4" onsubmit="event.preventDefault(); closeModal('volunteersAddModal');">
             <div>
                 <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Full Name</label>
                 <input type="text" placeholder="Enter complete name" required
@@ -182,7 +182,7 @@
                     class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"></textarea>
             </div>
             <div class="flex justify-end gap-2 pt-2">
-                <button type="button" onclick="closeModal('volunteerAddModal')"
+                <button type="button" onclick="closeModal('volunteersAddModal')"
                     class="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
                 <button type="submit"
                     class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 shadow-sm">Save
