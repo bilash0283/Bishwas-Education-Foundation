@@ -1,21 +1,20 @@
 <?php
-// বর্তমান পেজ ব্যাকগ্রাউন্ড চেক (ডিফল্ট: dashboard)
-$currentPage = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
-
-// Active Class যোগ করার জন্য হেলপার ফাংশন
-function getNavClass($pageName, $currentPage) {
-    if ($currentPage === $pageName) {
-        return 'bg-emerald-600 text-white font-semibold shadow-sm';
+    // বর্তমান পেজ ব্যাকগ্রাউন্ড চেক (ডিফল্ট: dashboard)
+    $currentPage = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
+    // Active Class যোগ করার জন্য হেলপার ফাংশন
+    function getNavClass($pageName, $currentPage) {
+        if ($currentPage === $pageName) {
+            return 'bg-emerald-600 text-white font-semibold shadow-sm';
+        }
+        return 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900';
     }
-    return 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900';
-}
 
-function getIconClass($pageName, $currentPage, $defaultColorClass) {
-    if ($currentPage === $pageName) {
-        return 'text-white';
+    function getIconClass($pageName, $currentPage, $defaultColorClass) {
+        if ($currentPage === $pageName) {
+            return 'text-white';
+        }
+        return $defaultColorClass;
     }
-    return $defaultColorClass;
-}
 ?>
 
 <div id="sidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-20 hidden lg:hidden"></div>
