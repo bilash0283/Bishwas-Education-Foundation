@@ -1,5 +1,11 @@
-<?php include 'includes/header.php'; ?>
-
+<?php
+    include 'includes/header.php'; 
+    if(isset($_SESSION['user_id']) && isset($_SESSION['user_login_permission']) && $_SESSION['user_login_permission'] === true) {
+        header("Location: portal/index.php");
+        exit();
+    }
+?>
+    <h1><?php echo isset($_SESSION['user_id']) ? $_SESSION['user_name'] : ''; ?></h1>
     <!-- MAIN BODY WORKSPACE (INDEPENDENT SCROLL LAYOUT) -->
     <div class="flex-1 flex overflow-hidden relative">
         <?php include 'includes/sidebar.php'; ?>    

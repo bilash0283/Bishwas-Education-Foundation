@@ -1,4 +1,13 @@
 <?php 
+ob_start(); 
+if(isset($_SESSION['user_id']) && isset($_SESSION['user_login_permission']) && $_SESSION['user_login_permission'] === true) {
+    header("Location: portal/index.php");
+    exit();
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 include 'include/header.php'; 
 // আপনার ডাটাবেজ কানেকশন ফাইল
@@ -36,8 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                     $_SESSION['user_id']   = $user['id'];
                     $_SESSION['user_name'] = $user['name'];
                     $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user_login_permission'] = true;
 
-                    echo '<script>alert("সফলভাবে লগইন হয়েছে!"); window.location.href = "portal/index.php";</script>';
+                    // echo '<script>alert("সফলভাবে লগইন হয়েছে!"); window.location.href = "portal/index.php";</script>';
+                    header("Location: portal/index.php");
+                    exit();
 
                 } else {
                     // অ্যাকাউন্ট অ্যাক্টিভ না থাকলে স্ট্যাটাস নোটিফিকেশন
