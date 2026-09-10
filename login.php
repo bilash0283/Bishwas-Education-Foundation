@@ -1,7 +1,4 @@
 <?php 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 include 'include/header.php'; 
 // আপনার ডাটাবেজ কানেকশন ফাইল
@@ -40,20 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                     $_SESSION['user_name'] = $user['name'];
                     $_SESSION['user_role'] = $user['role'];
 
-                    // রোল অনুযায়ী রিডাইরেক্ট
-                    if ($user['role'] === 'admin') {
-                        header("Location: admin/dashboard.php");
-                    } elseif ($user['role'] === 'volunteer') {
-                        header("Location: volunteer/dashboard.php");
-                    } else {
-                        header("Location: member/dashboard.php");
-                    }
-                    exit();
+                    echo '<script>alert("সফলভাবে লগইন হয়েছে!"); window.location.href = "portal/index.php";</script>';
 
                 } else {
                     // অ্যাকাউন্ট অ্যাক্টিভ না থাকলে স্ট্যাটাস নোটিফিকেশন
                     $status_title = ucfirst($user['status']);
-                    $error_message = "আপনার অ্যাকাউন্টটি বর্তমানে <strong>{$status_title}</strong> অবস্থায় রয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।";
+                    $error_message = "আপনার অ্যাকাউন্টটি বর্তমানে <strong>{$status_title}</strong> অবস্থায় রয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।";
                 }
 
             } else {
