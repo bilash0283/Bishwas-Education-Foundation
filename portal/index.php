@@ -40,10 +40,7 @@
                 if (file_exists($filePath)) {
                     include $filePath;
                 } else {
-                    echo '<div class="p-6 bg-white rounded-2xl shadow-sm border border-slate-200 text-center">
-                            <h2 class="text-xl font-bold text-red-800">404 - Page Not Found</h2>
-                            <p class="text-xs text-slate-500 mt-1">The page file "<b>' . htmlspecialchars($filePath) . '</b>" does not exist in your project structure.</p>
-                          </div>';
+                    include 'pages/404.php';
                 }
                 ?>
             </div>
