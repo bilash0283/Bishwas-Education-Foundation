@@ -1,9 +1,16 @@
 <?php
-    include 'includes/header.php'; 
-    if(isset($_SESSION['user_id']) && isset($_SESSION['user_login_permission']) && $_SESSION['user_login_permission'] === true) {
-        header("Location: portal/index.php");
+    ob_start();
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    // লগইন করা না থাকলে তাকে লগইন পেজে রিডাইরেক্ট করে দেওয়া হবে
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_login_permission']) || $_SESSION['user_login_permission'] !== true) {
+        header("Location: ../login.php"); // আপনার লগইন পেজের ফাইল পাথটি সঠিকভাবে মিলিয়ে নিন
         exit();
     }
+    include 'includes/header.php'; 
 ?>
     <h1><?php echo isset($_SESSION['user_id']) ? $_SESSION['user_name'] : ''; ?></h1>
     <!-- MAIN BODY WORKSPACE (INDEPENDENT SCROLL LAYOUT) -->

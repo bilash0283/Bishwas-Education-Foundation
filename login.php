@@ -1,18 +1,18 @@
 <?php 
 ob_start(); 
-if(isset($_SESSION['user_id']) && isset($_SESSION['user_login_permission']) && $_SESSION['user_login_permission'] === true) {
-    header("Location: portal/index.php");
-    exit();
-}
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-include 'include/header.php'; 
+// ১. আগেই চেক করা হচ্ছে ইউজার অলরেডি লগইন কি না
+if (isset($_SESSION['user_id']) && isset($_SESSION['user_login_permission']) && $_SESSION['user_login_permission'] === true) {
+    header("Location: portal/index.php");
+    exit();
+}
+
 // আপনার ডাটাবেজ কানেকশন ফাইল
 // include 'include/db.php'; 
-
 $conn = $db;
 
 $error_message = "";
@@ -28,33 +28,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $identity = mysqli_real_escape_string($conn, $identity_val);
         $hashed_password = md5($password_val);
 
-        // প্রথমে চেক করা হচ্ছে এই ইমেইল বা ফোন নম্বরে কোনো ইউজার আছে কি না
         $check_user_query = "SELECT * FROM `users` WHERE (`email` = '$identity' OR `phone` = '$identity') LIMIT 1";
         $user_result = mysqli_query($conn, $check_user_query);
 
         if (mysqli_num_rows($user_result) === 1) {
             $user = mysqli_fetch_assoc($user_result);
 
-            // পাসওয়ার্ড চেক
             if ($user['password'] === $hashed_password) {
                 
-                // স্ট্যাটাস সক্রিয় (Active) কি না চেক
                 if (strtolower($user['status']) === 'active') {
                     
-                    // সেশন ডাটা সেট
-                    $_SESSION['user_id']   = $user['id'];
-                    $_SESSION['user_name'] = $user['name'];
-                    $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user_id']               = $user['id'];
+                    $_SESSION['user_name']             = $user['name'];
+                    $_SESSION['user_role']             = $user['role'];
                     $_SESSION['user_login_permission'] = true;
 
-                    // echo '<script>alert("সফলভাবে লগইন হয়েছে!"); window.location.href = "portal/index.php";</script>';
                     header("Location: portal/index.php");
                     exit();
 
                 } else {
-                    // অ্যাকাউন্ট অ্যাক্টিভ না থাকলে স্ট্যাটাস নোটিফিকেশন
                     $status_title = ucfirst($user['status']);
-                    $error_message = "আপনার অ্যাকাউন্টটি বর্তমানে <strong>{$status_title}</strong> অবস্থায় রয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।";
+                    $error_message = "আপনার অ্যাকাউন্টটি বর্তমানে <strong>{$status_title}</strong> অবস্থায় রয়েছে। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।";
                 }
 
             } else {
@@ -69,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $error_message = "সকল ফিল্ড সঠিকভাবে পূরণ করুন!";
     }
 }
+
+// সেশন ও রিডাইরেক্ট লজিকের পরে Header include করা হয়েছে
+include 'include/header.php'; 
 ?>
 
 <div class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
@@ -89,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             <?php endif; ?>
 
             <form action="" method="POST" class="space-y-4">
-                <!-- Identity Input (Email or Phone) -->
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1.5">
                         ইমেইল / মোবাইল নম্বর <span class="text-red-500">*</span>
@@ -98,7 +94,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                         class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
                 </div>
 
-                <!-- Password Input with Toggle Eye Icon -->
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1.5">
                         পাসওয়ার্ড <span class="text-red-500">*</span>
@@ -113,7 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                     </div>
                 </div>
 
-                <!-- Submit Button -->
                 <div class="pt-2">
                     <button type="submit" name="login" class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-md transition-all duration-200 cursor-pointer active:scale-95">
                         <span>লগইন</span>
@@ -131,7 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     </div>
 </div>
 
-<!-- Password Hide/Show Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const passwordInput = document.getElementById('passwordInput');
@@ -142,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
         
-        // Toggle FontAwesome Eye Icon
         if (type === 'text') {
             toggleIcon.classList.remove('fa-eye');
             toggleIcon.classList.add('fa-eye-slash');
