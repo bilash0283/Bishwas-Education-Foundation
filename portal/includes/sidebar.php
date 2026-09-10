@@ -53,7 +53,7 @@
 
     <!-- Sidebar Bottom Logout Footer -->
     <div class="p-3 border-t border-slate-200 shrink-0">
-        <a href="logout.php" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-rose-600 hover:bg-rose-500/10 transition-colors text-xs font-semibold">
+        <a href="?page=logout" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-rose-600 hover:bg-rose-500/10 transition-colors text-xs font-semibold">
             <i class="fa-solid fa-right-from-bracket w-4 text-sm"></i> Sign Out
         </a>
     </div>

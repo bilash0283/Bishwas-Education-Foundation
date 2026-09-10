@@ -12,7 +12,7 @@
     }
     include 'includes/header.php'; 
 ?>
-    <h1><?php echo isset($_SESSION['user_id']) ? $_SESSION['user_name'] : ''; ?></h1>
+
     <!-- MAIN BODY WORKSPACE (INDEPENDENT SCROLL LAYOUT) -->
     <div class="flex-1 flex overflow-hidden relative">
         <?php include 'includes/sidebar.php'; ?>    
@@ -44,6 +44,10 @@
                     case 'reports':
                         $filePath = 'pages/reports.php';
                         break;
+                    case 'logout':
+                        $filePath = 'pages/logout.php'; 
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;

@@ -11,10 +11,8 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_login_permission']) && 
     exit();
 }
 
-// আপনার ডাটাবেজ কানেকশন ফাইল
-// include 'include/db.php'; 
+include 'include/header.php'; 
 $conn = $db;
-
 $error_message = "";
 $identity_val = "";
 $password_val = "";
@@ -64,8 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     }
 }
 
-// সেশন ও রিডাইরেক্ট লজিকের পরে Header include করা হয়েছে
-include 'include/header.php'; 
 ?>
 
 <div class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
