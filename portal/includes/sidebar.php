@@ -28,7 +28,7 @@
             <i class="fa-solid fa-chart-pie w-4 text-sm <?php echo getIconClass('dashboard', $currentPage, 'text-emerald-500'); ?>"></i> Dashboard
         </a>
 
-        <a href="?page=beneficiaries" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('donation', $currentPage); ?>">
+        <a href="?page=donation" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('donation', $currentPage); ?>">
             <i class="fa-solid fa-hand-holding-heart w-4 text-sm <?php echo getIconClass('donation', $currentPage, 'text-emerald-500'); ?>"></i> Donation 
         </a>
 

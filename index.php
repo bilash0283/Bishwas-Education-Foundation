@@ -195,10 +195,10 @@
                     <p class="text-gray-600 text-sm leading-relaxed"><?= $description; ?></p>
                 </div>
                 <div class="p-6 pt-0">
-                    <button
+                    <a href="donation.php"
                         class="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white font-bold py-2.5 rounded-xl transition duration-300 flex items-center justify-center space-x-2">
                         <span>অনুদানে শরীক হোন</span>
-                    </button>
+                    </a>
                 </div>
             </div>
             <?php } }else { ?>
