@@ -21,20 +21,65 @@
             </h2>
 
             <form action="#" method="POST" enctype="multipart/form-data" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5">
-                        টাকার পরিমাণ (BDT) <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" name="amount" placeholder="অনুদানের পরিমাণ লিখুন" required min="1"
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                           নাম <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="name" placeholder="আপনার নাম" required min="1"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                            ইমেইল <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" name="email" placeholder="আপনার ইমেইল লিখুন" required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5">
-                        ট্রানজেকশন আইডি (TrxID) <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="transaction_id" placeholder="যেমন: 9J7A6K8L9M" required
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                           ফোন <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="phone" placeholder="আপনার ফোন নম্বর" required min="1"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                            পেমেন্ট মাধ্যম <span class="text-red-500">*</span>
+                        </label>
+                        <select name="payment_method" required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                            <option value="">পেমেন্ট মাধ্যম নির্বাচন করুন</option>
+                            <option value="bKash">bKash</option>
+                            <option value="Nagad">Nagad</option>
+                            <option value="Rocket">Rocket</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                            টাকার পরিমাণ (BDT) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" name="amount" placeholder="অনুদানের পরিমাণ লিখুন" required min="1"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                            ট্রানজেকশন আইডি (TrxID) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="transaction_id" placeholder="যেমন: 9J7A6K8L9M" required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all placeholder:text-slate-400">
+                    </div>
                 </div>
 
                 <div>
