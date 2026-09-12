@@ -2,7 +2,7 @@
 <section class="page-content space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Beneficiaries</h2>
+            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Donation</h2>
             <p class="text-xs text-slate-500 mt-0.5">Real-time stats and foundation activity metrics.</p>
         </div>
          <button onclick="openModal('volunteerAddModal')"

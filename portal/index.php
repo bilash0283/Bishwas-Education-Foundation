@@ -29,8 +29,8 @@
                     case 'dashboard':
                         $filePath = 'pages/dashboard.php';
                         break;
-                    case 'beneficiaries':
-                        $filePath = 'pages/beneficiaries.php';
+                    case 'donation':
+                        $filePath = 'pages/donation.php';
                         break;
                     case 'volunteers':
                         $filePath = 'pages/volunteers.php';
