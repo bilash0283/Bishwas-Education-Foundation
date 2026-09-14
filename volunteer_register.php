@@ -1,4 +1,7 @@
-<?php include 'include/header.php'; ?>
+<?php
+include 'include/header.php';
+
+?>
 
 <script>
   tailwind.config = {
