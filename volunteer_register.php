@@ -54,11 +54,11 @@ include 'include/header.php';
                         <i class="fa-solid fa-shield-halved text-emerald-400"></i>
                         Official Member Portal
                     </div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                        BISHWAS EDUCATION FOUNDATION
+                    <h1 class="text-2xl sm:text-3xl uppercase font-extrabold tracking-tight text-white">
+                        <?php echo $site_title; ?>
                     </h1>
                     <p class="text-sm sm:text-base text-slate-200 font-medium leading-relaxed max-w-2xl">
-                        নারী, পুরুষ, শিশু ও প্রতিবন্ধীদের অধিকার আদায় ও কল্যাণে কাজ করাই আমাদের উদ্দেশ্য ও লক্ষ্য।
+                        নারী, পুরুষ, শিশু ও প্রতিবন্ধীদের অধিকার আদায় ও কল্যাণে কাজ করাই আমাদের উদ্দেশ্য ও লক্ষ্য।
                     </p>
                     <div class="flex flex-wrap justify-center md:justify-start gap-4 pt-2 text-xs text-slate-300">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-brand-400"></i> 249, Moghbazar Chowrasta, Dhaka-1217</span>
