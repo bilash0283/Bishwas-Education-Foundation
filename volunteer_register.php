@@ -39,13 +39,12 @@ include 'include/header.php';
 
             <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
                 <!-- Foundation SVG Logo Wrapper -->
-                <div class="flex-shrink-0 bg-white p-3 rounded-2xl shadow-lg ring-4 ring-white/10">
-                    <svg class="w-16 h-16 sm:w-20 sm:h-20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="45" stroke="#0284c7" stroke-width="5" fill="#f0f9ff"/>
-                        <path d="M30 65 C 35 45, 65 45, 70 65" stroke="#10b981" stroke-width="6" stroke-linecap="round"/>
-                        <circle cx="50" cy="35" r="12" fill="#0284c7"/>
-                        <path d="M20 75 Q 50 85 80 75" stroke="#0284c7" stroke-width="5" stroke-linecap="round"/>
-                    </svg>
+                <div class="flex-shrink-0 bg-white p-2 rounded-2xl shadow-lg">
+                    <img 
+                        src="public/assets/<?php echo $favicon_icon; ?>" 
+                        alt="Logo"
+                        class="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-full"
+                    >
                 </div>
 
                 <!-- Text Header Details -->
