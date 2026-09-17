@@ -1,6 +1,23 @@
 <?php
 include 'include/header.php';
 
+$connection = isset($db) ? $db : (isset($conn) ? $conn : null);
+
+if ($connection) {
+    mysqli_set_charset($connection, "utf8mb4");
+    
+    // ২. ডাটাবেস থেকে কনট্যাক্ট ইনফরমেশন ফেচ করা (ID = 1)
+    $sql = "SELECT * FROM contact_settings WHERE id = 1 LIMIT 1";
+    $result = mysqli_query($connection, $sql);
+    $contact_data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+}
+
+// ৩. ডাটা না পাওয়া গেলে ফলব্যাক ডিফল্ট ভ্যালু
+$office_address = $contact_data['office_address'] ?? '১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ';
+$phone_number   = $contact_data['phone_number'] ?? '+৮৮০ ১৭১৫-৪৮২৩৬৩';
+$email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
+$google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd';
+
 ?>
 
 <script>
@@ -60,16 +77,15 @@ include 'include/header.php';
                         নারী, পুরুষ, শিশু ও প্রতিবন্ধীদের অধিকার আদায় ও কল্যাণে কাজ করাই আমাদের উদ্দেশ্য ও লক্ষ্য।
                     </p>
                     <div class="flex flex-wrap justify-center md:justify-start gap-4 pt-2 text-xs text-slate-300">
-                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-brand-400"></i> 249, Moghbazar Chowrasta, Dhaka-1217</span>
-                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-phone text-brand-400"></i> 01836615662, 01715482363</span>
-                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-envelope text-brand-400"></i> info.bishwas@gmail.com</span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-brand-400"></i> <?php echo $office_address; ?></span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-phone text-brand-400"></i> <?php echo $phone_number; ?></span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-envelope text-brand-400"></i> <?php echo $email_address; ?></span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 sm:p-10">
-            
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 mb-8">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -83,8 +99,7 @@ include 'include/header.php';
             </div>
 
             <!-- Main PHP Registration Form -->
-            <form id="memberRegistrationForm" action="process_member.php" method="POST" enctype="multipart/form-data" class="space-y-8" novalidate>
-                
+            <form id="memberRegistrationForm" action="process_member.php" method="POST" enctype="multipart/form-data" class="space-y-8" novalidate> 
                 <div class="space-y-6">
                     <div class="flex items-center gap-3 text-brand-600 border-b border-brand-50 pb-3">
                         <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-sm">
