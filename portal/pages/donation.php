@@ -3,8 +3,6 @@ $baseUrl = "index.php?page=donation";
 
 /* =====================================================================
    1) HANDLE FORM SUBMISSIONS (ADD / EDIT / DELETE)
-   These run BEFORE any HTML is printed, then we redirect back
-   so that a page refresh does not re-submit the form again.
 ===================================================================== */
 
 // ---------- ADD DONATION ----------
@@ -35,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $stmt = mysqli_prepare($db, $sql);
     mysqli_stmt_bind_param(
         $stmt,
-        "issssdsssssssss", // i=donor_id, s=text fields, d=amount (15 params total)
+        "issssdsssssssss",
         $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
         $payment_method, $transaction_id, $payment_status, $donation_status,
         $donation_date, $admin_note, $receipt
@@ -102,6 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     exit;
 }
 
+/* =====================================================================
+   2) FILTER (saved in session)
+===================================================================== */
 
 if (isset($_GET['clear_filter'])) {
     unset($_SESSION['donation_filter']);
@@ -116,7 +117,6 @@ if (isset($_GET['clear_filter'])) {
     ];
 }
 
-// Session e filter thakle seta niye ashi, na thakle shobgulo empty
 $filter = $_SESSION['donation_filter'] ?? [
     'search'          => '',
     'payment_status'  => '',
@@ -125,6 +125,15 @@ $filter = $_SESSION['donation_filter'] ?? [
     'date_from'       => '',
     'date_to'         => '',
 ];
+
+// Kono filter active ache kina (card e "Filtered" badge dekhate)
+$isFiltered = false;
+foreach ($filter as $fv) {
+    if ($fv !== '') {
+        $isFiltered = true;
+        break;
+    }
+}
 
 /* =====================================================================
    3) BUILD DYNAMIC WHERE CLAUSE (based on active filter)
@@ -180,29 +189,37 @@ if (count($whereParts) > 0) {
 }
 
 /* =====================================================================
-   4) PAGINATION SETUP
+   4) PAGINATION + SUMMARY (total count & amounts, filter shoho)
+   Summary shob matching record er upor calculate hoy (shudhu current
+   page er na), tai card er value filter er upor base kore ashe.
 ===================================================================== */
 
-// Note: pagination number er jonno "pg" use kora hocche, "page" na -
-// karon "page" ager theke amader router e module select korar jonno
-// use hocche (index.php?page=donation)
-$perPage     = 10; // proti page e koyta row dekhabe
+$perPage     = 10;
 $currentPage = isset($_GET['pg']) ? (int) $_GET['pg'] : 1;
 if ($currentPage < 1) {
     $currentPage = 1;
 }
 $offset = ($currentPage - 1) * $perPage;
 
-// --- Total row count (filter shoho) ---
-$countSql = "SELECT COUNT(*) AS total FROM donations $whereSQL";
-$countStmt = mysqli_prepare($db, $countSql);
+$summarySql = "SELECT
+                    COUNT(*)                                                       AS total,
+                    COALESCE(SUM(amount), 0)                                       AS total_amount,
+                    COALESCE(SUM(CASE WHEN payment_status = 'paid'    THEN amount ELSE 0 END), 0) AS paid_amount,
+                    COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN amount ELSE 0 END), 0) AS pending_amount
+               FROM donations $whereSQL";
+$summaryStmt = mysqli_prepare($db, $summarySql);
 if (count($params) > 0) {
-    mysqli_stmt_bind_param($countStmt, $paramTypes, ...$params);
+    mysqli_stmt_bind_param($summaryStmt, $paramTypes, ...$params);
 }
-mysqli_stmt_execute($countStmt);
-$countResult = mysqli_stmt_get_result($countStmt);
-$totalRows   = mysqli_fetch_assoc($countResult)['total'];
-mysqli_stmt_close($countStmt);
+mysqli_stmt_execute($summaryStmt);
+$summaryResult = mysqli_stmt_get_result($summaryStmt);
+$summary       = mysqli_fetch_assoc($summaryResult);
+mysqli_stmt_close($summaryStmt);
+
+$totalRows     = (int) $summary['total'];
+$totalAmount   = (float) $summary['total_amount'];
+$paidAmount    = (float) $summary['paid_amount'];
+$pendingAmount = (float) $summary['pending_amount'];
 
 $totalPages = (int) ceil($totalRows / $perPage);
 if ($totalPages < 1) {
@@ -264,16 +281,8 @@ function h($value)
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
         <form method="GET" action="<?= h($baseUrl) ?>" class="grid grid-cols-1 md:grid-cols-6 gap-3">
 
-            <!--
-                Important (GET form er behavior): jokhon form method="GET" hoy,
-                browser action URL er existing query string (?page=donation)
-                ফেলে দিয়ে শুধু ফর্মের ভ্যালু গুলো দিয়ে নতুন query string বানায়।
-                তাই "page=donation" ধরে রাখতে সেটাও hidden field হিসেবে
-                ফর্মের ভেতরে পাঠাতে হবে - নাহলে submit করলে base URL হারিয়ে যাবে।
-            -->
+            <!-- GET form e query string hariye jay, tai page=donation hidden field e pathai -->
             <input type="hidden" name="page" value="donation">
-
-            <!-- Ei hidden field diye bujha hoy je "Apply Filter" button chapa hoyeche -->
             <input type="hidden" name="filter_apply" value="1">
 
             <div class="md:col-span-2">
@@ -335,6 +344,59 @@ function h($value)
                 </span>
             </div>
         </form>
+    </div>
+
+    <!-- ===================== SUMMARY CARDS (filter based) ===================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Total Amount -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase text-slate-500">
+                    Total Amount
+                    <?php if ($isFiltered): ?>
+                        <span class="ml-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[9px] normal-case">Filtered</span>
+                    <?php endif; ?>
+                </p>
+                <p class="text-xl font-bold text-slate-800 truncate">৳ <?= number_format($totalAmount, 2) ?></p>
+            </div>
+        </div>
+
+        <!-- Total Records -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-list-check"></i>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase text-slate-500">Total Donations</p>
+                <p class="text-xl font-bold text-slate-800"><?= number_format($totalRows) ?></p>
+            </div>
+        </div>
+
+        <!-- Paid Amount -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase text-slate-500">Paid Amount</p>
+                <p class="text-xl font-bold text-slate-800 truncate">৳ <?= number_format($paidAmount, 2) ?></p>
+            </div>
+        </div>
+
+        <!-- Pending Amount -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase text-slate-500">Pending Amount</p>
+                <p class="text-xl font-bold text-slate-800 truncate">৳ <?= number_format($pendingAmount, 2) ?></p>
+            </div>
+        </div>
     </div>
 
     <!-- ===================== DONATIONS TABLE ===================== -->
@@ -423,8 +485,6 @@ function h($value)
             </div>
             <div class="flex items-center gap-1">
                 <?php
-                // Pagination link e filter dubar pathanor dorkar nai,
-                // karon filter ta already session e save kora ache.
                 $prevPage = max(1, $currentPage - 1);
                 $nextPage = min($totalPages, $currentPage + 1);
                 ?>
