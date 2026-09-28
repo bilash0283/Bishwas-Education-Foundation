@@ -134,12 +134,6 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
 
                         <!-- Serial & Main Names -->
                         <div class="md:col-span-8 space-y-4">
-                            <div>
-                                <label for="serial_no" class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Serial No. / ক্রমিক নং
-                                </label>
-                                <input type="text" id="serial_no" name="serial_no" placeholder="Auto-assigned or leave blank" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
-                            </div>
 
                             <div>
                                 <label for="member_name" class="block text-xs font-semibold text-slate-700 mb-1">
