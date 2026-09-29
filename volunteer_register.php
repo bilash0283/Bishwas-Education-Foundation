@@ -99,7 +99,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
             </div>
 
             <!-- Main PHP Registration Form -->
-            <form id="memberRegistrationForm" action="process_member.php" method="POST" enctype="multipart/form-data" class="space-y-8" novalidate> 
+            <form id="memberRegistrationForm" action="member_registration.php" method="POST" enctype="multipart/form-data" class="space-y-8" novalidate> 
                 <div class="space-y-6">
                     <div class="flex items-center gap-3 text-brand-600 border-b border-brand-50 pb-3">
                         <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-sm">
