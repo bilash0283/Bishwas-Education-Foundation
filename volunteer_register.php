@@ -5,19 +5,21 @@ $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
 
 if ($connection) {
     mysqli_set_charset($connection, "utf8mb4");
-    
-    // ২. ডাটাবেস থেকে কনট্যাক্ট ইনফরমেশন ফেচ করা (ID = 1)
+
+    // ডাটাবেস থেকে কনট্যাক্ট ইনফরমেশন ফেচ করা (ID = 1)
     $sql = "SELECT * FROM contact_settings WHERE id = 1 LIMIT 1";
     $result = mysqli_query($connection, $sql);
     $contact_data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
 }
 
-// ৩. ডাটা না পাওয়া গেলে ফলব্যাক ডিফল্ট ভ্যালু
+// ডাটা না পাওয়া গেলে ফলব্যাক ডিফল্ট ভ্যালু
 $office_address = $contact_data['office_address'] ?? '১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ';
 $phone_number   = $contact_data['phone_number'] ?? '+৮৮০ ১৭১৫-৪৮২৩৬৩';
 $email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
-$google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd';
 
+// Registration result message (member_registration.php theke ashbe)
+$success_msg = isset($_GET['success']) ? true : false;
+$error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
 ?>
 
 <script>
@@ -48,23 +50,20 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
 
 <main class="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto space-y-8">
-        
+
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-brand-600 text-white shadow-xl p-6 sm:p-10">
-            <!-- Background Decorative Blur Rings -->
             <div class="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none"></div>
             <div class="absolute right-1/3 -bottom-10 h-48 w-48 rounded-full bg-brand-500/30 blur-2xl pointer-events-none"></div>
 
             <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                <!-- Foundation SVG Logo Wrapper -->
                 <div class="flex-shrink-0 bg-white p-2 rounded-2xl shadow-lg">
-                    <img 
-                        src="public/assets/<?php echo $favicon_icon; ?>" 
+                    <img
+                        src="public/assets/<?php echo $favicon_icon; ?>"
                         alt="Logo"
                         class="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-full"
                     >
                 </div>
 
-                <!-- Text Header Details -->
                 <div class="text-center md:text-left space-y-2">
                     <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold tracking-wide text-brand-100 border border-white/10">
                         <i class="fa-solid fa-shield-halved text-emerald-400"></i>
@@ -86,6 +85,19 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 sm:p-10">
+
+            <?php if ($success_msg) { ?>
+                <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold">
+                    <i class="fa-solid fa-circle-check"></i> আপনার আবেদন সফলভাবে জমা হয়েছে। Registration successful!
+                </div>
+            <?php } ?>
+
+            <?php if ($error_msg != '') { ?>
+                <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold">
+                    <i class="fa-solid fa-circle-exclamation"></i> <?php echo htmlspecialchars($error_msg); ?>
+                </div>
+            <?php } ?>
+
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 mb-8">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -99,7 +111,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
             </div>
 
             <!-- Main PHP Registration Form -->
-            <form id="memberRegistrationForm" action="member_registration.php" method="POST" enctype="multipart/form-data" class="space-y-8" novalidate> 
+            <form id="memberRegistrationForm" action="member_registration.php" method="POST" enctype="multipart/form-data" class="space-y-8" novalidate>
                 <div class="space-y-6">
                     <div class="flex items-center gap-3 text-brand-600 border-b border-brand-50 pb-3">
                         <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-sm">
@@ -108,10 +120,9 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                         <h3 class="text-base font-bold text-slate-900">Personal Details / ব্যক্তিগত তথ্য</h3>
                     </div>
 
-                    <!-- Top Row: Photo Upload & Serial Number -->
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                        
-                        <!-- Photo Drag & Drop Container -->
+
+                        <!-- Photo Upload -->
                         <div class="md:col-span-4 flex flex-col items-center">
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                                 Applicant Photo / ছবি
@@ -132,7 +143,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             <input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewAvatar(this)">
                         </div>
 
-                        <!-- Serial & Main Names -->
+                        <!-- Names -->
                         <div class="md:col-span-8 space-y-4">
 
                             <div>
@@ -145,7 +156,6 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                                     </div>
                                     <input type="text" id="member_name" name="member_name" required placeholder="Enter full name" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
                                 </div>
-                                <p id="member_name_err" class="hidden text-xs text-rose-500 mt-1">Full name is required.</p>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -165,7 +175,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                         </div>
                     </div>
 
-                    <!-- Additional Personal Metadata Grid -->
+                    <!-- Additional Personal Info -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                             <label for="dob" class="block text-xs font-semibold text-slate-700 mb-1">
@@ -174,7 +184,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             <input type="date" id="dob" name="dob" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
                         </div>
 
-                        <!-- Gender Selector Cards -->
+                        <!-- Gender -->
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-semibold text-slate-700 mb-1">
                                 Gender / লিঙ্গ <span class="text-rose-500">*</span>
@@ -182,11 +192,11 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             <div class="grid grid-cols-3 gap-2">
                                 <label class="relative flex items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-brand-500 transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50 has-[:checked]:text-brand-600 font-medium text-xs text-slate-600 shadow-sm">
                                     <input type="radio" name="gender" value="Male" required class="sr-only">
-                                    <i class="fa-solid fa-mars mr-1.5 text-slate-400 group-has-[:checked]:text-brand-600"></i> Male / পুরুষ
+                                    <i class="fa-solid fa-mars mr-1.5 text-slate-400"></i> Male / পুরুষ
                                 </label>
                                 <label class="relative flex items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-brand-500 transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50 has-[:checked]:text-brand-600 font-medium text-xs text-slate-600 shadow-sm">
                                     <input type="radio" name="gender" value="Female" class="sr-only">
-                                    <i class="fa-solid fa-venus mr-1.5 text-slate-400 group-has-[:checked]:text-brand-600"></i> Female / মহিলা
+                                    <i class="fa-solid fa-venus mr-1.5 text-slate-400"></i> Female / মহিলা
                                 </label>
                                 <label class="relative flex items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-brand-500 transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50 has-[:checked]:text-brand-600 font-medium text-xs text-slate-600 shadow-sm">
                                     <input type="radio" name="gender" value="Other" class="sr-only">
@@ -195,14 +205,28 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             </div>
                         </div>
 
+                        <!-- NEW: ID Type (NID / Passport / Birth Cert) -->
                         <div>
-                            <label for="nid_birth" class="block text-xs font-semibold text-slate-700 mb-1">
-                                National ID / Birth Cert No
+                            <label for="id_type" class="block text-xs font-semibold text-slate-700 mb-1">
+                                ID Type / পরিচয়পত্রের ধরন <span class="text-rose-500">*</span>
                             </label>
-                            <input type="text" id="nid_birth" name="nid_birth" placeholder="e.g. 1998765432109" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
+                            <select id="id_type" name="id_type" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
+                                <option value="">-- Select --</option>
+                                <option value="NID">NID Card / জাতীয় পরিচয়পত্র</option>
+                                <option value="Passport">Passport / পাসপোর্ট</option>
+                                <option value="Birth Certificate">Birth Certificate / জন্ম নিবন্ধন</option>
+                            </select>
                         </div>
 
-                        <div class="sm:col-span-2">
+                        <!-- NEW: ID Number -->
+                        <div>
+                            <label for="id_number" class="block text-xs font-semibold text-slate-700 mb-1">
+                                ID Number / পরিচয়পত্র নম্বর <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" id="id_number" name="id_number" required placeholder="NID / Passport number" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
+                        </div>
+
+                        <div>
                             <label for="qualification" class="block text-xs font-semibold text-slate-700 mb-1">
                                 Qualification / শিক্ষাগত যোগ্যতা
                             </label>
@@ -226,7 +250,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             </label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-xs font-bold pointer-events-none">+88</span>
-                                <input type="tel" id="mobile_no" name="mobile_no" required pattern="[0-9]{11}" placeholder="01700000000" class="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
+                                <input type="tel" id="mobile_no" name="mobile_no" required pattern="[0-9]{11}" maxlength="11" placeholder="01700000000" class="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
                             </div>
                         </div>
 
@@ -241,7 +265,6 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                         </div>
                     </div>
 
-                    <!-- Present Address -->
                     <div>
                         <label for="present_address" class="block text-xs font-semibold text-slate-700 mb-1">
                             Present Address / বর্তমান ঠিকানা <span class="text-rose-500">*</span>
@@ -249,11 +272,10 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                         <textarea id="present_address" name="present_address" rows="2" required placeholder="House/Road/Thana/District" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none"></textarea>
                     </div>
 
-                    <!-- Permanent Address with Sync Option -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
                             <label for="permanent_address" class="block text-xs font-semibold text-slate-700">
-                                Permanent Address / স্থায়ী ঠিকানা <span class="text-rose-500">*</span>
+                                Permanent Address / স্থায়ী ঠিকানা <span class="text-rose-500">*</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-xs text-brand-600 hover:text-brand-700 font-semibold select-none">
                                 <input type="checkbox" id="syncAddressCheck" onchange="syncAddressToggle()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
@@ -280,8 +302,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        
-                        <!-- General Member Card -->
+
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
                             <input type="radio" name="membership_status" value="General Member" required checked class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
@@ -291,7 +312,6 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             <span class="text-xs text-slate-500">সাধারণ সদস্য</span>
                         </label>
 
-                        <!-- Associate Member Card -->
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
                             <input type="radio" name="membership_status" value="Associate Member" class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
@@ -301,7 +321,6 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             <span class="text-xs text-slate-500">সহকারী সদস্য</span>
                         </label>
 
-                        <!-- Life Member Card -->
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
                             <input type="radio" name="membership_status" value="Life Member" class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
@@ -311,7 +330,6 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                             <span class="text-xs text-slate-500">আজীবন সদস্য</span>
                         </label>
 
-                        <!-- Volunteer Member Card -->
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
                             <input type="radio" name="membership_status" value="Volunteer Member" class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
@@ -323,7 +341,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
                     </div>
                 </div>
 
-                <div class="pt-4 ">
+                <div class="pt-4">
                     <div class="flex items-start gap-2.5 pt-2">
                         <input type="checkbox" id="termsCheck" required class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
                         <label for="termsCheck" class="text-xs text-slate-600 leading-relaxed cursor-pointer select-none">
@@ -349,16 +367,19 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
 </main>
 
 <script>
-    // Set default date to today
-    document.getElementById('form_date').valueAsDate = new Date();
-
-    // Photo Preview Logic
+    // Photo Preview
     function previewAvatar(input) {
         const preview = document.getElementById('avatarPreview');
         const placeholder = document.getElementById('uploadPlaceholder');
         const removeBtn = document.getElementById('removePhotoBtn');
-        
+
         if (input.files && input.files[0]) {
+            // 2MB check
+            if (input.files[0].size > 2 * 1024 * 1024) {
+                alert('ছবির সাইজ সর্বোচ্চ 2MB হতে পারবে।');
+                input.value = '';
+                return;
+            }
             const reader = new FileReader();
             reader.onload = function (e) {
                 preview.src = e.target.result;
@@ -376,7 +397,7 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
         const preview = document.getElementById('avatarPreview');
         const placeholder = document.getElementById('uploadPlaceholder');
         const removeBtn = document.getElementById('removePhotoBtn');
-        
+
         input.value = '';
         preview.src = '';
         preview.classList.add('hidden');
@@ -384,31 +405,37 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
         removeBtn.classList.add('hidden');
     }
 
-    // Address Sync Logic
+    // Address Sync
     function syncAddressToggle() {
         const isChecked = document.getElementById('syncAddressCheck').checked;
         const present = document.getElementById('present_address').value;
         const permanent = document.getElementById('permanent_address');
-        
+
         if (isChecked) {
             permanent.value = present;
         }
     }
 
-    // Keep permanent address synced if checkbox is active
-    document.getElementById('present_address').addEventListener('input', function() {
+    document.getElementById('present_address').addEventListener('input', function () {
         if (document.getElementById('syncAddressCheck').checked) {
             document.getElementById('permanent_address').value = this.value;
         }
     });
 
-    // Form Client Validation & Loading Indicator
-    document.getElementById('memberRegistrationForm').addEventListener('submit', function(e) {
+    // Form Validation & Loading Button
+    document.getElementById('memberRegistrationForm').addEventListener('submit', function (e) {
         const requiredFields = this.querySelectorAll('[required]');
         let isValid = true;
 
-        requiredFields.forEach(field => {
-            if (!field.value.trim() && field.type !== 'radio' && field.type !== 'checkbox') {
+        requiredFields.forEach(function (field) {
+            if (field.type === 'radio') return;
+
+            if (field.type === 'checkbox') {
+                if (!field.checked) { isValid = false; }
+                return;
+            }
+
+            if (!field.value.trim()) {
                 isValid = false;
                 field.classList.add('border-rose-500', 'bg-rose-50/30');
             } else {
@@ -416,11 +443,15 @@ $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/map
             }
         });
 
-        if (isValid) {
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Submitting...`;
+        if (!isValid) {
+            e.preventDefault(); // form submit hobe na
+            alert('অনুগ্রহ করে সব প্রয়োজনীয় (*) তথ্য পূরণ করুন এবং শর্তে টিক দিন।');
+            return;
         }
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Submitting...';
     });
 </script>
 
