@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $receipt         = trim($_POST['receipt']);
 
     $sql = "UPDATE donations SET
-                donor_id = ?, type = ?, name = ?, email = ?, phone = ?, amount = ?,
+                donor_id = ?, name = ?, email = ?, phone = ?, amount = ?,
                 donation_type = ?, fund = ?, payment_method = ?, transaction_id = ?,
                 payment_status = ?, donation_date = ?,
                 admin_note = ?, receipt = ?, updated_at = NOW()
@@ -72,9 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
 
     $stmt = mysqli_prepare($db, $sql);
     mysqli_stmt_bind_param(
-        $stmt,
-        "issssdsssssssssi",
-        $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
+        $stmt, $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
         $payment_method, $transaction_id, $payment_status,
         $donation_date, $admin_note, $receipt, $id
     );
