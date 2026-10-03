@@ -2,7 +2,7 @@
 <section class="page-content space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Executive Dashboard</h2>
+            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Executive <b class="text-emerald-600"><?php echo $_SESSION['user_type'] ?></b> Dashboard</h2>
             <p class="text-xs text-slate-500 mt-0.5">Real-time stats and foundation activity metrics.</p>
         </div>
     </div>

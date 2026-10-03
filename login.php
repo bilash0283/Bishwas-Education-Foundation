@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $identity = mysqli_real_escape_string($conn, $identity_val);
         $hashed_password = md5($password_val);
 
-        $check_user_query = "SELECT * FROM `users` WHERE (`email` = '$identity' OR `phone` = '$identity') LIMIT 1";
+        $check_user_query = "SELECT * FROM `users` WHERE (`email` = '$identity' OR `mobile_no` = '$identity') LIMIT 1";
         $user_result = mysqli_query($conn, $check_user_query);
 
         if (mysqli_num_rows($user_result) === 1) {
@@ -33,11 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
             if ($user['password'] === $hashed_password) {
                 
-                if (strtolower($user['status']) === 'active') {
+                if (strtolower(trim($user['status'])) === 'active') {
                     
                     $_SESSION['user_id']               = $user['id'];
-                    $_SESSION['user_name']             = $user['name'];
-                    $_SESSION['user_role']             = $user['role'];
+                    $_SESSION['member_name']           = $user['member_name'];
+                    $_SESSION['user_type']             = $user['user_type'];
                     $_SESSION['user_login_permission'] = true;
 
                     header("Location: portal/index.php");
