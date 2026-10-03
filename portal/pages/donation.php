@@ -19,23 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $payment_method  = trim($_POST['payment_method']);
     $transaction_id  = trim($_POST['transaction_id']);
     $payment_status  = trim($_POST['payment_status']);
-    $donation_status = trim($_POST['donation_status']);
     $donation_date   = $_POST['donation_date'] !== '' ? $_POST['donation_date'] : date('Y-m-d');
     $admin_note      = trim($_POST['admin_note']);
     $receipt         = trim($_POST['receipt']);
 
     $sql = "INSERT INTO donations
             (donor_id, type, name, email, phone, amount, donation_type, fund,
-             payment_method, transaction_id, payment_status, donation_status,
+             payment_method, transaction_id, payment_status,
              donation_date, admin_note, receipt, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
 
     $stmt = mysqli_prepare($db, $sql);
     mysqli_stmt_bind_param(
         $stmt,
         "issssdsssssssss",
         $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
-        $payment_method, $transaction_id, $payment_status, $donation_status,
+        $payment_method, $transaction_id, $payment_status,
         $donation_date, $admin_note, $receipt
     );
     mysqli_stmt_execute($stmt);
@@ -60,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $payment_method  = trim($_POST['payment_method']);
     $transaction_id  = trim($_POST['transaction_id']);
     $payment_status  = trim($_POST['payment_status']);
-    $donation_status = trim($_POST['donation_status']);
     $donation_date   = $_POST['donation_date'];
     $admin_note      = trim($_POST['admin_note']);
     $receipt         = trim($_POST['receipt']);
@@ -68,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $sql = "UPDATE donations SET
                 donor_id = ?, type = ?, name = ?, email = ?, phone = ?, amount = ?,
                 donation_type = ?, fund = ?, payment_method = ?, transaction_id = ?,
-                payment_status = ?, donation_status = ?, donation_date = ?,
+                payment_status = ?, donation_date = ?,
                 admin_note = ?, receipt = ?, updated_at = NOW()
             WHERE id = ?";
 
@@ -77,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
         $stmt,
         "issssdsssssssssi",
         $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
-        $payment_method, $transaction_id, $payment_status, $donation_status,
+        $payment_method, $transaction_id, $payment_status,
         $donation_date, $admin_note, $receipt, $id
     );
     mysqli_stmt_execute($stmt);
@@ -110,7 +108,6 @@ if (isset($_GET['clear_filter'])) {
     $_SESSION['donation_filter'] = [
         'search'          => trim($_GET['search'] ?? ''),
         'payment_status'  => trim($_GET['payment_status'] ?? ''),
-        'donation_status' => trim($_GET['donation_status'] ?? ''),
         'fund'            => trim($_GET['fund'] ?? ''),
         'date_from'       => trim($_GET['date_from'] ?? ''),
         'date_to'         => trim($_GET['date_to'] ?? ''),
@@ -120,7 +117,6 @@ if (isset($_GET['clear_filter'])) {
 $filter = $_SESSION['donation_filter'] ?? [
     'search'          => '',
     'payment_status'  => '',
-    'donation_status' => '',
     'fund'            => '',
     'date_from'       => '',
     'date_to'         => '',
@@ -156,12 +152,6 @@ if ($filter['search'] !== '') {
 if ($filter['payment_status'] !== '') {
     $whereParts[] = "payment_status = ?";
     $params[]     = $filter['payment_status'];
-    $paramTypes  .= "s";
-}
-
-if ($filter['donation_status'] !== '') {
-    $whereParts[] = "donation_status = ?";
-    $params[]     = $filter['donation_status'];
     $paramTypes  .= "s";
 }
 
@@ -232,7 +222,7 @@ if ($totalPages < 1) {
 
 $listSql = "SELECT id, donor_id, type, name, email, phone, amount, donation_type,
                    fund, payment_method, transaction_id, payment_status,
-                   donation_status, donation_date, admin_note, receipt,
+                   donation_date, admin_note, receipt,
                    created_at, updated_at
             FROM donations
             $whereSQL
@@ -300,19 +290,6 @@ function h($value)
                     <?php foreach (['pending', 'paid', 'failed', 'refunded'] as $ps): ?>
                         <option value="<?= h($ps) ?>" <?= $filter['payment_status'] === $ps ? 'selected' : '' ?>>
                             <?= h(ucfirst($ps)) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Donation Status</label>
-                <select name="donation_status"
-                    class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                    <option value="">All</option>
-                    <?php foreach (['pending', 'approved', 'rejected', 'completed'] as $ds): ?>
-                        <option value="<?= h($ds) ?>" <?= $filter['donation_status'] === $ds ? 'selected' : '' ?>>
-                            <?= h(ucfirst($ds)) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -454,10 +431,6 @@ function h($value)
                                     class="inline-block px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-bold text-[10px]">
                                     <?= h(ucfirst($d['payment_status'])) ?>
                                 </span>
-                                <span
-                                    class="block px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 font-bold text-[10px] w-fit">
-                                    <?= h(ucfirst($d['donation_status'])) ?>
-                                </span>
                             </td>
                             <td class="p-4"><?= h($d['donation_date']) ?></td>
                             <td class="p-4 text-right space-x-1 whitespace-nowrap">
@@ -594,16 +567,6 @@ function h($value)
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Status</label>
-                    <select name="donation_status"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
-                <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date</label>
                     <input type="date" name="donation_date" value="<?= date('Y-m-d') ?>"
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
@@ -725,16 +688,7 @@ function h($value)
                         <option value="refunded">Refunded</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Status</label>
-                    <select name="donation_status" id="edit_donation_status"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
+                
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date</label>
                     <input type="date" name="donation_date" id="edit_donation_date"
@@ -828,7 +782,6 @@ function h($value)
         document.getElementById('edit_payment_method').value = donation.payment_method || '';
         document.getElementById('edit_transaction_id').value = donation.transaction_id || '';
         document.getElementById('edit_payment_status').value = donation.payment_status || 'pending';
-        document.getElementById('edit_donation_status').value = donation.donation_status || 'pending';
         document.getElementById('edit_donation_date').value = donation.donation_date || '';
         document.getElementById('edit_donor_id').value = donation.donor_id || '';
         document.getElementById('edit_receipt').value = donation.receipt || '';
