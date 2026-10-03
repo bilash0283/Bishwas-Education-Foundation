@@ -1,53 +1,90 @@
 <?php 
 include 'include/header.php'; 
 
-// মেসেজ স্টোর করার জন্য ভেরিয়েবল
+// মেসেজ স্টোর করার জন্য ভেরিয়েবল
 $success_message = "";
 $error_message = "";
 
 // ফর্ম সাবমিট হলে প্রসেস শুরু
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    
-    // ফর্ম ডাটা সংগ্রহ ও ফিল্টার
-    $name           = trim($_POST['name']);
-    $email          = trim($_POST['email']);
-    $phone          = trim($_POST['phone']);
-    $payment_method = trim($_POST['payment_method']);
-    $amount         = floatval($_POST['amount']);
-    $transaction_id = trim($_POST['transaction_id']);
-    
-    // ডিফল্ট ভ্যালুসমূহ
-    $type            = "Public";      // Public / Member / Volunteer
-    $donor_id        = NULL;          // লগইন করা ইউজার থাকলে তার ID বসবে
-    $donation_type   = "General";
-    $fund            = "General Fund";
-    $payment_status  = "Pending";
-    $donation_status = "Pending";
-    
-    // ফাইল (স্ক্রিনশট/স্লিপ) আপলোড প্রসেস
-    $receipt_filename = "";
-    if (isset($_FILES['payment_slip']) && $_FILES['payment_slip']['error'] == 0) {$upload_dir = 'portal/uploads/receipts/';
-        
-        // ফোল্ডার না থাকলে তৈরি করা
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-        
-        $file_extension = pathinfo($_FILES['payment_slip']['name'], PATHINFO_EXTENSION);
-        $receipt_filename = time() . '_' . rand(1000, 9999) . '.' . $file_extension;
-        $target_file_path = $upload_dir .$receipt_filename;
-        
-        move_uploaded_file($_FILES['payment_slip']['tmp_name'],$target_file_path);
-    }
 
-    // ডাটাবেজে ইনসার্ট প্রসেস
+    // ফর্ম ডাটা সংগ্রহ ও ফিল্টার
+    $name           = trim($_POST['name'] ?? '');
+    $email          = trim($_POST['email'] ?? '');
+    $phone          = trim($_POST['phone'] ?? '');
+    $payment_method = trim($_POST['payment_method'] ?? '');
+    $amount         = floatval($_POST['amount'] ?? 0);
+    $transaction_id = trim($_POST['transaction_id'] ?? '');
+
+    // ডিফল্ট ভ্যালুসমূহ
+    $type           = "Public";        // Public / Member / Volunteer
+    $donor_id       = NULL;            // লগইন করা ইউজার থাকলে তার ID বসবে
+    $donation_type  = "General";
+    $fund           = "General Fund";
+    $payment_status = "Pending";
+    $receipt_filename = "";
+
     try {
+
+        // ---------- ধাপ ১: ভ্যালিডেশন ----------
+        if ($name === '' || $email === '' || $phone === '' || $payment_method === '' || $transaction_id === '') {
+            throw new Exception("সবগুলো ঘর পূরণ করুন।");
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("সঠিক ইমেইল দিন।");
+        }
+
+        if ($amount <= 0) {
+            throw new Exception("টাকার পরিমাণ সঠিক নয়।");
+        }
+
+        // ---------- ধাপ ২: ফাইল আপলোড (ডাটাবেজে সেভ করার আগে) ----------
+        if (isset($_FILES['payment_slip']) && $_FILES['payment_slip']['error'] == 0) {
+
+            $upload_dir = 'portal/uploads/receipts/';
+
+            // ফোল্ডার না থাকলে তৈরি করা
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+
+            // শুধু এই ধরনের ফাইল অনুমোদিত
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+            $file_extension = strtolower(pathinfo($_FILES['payment_slip']['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($file_extension, $allowed_extensions)) {
+                throw new Exception("শুধু JPG, PNG, WEBP বা PDF ফাইল আপলোড করা যাবে।");
+            }
+
+            // ফাইল সাইজ সর্বোচ্চ ৫MB
+            if ($_FILES['payment_slip']['size'] > 5 * 1024 * 1024) {
+                throw new Exception("ফাইলের সাইজ ৫MB এর বেশি হতে পারবে না।");
+            }
+
+            // ইউনিক নাম তৈরি
+            $receipt_filename = time() . '_' . rand(1000, 9999) . '.' . $file_extension;
+            $target_file_path = $upload_dir . $receipt_filename;
+
+            if (!move_uploaded_file($_FILES['payment_slip']['tmp_name'], $target_file_path)) {
+                throw new Exception("ফাইল আপলোড করতে সমস্যা হয়েছে।");
+            }
+
+        } else {
+            throw new Exception("পেমেন্ট স্লিপ / স্ক্রিনশট আপলোড করুন।");
+        }
+
+        // ---------- ধাপ ৩: ডাটাবেজে ইনসার্ট ----------
         if ($db instanceof PDO) {
-            // PDO ডাটাবেজ ব্যবহার করলে
-            $sql = "INSERT INTO donations (donor_id, type, name, email, phone, amount, donation_type, fund, payment_method, transaction_id, payment_status, donation_status, receipt) 
-                    VALUES (:donor_id, :type, :name, :email, :phone, :amount, :donation_type, :fund, :payment_method, :transaction_id, :payment_status, :donation_status, :receipt)";
-            
-            $stmt =$db->prepare($sql);$stmt->execute([
+
+            // PDO ব্যবহার করলে (১২টি কলাম = ১২টি নামসহ প্লেসহোল্ডার)
+            $sql = "INSERT INTO donations 
+                    (donor_id, type, name, email, phone, amount, donation_type, fund, payment_method, transaction_id, payment_status, receipt) 
+                    VALUES 
+                    (:donor_id, :type, :name, :email, :phone, :amount, :donation_type, :fund, :payment_method, :transaction_id, :payment_status, :receipt)";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
                 ':donor_id'       => $donor_id,
                 ':type'           => $type,
                 ':name'           => $name,
@@ -58,23 +95,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ':fund'           => $fund,
                 ':payment_method' => $payment_method,
                 ':transaction_id' => $transaction_id,
-                ':payment_status'  => $payment_status,
-                ':donation_status' => $donation_status,
+                ':payment_status' => $payment_status,
                 ':receipt'        => $receipt_filename
             ]);
+
         } elseif ($db instanceof mysqli) {
-            // MySQLi ডাটাবেজ ব্যবহার করলে
-            $sql = "INSERT INTO donations (donor_id, type, name, email, phone, amount, donation_type, fund, payment_method, transaction_id, payment_status, donation_status, receipt) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            
-            $stmt =$db->prepare($sql);$stmt->bind_param("issssdsssssss", $donor_id,$type, $name,$email, $phone,$amount, $donation_type,$fund, $payment_method,$transaction_id, $payment_status,$donation_status, $receipt_filename);$stmt->execute();
+
+            // MySQLi ব্যবহার করলে (১২টি কলাম = ঠিক ১২টি ?)
+            $sql = "INSERT INTO donations 
+                    (donor_id, type, name, email, phone, amount, donation_type, fund, payment_method, transaction_id, payment_status, receipt) 
+                    VALUES 
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            $stmt = $db->prepare($sql);
+
+            // টাইপ স্ট্রিং: i=integer, s=string, d=decimal
+            // donor_id(i) type(s) name(s) email(s) phone(s) amount(d) donation_type(s) fund(s) payment_method(s) transaction_id(s) payment_status(s) receipt(s)
+            $stmt->bind_param(
+                "issssdssssss",
+                $donor_id,
+                $type,
+                $name,
+                $email,
+                $phone,
+                $amount,
+                $donation_type,
+                $fund,
+                $payment_method,
+                $transaction_id,
+                $payment_status,
+                $receipt_filename
+            );
+
+            $stmt->execute();
+
+        } else {
+            throw new Exception("ডাটাবেজ কানেকশন পাওয়া যায়নি।");
         }
 
         // সফলভাবে সেভ হলে মেসেজ সেট
         $success_message = "আপনার পেমেন্ট সফলভাবে জমা হয়েছে। এটি বর্তমানে পেন্ডিং আছে, এডমিন ভেরিফাই করে ফাইনাল এপ্রুভাল দেবেন। ধন্যবাদ!";
 
     } catch (Exception $e) {
-        $error_message = "ডাটা সেভ করতে সমস্যা হয়েছে: " . $e->getMessage();
+        // আসল এরর লগ ফাইলে যাবে, ইউজার শুধু সাধারণ মেসেজ দেখবে
+        error_log("Donation Error: " . $e->getMessage());
+        $error_message = "দুঃখিত, সমস্যা হয়েছে: " . $e->getMessage();
     }
 }
 ?>
@@ -85,10 +150,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <!-- বাম পাশের QR অংশ -->
         <div class="p-6 md:p-8 bg-slate-50 flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-slate-100">
             <h3 class="text-lg font-bold text-slate-800 mb-2 text-center">
-                Bangla QR দিয়ে পেমেন্ট করুন
+                Bangla QR দিয়ে পেমেন্ট করুন
             </h3>
             <p class="text-xs text-slate-500 mb-4 text-center">
-                যেকোনো ব্যাংক অ্যাপ বা MFS (bKash, Nagad, Rocket) অ্যাপ দিয়ে স্ক্যান করুন
+                যেকোনো ব্যাংক অ্যাপ বা MFS (bKash, Nagad, Rocket) অ্যাপ দিয়ে স্ক্যান করুন
             </p>
             <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 w-full max-w-[280px]">
                 <img src="public/assets/bangla_qr.JPG" alt="Rupali Bank QR Code" class="w-full h-auto rounded-lg object-contain">
@@ -101,12 +166,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 আপনার অনুদান জমা দিন
             </h2>
 
-            <!-- সফল মেসেজ (Success Alert Box with Close Button) -->
+            <!-- সফল মেসেজ -->
             <?php if (!empty($success_message)): ?>
                 <div id="alert-box" class="mb-5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start justify-between gap-3 shadow-sm">
                     <div class="flex items-start gap-2">
                         <i class="fa-solid fa-circle-check text-emerald-600 mt-1"></i>
-                        <p class="text-xs md:text-sm font-medium leading-relaxed"><?php echo $success_message; ?></p>
+                        <p class="text-xs md:text-sm font-medium leading-relaxed"><?php echo htmlspecialchars($success_message); ?></p>
                     </div>
                     <button onclick="document.getElementById('alert-box').remove()" class="text-slate-400 hover:text-slate-700 text-lg font-bold leading-none focus:outline-none" aria-label="Close">
                         &times;
@@ -119,7 +184,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div id="alert-box-error" class="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 flex items-start justify-between gap-3 shadow-sm">
                     <div class="flex items-start gap-2">
                         <i class="fa-solid fa-circle-exclamation text-red-600 mt-1"></i>
-                        <p class="text-xs md:text-sm font-medium leading-relaxed"><?php echo $error_message; ?></p>
+                        <p class="text-xs md:text-sm font-medium leading-relaxed"><?php echo htmlspecialchars($error_message); ?></p>
                     </div>
                     <button onclick="document.getElementById('alert-box-error').remove()" class="text-slate-400 hover:text-slate-700 text-lg font-bold leading-none focus:outline-none" aria-label="Close">
                         &times;
