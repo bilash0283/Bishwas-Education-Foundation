@@ -6,36 +6,195 @@ $baseUrl = "index.php?page=donation";
 ===================================================================== */
 
 // ---------- ADD DONATION ----------
+// ---------- ADD DONATION ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'add') {
 
-    $donor_id        = $_POST['donor_id'] !== '' ? (int) $_POST['donor_id'] : null;
-    $type            = trim($_POST['type']);
-    $name            = trim($_POST['name']);
-    $email           = trim($_POST['email']);
-    $phone           = trim($_POST['phone']);
-    $amount          = (float) $_POST['amount'];
-    $donation_type   = trim($_POST['donation_type']);
-    $fund            = trim($_POST['fund']);
-    $payment_method  = trim($_POST['payment_method']);
-    $transaction_id  = trim($_POST['transaction_id']);
-    $payment_status  = trim($_POST['payment_status']);
-    $donation_date   = $_POST['donation_date'] !== '' ? $_POST['donation_date'] : date('Y-m-d');
-    $admin_note      = trim($_POST['admin_note']);
-    $receipt         = trim($_POST['receipt']);
+    // ফর্ম থেকে ডাটা নেওয়া
+    $donor_id = isset($_POST['donor_id']) && $_POST['donor_id'] !== '' ? (int) $_POST['donor_id'] : 0;
+    $amount = (float) ($_POST['amount'] ?? 0);
+    $donation_type = trim($_POST['donation_type'] ?? '');
+    $payment_method = trim($_POST['payment_method'] ?? '');
+    $transaction_id = trim($_POST['transaction_id'] ?? '');
+    $payment_status = trim($_POST['payment_status'] ?? 'pending');
+    $donation_date = !empty($_POST['donation_date']) ? $_POST['donation_date'] : date('Y-m-d');
+    $admin_note = trim($_POST['admin_note'] ?? '');
 
-    $sql = "INSERT INTO donations
-            (donor_id, type, name, email, phone, amount, donation_type, fund,
-             payment_method, transaction_id, payment_status,
-             donation_date, admin_note, receipt, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
+    // ফর্মে নেই, তাই ডিফল্ট ভ্যালু
+    $type = "Member";
+    $fund = "General Fund";
+
+    $errors = [];
+
+    // ---------- ধাপ ১: ভ্যালিডেশন ----------
+    $allowed_status = ['pending', 'paid', 'failed', 'refunded'];
+
+    if ($donor_id <= 0) {
+        $errors[] = "Donor select করুন।";
+    }
+    if ($amount <= 0) {
+        $errors[] = "Amount সঠিক নয়।";
+    }
+    if ($donation_type === '' || $payment_method === '') {
+        $errors[] = "Donation Type ও Payment Method দিন।";
+    }
+    if (!in_array($payment_status, $allowed_status)) {
+        $payment_status = 'pending';
+    }
+
+    // ---------- ধাপ ২: Donor এর তথ্য users টেবিল থেকে আনা ----------
+    $name = $email = $phone = "";
+
+    if (empty($errors)) {
+        $u_stmt = mysqli_prepare($db, "SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1");
+        mysqli_stmt_bind_param($u_stmt, "i", $donor_id);
+        mysqli_stmt_execute($u_stmt);
+        mysqli_stmt_bind_result($u_stmt, $name, $email, $phone);
+
+        if (!mysqli_stmt_fetch($u_stmt)) {
+            $errors[] = "Donor খুঁজে পাওয়া যায়নি।";
+        }
+        mysqli_stmt_close($u_stmt);
+    }
+
+    // ---------- ধাপ ৩: রিসিপ্ট আপলোড ----------
+    $receipt = "";
+
+    // ফাইল সিলেক্ট করা হয়েছে কি না (না করলেও সমস্যা নেই, receipt optional)
+    if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] !== UPLOAD_ERR_NO_FILE) {
+
+        if ($_FILES['receipt']['error'] !== UPLOAD_ERR_OK) {
+            // যেমন: php.ini এর upload_max_filesize এর চেয়ে বড় ফাইল
+            $errors[] = "Receipt আপলোডে সমস্যা হয়েছে (Error code: " . $_FILES['receipt']['error'] . ")।";
+        } else {
+
+            // অনুমোদিত এক্সটেনশন ও MIME type
+            $allowed_ext = ['jpg', 'jpeg', 'png', 'webp'];
+            $allowed_mime = ['image/jpeg', 'image/png', 'image/webp'];
+
+            $ext = strtolower(pathinfo($_FILES['receipt']['name'], PATHINFO_EXTENSION));
+
+            // ফাইলের আসল ধরন চেক (নাম বদলে ফাঁকি দিলেও ধরা পড়বে)
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $_FILES['receipt']['tmp_name']);
+            finfo_close($finfo);
+
+            if (!in_array($ext, $allowed_ext) || !in_array($mime, $allowed_mime)) {
+                $errors[] = "Receipt শুধু JPG, JPEG, PNG বা WEBP ছবি হতে হবে।";
+            } elseif ($_FILES['receipt']['size'] > 5 * 1024 * 1024) {
+                $errors[] = "Receipt এর সাইজ ৫MB এর বেশি হতে পারবে না।";
+            } elseif (empty($errors)) {
+
+                // index.php যে ফোল্ডারে আছে (portal), সেখানে uploads/receipts/
+                $upload_dir = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/';
+
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
+
+                if (move_uploaded_file($_FILES['receipt']['tmp_name'], $upload_dir . $new_name)) {
+                    $receipt = $new_name;
+                } else {
+                    $errors[] = "Receipt সেভ করা যায়নি। uploads/receipts ফোল্ডারের পারমিশন (755/775) চেক করুন।";
+                }
+            }
+        }
+    }
+
+    // ---------- ধাপ ৪: ডাটাবেজে ইনসার্ট ----------
+    if (empty($errors)) {
+
+        $sql = "INSERT INTO donations
+                (donor_id, type, name, email, phone, amount, donation_type, fund,
+                 payment_method, transaction_id, payment_status,
+                 donation_date, admin_note, receipt, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
+
+        $stmt = mysqli_prepare($db, $sql);
+
+        // i=donor_id, ssss=type,name,email,phone, d=amount, বাকি ৮টি s
+        mysqli_stmt_bind_param(
+            $stmt,
+            "issssdssssssss",
+            $donor_id,
+            $type,
+            $name,
+            $email,
+            $phone,
+            $amount,
+            $donation_type,
+            $fund,
+            $payment_method,
+            $transaction_id,
+            $payment_status,
+            $donation_date,
+            $admin_note,
+            $receipt
+        );
+
+        if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            header("Location: $baseUrl");
+            exit;
+        } else {
+            $errors[] = "ডাটা সেভ হয়নি: " . mysqli_stmt_error($stmt);
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    // এরর থাকলে পেজে দেখানো হবে
+    $error_message = implode("<br>", $errors);
+}
+
+// ---------- EDIT DONATION ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'edit') {
+
+    $id = (int) $_POST['id'];
+    $donor_id = ($_POST['donor_id'] ?? '') !== '' ? (int) $_POST['donor_id'] : null;
+    $type = trim($_POST['type'] ?? '');
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $amount = (float) ($_POST['amount'] ?? 0);
+    $donation_type = trim($_POST['donation_type'] ?? '');
+    $fund = trim($_POST['fund'] ?? '');
+    $payment_method = trim($_POST['payment_method'] ?? '');
+    $transaction_id = trim($_POST['transaction_id'] ?? '');
+    $payment_status = trim($_POST['payment_status'] ?? 'pending');
+    $donation_date = $_POST['donation_date'] ?? date('Y-m-d');
+    $admin_note = trim($_POST['admin_note'] ?? '');
+    $receipt = trim($_POST['receipt'] ?? '');
+
+    // ১৪টি কলাম + WHERE id = মোট ১৫টি ?
+    $sql = "UPDATE donations SET
+                donor_id = ?, type = ?, name = ?, email = ?, phone = ?, amount = ?,
+                donation_type = ?, fund = ?, payment_method = ?, transaction_id = ?,
+                payment_status = ?, donation_date = ?,
+                admin_note = ?, receipt = ?, updated_at = NOW()
+            WHERE id = ?";
 
     $stmt = mysqli_prepare($db, $sql);
+
+    // i ssss d ssssssss i  = ১৫টি
     mysqli_stmt_bind_param(
         $stmt,
-        "issssdsssssssss",
-        $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
-        $payment_method, $transaction_id, $payment_status,
-        $donation_date, $admin_note, $receipt
+        "issssdssssssssi",
+        $donor_id,
+        $type,
+        $name,
+        $email,
+        $phone,
+        $amount,
+        $donation_type,
+        $fund,
+        $payment_method,
+        $transaction_id,
+        $payment_status,
+        $donation_date,
+        $admin_note,
+        $receipt,
+        $id
     );
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
@@ -47,21 +206,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
 // ---------- EDIT DONATION ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'edit') {
 
-    $id              = (int) $_POST['id'];
-    $donor_id        = $_POST['donor_id'] !== '' ? (int) $_POST['donor_id'] : null;
-    $type            = trim($_POST['type']);
-    $name            = trim($_POST['name']);
-    $email           = trim($_POST['email']);
-    $phone           = trim($_POST['phone']);
-    $amount          = (float) $_POST['amount'];
-    $donation_type   = trim($_POST['donation_type']);
-    $fund            = trim($_POST['fund']);
-    $payment_method  = trim($_POST['payment_method']);
-    $transaction_id  = trim($_POST['transaction_id']);
-    $payment_status  = trim($_POST['payment_status']);
-    $donation_date   = $_POST['donation_date'];
-    $admin_note      = trim($_POST['admin_note']);
-    $receipt         = trim($_POST['receipt']);
+    $id = (int) $_POST['id'];
+    $donor_id = $_POST['donor_id'] !== '' ? (int) $_POST['donor_id'] : null;
+    $type = trim($_POST['type']);
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $amount = (float) $_POST['amount'];
+    $donation_type = trim($_POST['donation_type']);
+    $fund = trim($_POST['fund']);
+    $payment_method = trim($_POST['payment_method']);
+    $transaction_id = trim($_POST['transaction_id']);
+    $payment_status = trim($_POST['payment_status']);
+    $donation_date = $_POST['donation_date'];
+    $admin_note = trim($_POST['admin_note']);
+    $receipt = trim($_POST['receipt']);
 
     $sql = "UPDATE donations SET
                 donor_id = ?, name = ?, email = ?, phone = ?, amount = ?,
@@ -72,9 +231,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
 
     $stmt = mysqli_prepare($db, $sql);
     mysqli_stmt_bind_param(
-        $stmt, $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
-        $payment_method, $transaction_id, $payment_status,
-        $donation_date, $admin_note, $receipt, $id
+        $stmt,
+        $donor_id,
+        $type,
+        $name,
+        $email,
+        $phone,
+        $amount,
+        $donation_type,
+        $fund,
+        $payment_method,
+        $transaction_id,
+        $payment_status,
+        $donation_date,
+        $admin_note,
+        $receipt,
+        $id
     );
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
@@ -104,20 +276,20 @@ if (isset($_GET['clear_filter'])) {
     unset($_SESSION['donation_filter']);
 } elseif (isset($_GET['filter_apply'])) {
     $_SESSION['donation_filter'] = [
-        'search'          => trim($_GET['search'] ?? ''),
-        'payment_status'  => trim($_GET['payment_status'] ?? ''),
-        'fund'            => trim($_GET['fund'] ?? ''),
-        'date_from'       => trim($_GET['date_from'] ?? ''),
-        'date_to'         => trim($_GET['date_to'] ?? ''),
+        'search' => trim($_GET['search'] ?? ''),
+        'payment_status' => trim($_GET['payment_status'] ?? ''),
+        'fund' => trim($_GET['fund'] ?? ''),
+        'date_from' => trim($_GET['date_from'] ?? ''),
+        'date_to' => trim($_GET['date_to'] ?? ''),
     ];
 }
 
 $filter = $_SESSION['donation_filter'] ?? [
-    'search'          => '',
-    'payment_status'  => '',
-    'fund'            => '',
-    'date_from'       => '',
-    'date_to'         => '',
+    'search' => '',
+    'payment_status' => '',
+    'fund' => '',
+    'date_from' => '',
+    'date_to' => '',
 ];
 
 // Kono filter active ache kina (card e "Filtered" badge dekhate)
@@ -134,41 +306,41 @@ foreach ($filter as $fv) {
 ===================================================================== */
 
 $whereParts = [];
-$params     = [];
+$params = [];
 $paramTypes = "";
 
 if ($filter['search'] !== '') {
-    $whereParts[]  = "(name LIKE ? OR email LIKE ? OR phone LIKE ? OR transaction_id LIKE ?)";
-    $searchTerm    = "%" . $filter['search'] . "%";
-    $params[]      = $searchTerm;
-    $params[]      = $searchTerm;
-    $params[]      = $searchTerm;
-    $params[]      = $searchTerm;
-    $paramTypes   .= "ssss";
+    $whereParts[] = "(name LIKE ? OR email LIKE ? OR phone LIKE ? OR transaction_id LIKE ?)";
+    $searchTerm = "%" . $filter['search'] . "%";
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $paramTypes .= "ssss";
 }
 
 if ($filter['payment_status'] !== '') {
     $whereParts[] = "payment_status = ?";
-    $params[]     = $filter['payment_status'];
-    $paramTypes  .= "s";
+    $params[] = $filter['payment_status'];
+    $paramTypes .= "s";
 }
 
 if ($filter['fund'] !== '') {
     $whereParts[] = "fund = ?";
-    $params[]     = $filter['fund'];
-    $paramTypes  .= "s";
+    $params[] = $filter['fund'];
+    $paramTypes .= "s";
 }
 
 if ($filter['date_from'] !== '') {
     $whereParts[] = "donation_date >= ?";
-    $params[]     = $filter['date_from'];
-    $paramTypes  .= "s";
+    $params[] = $filter['date_from'];
+    $paramTypes .= "s";
 }
 
 if ($filter['date_to'] !== '') {
     $whereParts[] = "donation_date <= ?";
-    $params[]     = $filter['date_to'];
-    $paramTypes  .= "s";
+    $params[] = $filter['date_to'];
+    $paramTypes .= "s";
 }
 
 $whereSQL = "";
@@ -182,7 +354,7 @@ if (count($whereParts) > 0) {
    page er na), tai card er value filter er upor base kore ashe.
 ===================================================================== */
 
-$perPage     = 10;
+$perPage = 10;
 $currentPage = isset($_GET['pg']) ? (int) $_GET['pg'] : 1;
 if ($currentPage < 1) {
     $currentPage = 1;
@@ -201,12 +373,12 @@ if (count($params) > 0) {
 }
 mysqli_stmt_execute($summaryStmt);
 $summaryResult = mysqli_stmt_get_result($summaryStmt);
-$summary       = mysqli_fetch_assoc($summaryResult);
+$summary = mysqli_fetch_assoc($summaryResult);
 mysqli_stmt_close($summaryStmt);
 
-$totalRows     = (int) $summary['total'];
-$totalAmount   = (float) $summary['total_amount'];
-$paidAmount    = (float) $summary['paid_amount'];
+$totalRows = (int) $summary['total'];
+$totalAmount = (float) $summary['total_amount'];
+$paidAmount = (float) $summary['paid_amount'];
 $pendingAmount = (float) $summary['pending_amount'];
 
 $totalPages = (int) ceil($totalRows / $perPage);
@@ -230,9 +402,9 @@ $listSql = "SELECT id, donor_id, type, name, email, phone, amount, donation_type
 $listStmt = mysqli_prepare($db, $listSql);
 
 $listParamTypes = $paramTypes . "ii";
-$listParams     = $params;
-$listParams[]   = $perPage;
-$listParams[]   = $offset;
+$listParams = $params;
+$listParams[] = $perPage;
+$listParams[] = $offset;
 
 mysqli_stmt_bind_param($listStmt, $listParamTypes, ...$listParams);
 mysqli_stmt_execute($listStmt);
@@ -326,14 +498,16 @@ function h($value)
 
         <!-- Total Amount -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+            <div
+                class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
                 <i class="fa-solid fa-sack-dollar"></i>
             </div>
             <div class="min-w-0">
                 <p class="text-[11px] font-bold uppercase text-slate-500">
                     Total Amount
                     <?php if ($isFiltered): ?>
-                        <span class="ml-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[9px] normal-case">Filtered</span>
+                        <span
+                            class="ml-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[9px] normal-case">Filtered</span>
                     <?php endif; ?>
                 </p>
                 <p class="text-xl font-bold text-slate-800 truncate">৳ <?= number_format($totalAmount, 2) ?></p>
@@ -353,7 +527,8 @@ function h($value)
 
         <!-- Paid Amount -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg shrink-0">
+            <div
+                class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg shrink-0">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
             <div class="min-w-0">
@@ -364,7 +539,8 @@ function h($value)
 
         <!-- Pending Amount -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">
+            <div
+                class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">
                 <i class="fa-solid fa-hourglass-half"></i>
             </div>
             <div class="min-w-0">
@@ -373,6 +549,12 @@ function h($value)
             </div>
         </div>
     </div>
+
+    <?php if (!empty($error_message)): ?>
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+            <?= $error_message ?>
+        </div>
+    <?php endif; ?>
 
     <!-- ===================== DONATIONS TABLE ===================== -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -432,8 +614,7 @@ function h($value)
                             </td>
                             <td class="p-4"><?= h($d['donation_date']) ?></td>
                             <td class="p-4 text-right space-x-1 whitespace-nowrap">
-                                <button
-                                    onclick='openEditModal(<?= json_encode($d, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                <button onclick='openEditModal(<?= json_encode($d, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                     class="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
@@ -483,7 +664,8 @@ function h($value)
 <!-- ===================== ADD DONATION MODAL ===================== -->
 <div id="addDonationModal"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
+    <div
+        class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
         <div class="p-5 bg-slate-900 text-white flex justify-between items-center sticky top-0">
             <h3 class="font-bold text-sm flex items-center gap-2">
                 <i class="fa-solid fa-square-plus text-emerald-400"></i>
@@ -493,40 +675,47 @@ function h($value)
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
-        <form method="POST" action="<?= h($baseUrl) ?>" class="p-6 space-y-4">
+        <form method="POST" action="<?= h($baseUrl) ?>" enctype="multipart/form-data" class="p-6 space-y-4">
             <input type="hidden" name="form_action" value="add">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donor Select <span class="text-red-800">*</span> </label>
-                    <select name="donor_id" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
-                        <option selected disabled>Select a Donor</option>
-                        <?php 
-                            $sql = "SELECT * FROM users";
-                            $res = mysqli_query($db, $sql);
-                            while ($row = mysqli_fetch_assoc($res)) {
-                                $id   = $row['id'];
-                                $name = $row['member_name']; ?>
-                            <option value="<?= h($id) ?>"><?= h($name) ?></option>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donor Select <span
+                            class="text-red-800">*</span> </label>
+                    <select name="donor_id"
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                        required>
+                        <option value="" selected disabled>Select a Donor</option>
+                        <?php
+                        $sql = "SELECT id, member_name FROM users";
+                        $res = mysqli_query($db, $sql);
+                        while ($row = mysqli_fetch_assoc($res)) {
+                            ?>
+                            <option value="<?= (int) $row['id'] ?>"><?= h($row['member_name']) ?></option>
                         <?php } ?>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Receipt (Jpg,PNG,Jpge)</label>
-                    <input type="file" name="receipt"
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Receipt (JPG, PNG, WEBP - max
+                        5MB)</label>
+                    <input type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount <span class="text-red-800">*</span></label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount <span
+                            class="text-red-800">*</span></label>
                     <input type="number" step="0.01" name="amount" required
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Type <span class="text-red-800">*</span></label>
-                    <select name="donation_type" id="" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Type <span
+                            class="text-red-800">*</span></label>
+                    <select name="donation_type"
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                        required>
                         <option value="" disabled selected>Select Donation Type</option>
                         <option value="Zakat">Zakat</option>
                         <option value="Sadaqah">Sadaqah</option>
@@ -538,11 +727,14 @@ function h($value)
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Method <span class="text-red-800">*</span></label>
-                    <select name="payment_method" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Method <span
+                            class="text-red-800">*</span></label>
+                    <select name="payment_method"
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                        required>
                         <option value="" disabled selected>Select Payment Method</option>
                         <option value="bKash">bKash</option>
-                        <option value="Nagod">Nagod</option>
+                        <option value="Nagad">Nagad</option>
                         <option value="Rocket">Rocket</option>
                         <option value="Upay">Upay</option>
                         <option value="SureCash">Sure Cash</option>
@@ -553,15 +745,17 @@ function h($value)
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Transaction ID </label>
                     <input type="text" name="transaction_id"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" >
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Status <span class="text-red-800">*</span></label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Status <span
+                            class="text-red-800">*</span></label>
                     <select name="payment_status"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500 " required>
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                        required>
                         <option value="pending">Pending</option>
                         <option value="paid">Paid</option>
                         <option value="failed">Failed</option>
@@ -569,9 +763,11 @@ function h($value)
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date <span class="text-red-800">*</span></label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date <span
+                            class="text-red-800">*</span></label>
                     <input type="date" name="donation_date" value="<?= date('Y-m-d') ?>"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                        required>
                 </div>
             </div>
 
@@ -595,7 +791,8 @@ function h($value)
 <!-- ===================== EDIT DONATION MODAL ===================== -->
 <div id="editDonationModal"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
+    <div
+        class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
         <div class="p-5 bg-slate-900 text-white flex justify-between items-center sticky top-0">
             <h3 class="font-bold text-sm flex items-center gap-2">
                 <i class="fa-solid fa-pen text-emerald-400"></i>
@@ -677,7 +874,7 @@ function h($value)
                         <option value="refunded">Refunded</option>
                     </select>
                 </div>
-                
+
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date</label>
                     <input type="date" name="donation_date" id="edit_donation_date"
@@ -692,7 +889,8 @@ function h($value)
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Receipt (file path / URL)</label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Receipt (file path /
+                        URL)</label>
                     <input type="text" name="receipt" id="edit_receipt"
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
@@ -719,7 +917,8 @@ function h($value)
 <div id="deleteDonationModal"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center border border-slate-100">
-        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl mx-auto mb-4">
+        <div
+            class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl mx-auto mb-4">
             <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
         <h3 class="font-bold text-slate-800 text-base">Confirm Deletion</h3>
