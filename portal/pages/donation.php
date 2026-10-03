@@ -498,66 +498,70 @@ function h($value)
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donor Name</label>
-                    <input type="text" name="name" required
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donor Select <span class="text-red-800">*</span> </label>
+                    <select name="donor_id" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
+                        <option selected disabled>Select a Donor</option>
+                        <?php 
+                            $sql = "SELECT * FROM users";
+                            $res = mysqli_query($db, $sql);
+                            while ($row = mysqli_fetch_assoc($res)) {
+                                $id   = $row['id'];
+                                $name = $row['member_name']; ?>
+                            <option value="<?= h($id) ?>"><?= h($name) ?></option>
+                        <?php } ?>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donor Type</label>
-                    <input type="text" name="type" placeholder="Individual / Organization"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Receipt (Jpg,PNG,Jpge)</label>
+                    <input type="file" name="receipt"
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Email</label>
-                    <input type="email" name="email"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Phone</label>
-                    <input type="text" name="phone" placeholder="+8801XXXXXXXXX"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount</label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount <span class="text-red-800">*</span></label>
                     <input type="number" step="0.01" name="amount" required
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Type</label>
-                    <input type="text" name="donation_type" placeholder="Zakat / Sadaqah / General"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Fund</label>
-                    <input type="text" name="fund"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Type <span class="text-red-800">*</span></label>
+                    <select name="donation_type" id="" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
+                        <option value="" disabled selected>Select Donation Type</option>
+                        <option value="Zakat">Zakat</option>
+                        <option value="Sadaqah">Sadaqah</option>
+                        <option value="General">General</option>
+                        <option value="Monthly">Monthly</option>
+                    </select>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Method</label>
-                    <input type="text" name="payment_method" placeholder="bKash / Bank / Cash"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Method <span class="text-red-800">*</span></label>
+                    <select name="payment_method" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
+                        <option value="" disabled selected>Select Payment Method</option>
+                        <option value="bKash">bKash</option>
+                        <option value="Nagod">Nagod</option>
+                        <option value="Rocket">Rocket</option>
+                        <option value="Upay">Upay</option>
+                        <option value="SureCash">Sure Cash</option>
+                        <option value="Bank">Bank</option>
+                        <option value="Cash">Cash</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Transaction ID</label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Transaction ID </label>
                     <input type="text" name="transaction_id"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" >
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Status</label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Payment Status <span class="text-red-800">*</span></label>
                     <select name="payment_status"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500 " required>
                         <option value="pending">Pending</option>
                         <option value="paid">Paid</option>
                         <option value="failed">Failed</option>
@@ -565,22 +569,9 @@ function h($value)
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date</label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donation Date <span class="text-red-800">*</span></label>
                     <input type="date" name="donation_date" value="<?= date('Y-m-d') ?>"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Donor ID (optional)</label>
-                    <input type="number" name="donor_id"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Receipt (file path / URL)</label>
-                    <input type="text" name="receipt"
-                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500" required>
                 </div>
             </div>
 
