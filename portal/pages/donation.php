@@ -6,7 +6,6 @@ $baseUrl = "index.php?page=donation";
 ===================================================================== */
 
 // ---------- ADD DONATION ----------
-// ---------- ADD DONATION ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'add') {
 
     // ফর্ম থেকে ডাটা নেওয়া
@@ -18,10 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $payment_status = trim($_POST['payment_status'] ?? 'pending');
     $donation_date = !empty($_POST['donation_date']) ? $_POST['donation_date'] : date('Y-m-d');
     $admin_note = trim($_POST['admin_note'] ?? '');
+    $fund = trim($_POST['fund'] ?? '');
 
     // ফর্মে নেই, তাই ডিফল্ট ভ্যালু
     $type = "Member";
-    $fund = "General Fund";
 
     $errors = [];
 
@@ -257,12 +256,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
 
 // ---------- DELETE DONATION ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'delete') {
-    $id = (int) $_POST['id'];
 
-    $stmt = mysqli_prepare($db, "DELETE FROM donations WHERE id = ?");
-    mysqli_stmt_bind_param($stmt, "i", $id);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
+    $id = (int) ($_POST['id'] ?? 0);
+
+    if ($id > 0) {
+
+        // ধাপ ১: ডিলিটের আগে receipt এর ফাইলের নাম বের করা
+        $receipt_file = "";
+
+        $sel = mysqli_prepare($db, "SELECT receipt FROM donations WHERE id = ? LIMIT 1");
+        mysqli_stmt_bind_param($sel, "i", $id);
+        mysqli_stmt_execute($sel);
+        mysqli_stmt_bind_result($sel, $receipt_file);
+        mysqli_stmt_fetch($sel);
+        mysqli_stmt_close($sel);
+
+        // ধাপ ২: ডাটাবেজ থেকে রেকর্ড ডিলিট
+        $del = mysqli_prepare($db, "DELETE FROM donations WHERE id = ?");
+        mysqli_stmt_bind_param($del, "i", $id);
+        $deleted = mysqli_stmt_execute($del);
+        $affected = mysqli_stmt_affected_rows($del);
+        mysqli_stmt_close($del);
+
+        // ধাপ ৩: রেকর্ড সত্যিই ডিলিট হলে তবেই ছবি মুছবে
+        if ($deleted && $affected > 0 && !empty($receipt_file)) {
+
+            // basename() দিয়ে শুধু ফাইলের নাম নেওয়া (ফোল্ডারের বাইরের ফাইল মোছা আটকানোর জন্য)
+            $safe_name = basename($receipt_file);
+
+            // Add এর সময় যে ফোল্ডারে সেভ করা হয়েছে, এখানেও সেই একই ফোল্ডার
+            $file_path = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/' . $safe_name;
+
+            if (is_file($file_path)) {
+                unlink($file_path);
+            }
+        }
+    }
 
     header("Location: $baseUrl");
     exit;
@@ -703,7 +732,7 @@ function h($value)
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount <span
                             class="text-red-800">*</span></label>
@@ -717,10 +746,24 @@ function h($value)
                         class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
                         required>
                         <option value="" disabled selected>Select Donation Type</option>
-                        <option value="Zakat">Zakat</option>
-                        <option value="Sadaqah">Sadaqah</option>
                         <option value="General">General</option>
                         <option value="Monthly">Monthly</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Fund <span
+                            class="text-red-800">*</span></label>
+                    <select name="fund"
+                        class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                        required>
+                        <option value="" disabled selected>Select Fund</option>
+                        <?php
+                        $sql = mysqli_query($db, "SELECT * FROM donation_sectors WHERE status = 'active' ORDER BY id DESC");
+                        while ($row = mysqli_fetch_assoc($sql)) {
+                            ?>
+                            <option value="<?= h($row['title']) ?>"><?= h($row['title']) ?></option>
+                        <?php } ?>
                     </select>
                 </div>
             </div>
