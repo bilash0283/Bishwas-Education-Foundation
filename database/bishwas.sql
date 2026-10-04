@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Sep 29, 2026 at 07:35 PM
+-- Generation Time: Oct 04, 2026 at 07:50 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -190,7 +190,6 @@ CREATE TABLE `donations` (
   `payment_method` varchar(50) NOT NULL,
   `transaction_id` varchar(100) NOT NULL,
   `payment_status` enum('Pending','Paid','Failed') DEFAULT 'Pending',
-  `donation_status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
   `donation_date` date NOT NULL DEFAULT current_timestamp(),
   `admin_note` text DEFAULT NULL,
   `receipt` varchar(255) DEFAULT NULL,
@@ -202,10 +201,16 @@ CREATE TABLE `donations` (
 -- Dumping data for table `donations`
 --
 
-INSERT INTO `donations` (`id`, `donor_id`, `type`, `name`, `email`, `phone`, `amount`, `donation_type`, `fund`, `payment_method`, `transaction_id`, `payment_status`, `donation_status`, `donation_date`, `admin_note`, `receipt`, `created_at`, `updated_at`) VALUES
-(3, NULL, 'Public', 'Abel Hoffman', 'riwemive@mailinator.com', '+1 (469) 619-2641', 51, 'General', 'General Fund', 'Nagad', 'Aspernatur velit com', 'Pending', 'Pending', '0000-00-00', NULL, '1789214843_5806.png', '2026-09-12 12:07:23', '2026-09-12 12:07:23'),
-(4, NULL, 'Public', 'Abel Hoffman', 'riwemive@mailinator.com', '+1 (469) 619-2641', 51, 'General', 'General Fund', 'Nagad', 'Aspernatur velit com', 'Pending', 'Pending', '2026-09-12', NULL, '1789215427_2331.png', '2026-09-12 12:17:07', '2026-09-12 12:17:07'),
-(5, 64, '', 'Clayton Graves', 'kizysegali@mailinator.com', '+1 (682) 451-5796', 55555, 'Eveniet fugit quod', 'Ut sed exercitation', 'Quo dolores sunt id', 'Nulla hic autem dolo', '', 'Approved', '1979-08-05', 'Harum quo facere nis', 'Lorem ea mollit impe', '2026-09-24 06:36:26', '2026-09-24 06:37:50');
+INSERT INTO `donations` (`id`, `donor_id`, `type`, `name`, `email`, `phone`, `amount`, `donation_type`, `fund`, `payment_method`, `transaction_id`, `payment_status`, `donation_date`, `admin_note`, `receipt`, `created_at`, `updated_at`) VALUES
+(4, NULL, 'Public', 'Abel Hoffman', 'riwemive@mailinator.com', '+1 (469) 619-2641', 51, 'General', 'General Fund', 'Nagad', 'Aspernatur velit com', 'Pending', '2026-09-12', NULL, '1789215427_2331.png', '2026-09-12 12:17:07', '2026-09-12 12:17:07'),
+(6, 82, '', 'Drake Kline', 'binimurop@mailinator.com', '+1 (714) 299-9814', 26, 'Rerum eiusmod ut sit', 'Omnis ea esse conse', 'Dolore esse eum mini', 'Est eveniet quia ut', 'Pending', '2005-11-01', 'Vero occaecat fugit', 'Nostrud dolore verit', '2026-10-01 11:59:50', '2026-10-03 11:36:52'),
+(7, NULL, 'Public', 'Porter Jensen', 'qywin@mailinator.com', '+1 (822) 309-4316', 5000, 'General', 'General Fund', 'Nagad', 'Eaque sit natus qui', 'Pending', '2026-10-03', NULL, '1791010912_5108.png', '2026-10-03 07:01:52', '2026-10-03 07:01:52'),
+(8, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 23434, 'Monthly', 'General Fund', 'Rocket', '', 'Paid', '2026-10-03', 'sfsfsf', '', '2026-10-03 11:14:36', '2026-10-03 11:14:36'),
+(9, 1, 'Member', 'Kenneth Andrews', 'admin@gmail.com', '01709897865', 444, 'Zakat', 'General Fund', 'Nagod', '5353535', 'Pending', '2026-10-03', 'etetete', '', '2026-10-03 11:15:43', '2026-10-03 11:15:43'),
+(11, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 80, 'General', 'General Fund', 'Cash', 'Itaque occaecat nisi', 'Paid', '1980-05-24', 'Fuga Provident ani', '', '2026-10-03 11:20:32', '2026-10-03 11:20:32'),
+(12, 3, 'Member', 'Christen Davenport', 'tafu@mailinator.com', '01689786567', 66, 'General', 'General Fund', 'SureCash', 'Id nemo unde ullamco', 'Pending', '2026-10-04', 'Aut cupidatat cupida', '', '2026-10-03 11:20:50', '2026-10-04 05:45:58'),
+(13, 3, 'Member', 'Christen Davenport', 'tafu@mailinator.com', '01689786567', 91, 'Zakat', 'General Fund', 'Nagad', 'ggggggggggggggggg', 'Failed', '2015-01-03', 'Alias modi suscipit', '1791026947_9584.png', '2026-10-03 11:29:07', '2026-10-03 11:29:07'),
+(16, 3, 'Member', 'Christen Davenport', 'tafu@mailinator.com', '01689786567', 75, 'Monthly', 'সাধারণ তহবিল', 'Bank', 'Optio modi labore m', 'Pending', '1979-09-27', 'Tenetur ut enim enim', '', '2026-10-03 11:53:21', '2026-10-04 05:21:20');
 
 -- --------------------------------------------------------
 
@@ -320,23 +325,36 @@ INSERT INTO `site_settings` (`id`, `donate_btn_text`, `footer_about_text`, `foot
 --
 
 CREATE TABLE `users` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(150) NOT NULL,
-  `email` varchar(191) NOT NULL,
-  `phone` varchar(20) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` enum('admin','volunteer','member') NOT NULL DEFAULT 'member',
-  `status` enum('active','inactive','pending','banned') DEFAULT 'pending',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `id` int(11) NOT NULL,
+  `photo` varchar(255) DEFAULT NULL,
+  `member_name` varchar(150) NOT NULL,
+  `mother_name` varchar(150) NOT NULL DEFAULT '',
+  `father_husband_name` varchar(150) NOT NULL DEFAULT '',
+  `dob` date DEFAULT NULL,
+  `gender` varchar(20) NOT NULL DEFAULT '',
+  `id_type` varchar(30) DEFAULT NULL,
+  `id_number` varchar(50) DEFAULT NULL,
+  `qualification` varchar(150) DEFAULT NULL,
+  `mobile_no` varchar(20) NOT NULL,
+  `email` varchar(150) DEFAULT NULL,
+  `present_address` text DEFAULT NULL,
+  `permanent_address` text DEFAULT NULL,
+  `other_info` varchar(255) DEFAULT NULL,
+  `membership_status` varchar(50) NOT NULL DEFAULT '',
+  `user_type` varchar(30) NOT NULL DEFAULT 'Member',
+  `status` enum('Active','Pending') NOT NULL DEFAULT 'Pending',
+  `password` varchar(32) NOT NULL DEFAULT '827ccb0eea8a706c4c34a16891f84e7b',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `role`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Super Admin', 'admin@gmail.com', '01700000000', '827ccb0eea8a706c4c34a16891f84e7b', 'admin', 'active', '2026-09-10 09:18:49', '2026-09-10 09:29:17');
+INSERT INTO `users` (`id`, `photo`, `member_name`, `mother_name`, `father_husband_name`, `dob`, `gender`, `id_type`, `id_number`, `qualification`, `mobile_no`, `email`, `present_address`, `permanent_address`, `other_info`, `membership_status`, `user_type`, `status`, `password`, `created_at`) VALUES
+(1, '', 'Kenneth Andrews', 'Garrison Snyder', 'Sage Hutchinson', '1999-02-02', 'Other', 'NID', '97', 'Est commodo non qua', '01709897865', 'admin@gmail.com', 'Nulla sit amet elig', 'Exercitation et Nam', 'Adipisci non atque e', 'Admin', 'Admin', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-09-30 07:17:19'),
+(2, '', 'Unity Buchanan', 'Vaughan Baldwin', 'Basil Church', '2012-04-08', 'Male', 'Passport', '210', 'Ex labore quo itaque', '01786588675', 'picyvyzo@mailinator.com', 'Eum do ullam suscipi', 'Quia ut quam eaque N', 'Qui deleniti dolorem', 'Associate Member', 'Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-09-30 12:07:11'),
+(3, '', 'Christen Davenport', 'Lunea Stewart', 'Kiona Moran', '2013-09-27', 'Male', 'Birth Certificate', '394', 'Dolor accusantium su', '01689786567', 'tafu@mailinator.com', 'Praesentium doloremq', 'Aut qui dicta dolore', 'Quia qui dolorem ex', 'Volunteer Member', 'Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-09-30 12:09:00');
 
 -- --------------------------------------------------------
 
@@ -435,8 +453,7 @@ ALTER TABLE `site_settings`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`),
-  ADD UNIQUE KEY `phone` (`phone`);
+  ADD UNIQUE KEY `mobile_no` (`mobile_no`);
 
 --
 -- Indexes for table `volunteer_cta_settings`
@@ -482,7 +499,7 @@ ALTER TABLE `contact_settings`
 -- AUTO_INCREMENT for table `donations`
 --
 ALTER TABLE `donations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `donation_sectors`
@@ -506,7 +523,7 @@ ALTER TABLE `hero_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `volunteer_cta_settings`
