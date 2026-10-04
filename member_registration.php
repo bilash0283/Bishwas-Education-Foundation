@@ -26,7 +26,7 @@ $email               = trim($_POST['email'] ?? '');
 $present_address     = trim($_POST['present_address'] ?? '');
 $permanent_address   = trim($_POST['permanent_address'] ?? '');
 $other_info          = trim($_POST['other_info'] ?? '');
-$membership_status   = trim($_POST['membership_status'] ?? '');
+$user_type           = trim($_POST['user_type'] ?? '');
 
 // Password form theke ashbe na. Default 12345, md5 kore rakhbo
 $password = md5('12345');
@@ -37,7 +37,7 @@ $back_page = 'volunteer_register.php';
 // ---------- 2. Validation ----------
 if ($member_name == '' || $mother_name == '' || $father_husband_name == '' || $dob == '' ||
     $gender == '' || $id_type == '' || $id_number == '' || $mobile_no == '' ||
-    $present_address == '' || $permanent_address == '' || $membership_status == '') {
+    $present_address == '' || $permanent_address == '' || $user_type == '') {
     header("Location: $back_page?error=" . urlencode('সব প্রয়োজনীয় তথ্য পূরণ করুন।'));
     exit;
 }
@@ -98,7 +98,7 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === 0) {
 $sql = "INSERT INTO users
         (photo, member_name, mother_name, father_husband_name, dob, gender, id_type, id_number,
          qualification, mobile_no, email, present_address, permanent_address, other_info,
-         membership_status, password)
+         user_type, password)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = mysqli_prepare($db, $sql);
@@ -108,7 +108,7 @@ mysqli_stmt_bind_param(
     "ssssssssssssssss",
     $photo_name, $member_name, $mother_name, $father_husband_name, $dob, $gender,
     $id_type, $id_number, $qualification, $mobile_no, $email, $present_address,
-    $permanent_address, $other_info, $membership_status, $password
+    $permanent_address, $other_info, $user_type, $password
 );
 
 if (mysqli_stmt_execute($stmt)) {

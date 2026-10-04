@@ -256,11 +256,11 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
 
                         <div>
                             <label for="email" class="block text-xs font-semibold text-slate-700 mb-1">
-                                Email Address / ই-মেইল
+                                Email Address / ই-মেইল <span class="text-rose-500">*</span>
                             </label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-sm pointer-events-none"><i class="fa-regular fa-envelope"></i></span>
-                                <input type="email" id="email" name="email" placeholder="name@example.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none">
+                                <input type="email" id="email" name="email" placeholder="name@example.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all outline-none" required>
                             </div>
                         </div>
                     </div>
@@ -304,7 +304,7 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
-                            <input type="radio" name="membership_status" value="General Member" required checked class="sr-only">
+                            <input type="radio" name="user_type" value="General Member" required checked class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
                                 <i class="fa-solid fa-user-check"></i>
                             </div>
@@ -313,7 +313,7 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
                         </label>
 
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
-                            <input type="radio" name="membership_status" value="Associate Member" class="sr-only">
+                            <input type="radio" name="user_type" value="Associate Member" class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
                                 <i class="fa-solid fa-user-gear"></i>
                             </div>
@@ -322,7 +322,7 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
                         </label>
 
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
-                            <input type="radio" name="membership_status" value="Life Member" class="sr-only">
+                            <input type="radio" name="user_type" value="Life Member" class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
                                 <i class="fa-solid fa-crown"></i>
                             </div>
@@ -331,7 +331,7 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
                         </label>
 
                         <label class="relative group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:border-brand-500 hover:shadow-md transition-all has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/40">
-                            <input type="radio" name="membership_status" value="Volunteer Member" class="sr-only">
+                            <input type="radio" name="user_type" value="Volunteer Member" class="sr-only">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 group-has-[:checked]:bg-brand-500 text-slate-500 group-has-[:checked]:text-white flex items-center justify-center text-xl mb-2 transition-colors">
                                 <i class="fa-solid fa-hand-holding-heart"></i>
                             </div>
