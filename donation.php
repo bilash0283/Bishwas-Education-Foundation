@@ -15,12 +15,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $payment_method = trim($_POST['payment_method'] ?? '');
     $amount         = floatval($_POST['amount'] ?? 0);
     $transaction_id = trim($_POST['transaction_id'] ?? '');
+    $fund           = trim($_POST['fund'] ?? 'সাধারণ তহবিল');    
 
     // ডিফল্ট ভ্যালুসমূহ
     $type           = "Public";        // Public / Member / Volunteer
     $donor_id       = NULL;            // লগইন করা ইউজার থাকলে তার ID বসবে
     $donation_type  = "General";
-    $fund           = "General Fund";
     $payment_status = "Pending";
     $receipt_filename = "";
 
@@ -254,12 +254,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5">
-                        পেমেন্ট স্লিপ / স্ক্রিনশট আপলোড করুন <span class="text-red-500">*</span>
-                    </label>
-                    <input type="file" name="payment_slip" accept="image/*,.pdf" required
-                        class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-200 rounded-lg bg-slate-50 cursor-pointer">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="w-full">
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                            পেমেন্ট স্লিপ / আপলোড করুন <span class="text-red-500">*</span>
+                        </label>
+                        <input type="file" name="payment_slip" accept="image/*,.pdf" required
+                            class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-200 rounded-lg bg-slate-50 cursor-pointer">
+                    </div>
+                    <div class="w-full">
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                            খাতসমূহ<span class="text-red-800">*</span>
+                        </label>
+                        <select name="fund" required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
+                            <option value="">পেমেন্ট খাত নির্বাচন করুন</option>
+                            <?php
+                            $sql = mysqli_query($db, "SELECT * FROM donation_sectors WHERE status = 'active' ORDER BY id DESC");
+                            while ($row = mysqli_fetch_assoc($sql)) {
+                                $id = $row['id'];
+                                $title = $row['title'];
+                                ?>
+                                <option value="<?php echo $title; ?>"><?php echo $title; ?></option>
+                            <?php } ?>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="pt-2">
