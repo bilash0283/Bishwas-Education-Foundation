@@ -81,7 +81,7 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === 0) {
         exit;
     }
 
-    $upload_dir = 'public/uploads/members/';
+    $upload_dir = 'portal/public/uploads/members/';
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0755, true);
     }
