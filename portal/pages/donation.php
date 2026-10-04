@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $errors = [];
 
     // ---------- ধাপ ১: ভ্যালিডেশন ----------
-    $allowed_status = ['pending', 'paid', 'failed', 'refunded'];
+    $allowed_status = ['pending', 'paid', 'failed', 'rejected'];
 
     if ($donor_id <= 0) {
         $errors[] = "Donor select করুন।";
@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
     $errors = [];
 
     // ---------- ধাপ ১: ভ্যালিডেশন ----------
-    $allowed_status = ['pending', 'paid', 'failed', 'refunded'];
+    $allowed_status = ['pending', 'paid', 'failed', 'rejected'];
 
     if ($id <= 0) {
         $errors[] = "Donation খুঁজে পাওয়া যায়নি।";
@@ -538,7 +538,7 @@ function h($value)
                 <select name="payment_status"
                     class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
                     <option value="">All</option>
-                    <?php foreach (['pending', 'paid', 'failed', 'refunded'] as $ps): ?>
+                    <?php foreach (['pending', 'paid', 'failed', 'rejected'] as $ps): ?>
                         <option value="<?= h($ps) ?>" <?= $filter['payment_status'] === $ps ? 'selected' : '' ?>>
                             <?= h(ucfirst($ps)) ?>
                         </option>
@@ -688,8 +688,19 @@ function h($value)
                                 <span class="block text-[10px] text-slate-400"><?= h($d['transaction_id']) ?></span>
                             </td>
                             <td class="p-4 space-y-1">
-                                <span
-                                    class="inline-block px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-bold text-[10px]">
+                                <?php
+                                $status = strtolower($d['payment_status'] ?? '');
+
+                                $status_colors = [
+                                    'paid'     => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'pending'  => 'bg-amber-50 text-amber-700 border-amber-200',
+                                    'failed' => 'bg-sky-50 text-sky-700 border-sky-200',
+                                    'rejected'   => 'bg-red-50 text-red-700 border-red-200',
+                                ];
+
+                                $badge_class = $status_colors[$status] ?? 'bg-slate-100 text-slate-600 border-slate-200';
+                                ?>
+                                <span class="inline-block px-2.5 py-1 rounded-md border font-bold text-[10px] <?= $badge_class ?>">
                                     <?= h(ucfirst($d['payment_status'])) ?>
                                 </span>
                             </td>
@@ -914,7 +925,7 @@ function h($value)
                         <!-- ফুটার -->
                         <div class="flex justify-between items-end gap-4 mt-9">
                             <div class="text-[13px] font-bold text-emerald-800">
-                                জাযাকাল্লাহু খাইরান।<br>
+                                <!-- জাযাকাল্লাহু খাইরান।<br> -->
                                 <small class="font-normal text-slate-500 text-[11px]">Thank you for your generous donation.</small>
                             </div>
                             <div class="text-center w-40">
@@ -1058,7 +1069,7 @@ function h($value)
                         <option value="pending">Pending</option>
                         <option value="paid">Paid</option>
                         <option value="failed">Failed</option>
-                        <option value="refunded">Refunded</option>
+                        <option value="rejected">Rejected</option>
                     </select>
                 </div>
                 <div>
@@ -1207,7 +1218,7 @@ function h($value)
                         <option value="pending">Pending</option>
                         <option value="paid">Paid</option>
                         <option value="failed">Failed</option>
-                        <option value="refunded">Refunded</option>
+                        <option value="rejected">Rejected</option>
                     </select>
                 </div>
                 <div>
@@ -1294,7 +1305,7 @@ function h($value)
         paid:     'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-emerald-100 text-emerald-800 border-emerald-300',
         pending:  'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-amber-100 text-amber-800 border-amber-300',
         failed:   'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-red-100 text-red-800 border-red-300',
-        refunded: 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-blue-100 text-blue-800 border-blue-300'
+        rejected: 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-blue-100 text-blue-800 border-blue-300'
     };
 
     // ---------- Pay Slip modal ----------
