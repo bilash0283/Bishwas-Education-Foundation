@@ -48,6 +48,10 @@
                         $filePath = 'pages/logout.php'; 
                         break;
 
+                    case 'view_member':
+                        $filePath = 'pages/view_member.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;

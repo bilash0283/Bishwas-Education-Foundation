@@ -9,7 +9,7 @@ if (!isset($db)) { ob_start(); include 'include/header.php'; ob_end_clean(); }
 mysqli_set_charset($db, "utf8mb4");
 
 $upload_dir   = 'public/uploads/members/';        // photo folder
-$profile_page = 'volunteer_profile.php';           // profile page
+$profile_page = 'index.php';           // profile page
 $user_types   = ['General Member','Associate Member','Life Member','Volunteer Member'];
 
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -97,7 +97,7 @@ function vol_row($r, $dir, $profile_page) {
         ? '<button type="button" data-act="approve" data-id="' . (int)$r['id'] . '" title="Approve" class="p-1.5 text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-circle-check"></i></button>' : '';
     return '<tr class="hover:bg-slate-50/80">
       <td class="p-4"><div class="flex items-center gap-3">' . $photo . '<div class="min-w-0">
-        <a href="' . h($profile_page) . '?id=' . (int)$r['id'] . '" class="font-semibold text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['member_name']) . '</a>
+        <a href="' . h($profile_page) . '?page=view_member&id=' . (int)$r['id'] . '" class="font-semibold text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['member_name']) . '</a>
         <span class="block text-[10px] text-slate-400 truncate">' . h($r['email']) . '</span></div></div></td>
       <td class="p-4"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] ' . vol_cat_style($r['user_type'])['badge'] . '">' . h($r['user_type']) . '</span></td>
       <td class="p-4">+88' . h($r['mobile_no']) . '</td>
