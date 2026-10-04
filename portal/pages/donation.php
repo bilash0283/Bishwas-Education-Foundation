@@ -693,7 +693,9 @@ function h($value)
                                     <?= h(ucfirst($d['payment_status'])) ?>
                                 </span>
                             </td>
-                            <td class="p-4"><?= h($d['donation_date']) ?></td>
+                            <td class="p-4 whitespace-nowrap">
+                                <?= h(date('d-m-y', strtotime($d['donation_date']))) ?>
+                            </td>
                             <td class="p-4 text-right space-x-1 whitespace-nowrap">
                                  <!-- Receipt দেখুন -->
                                 <button
