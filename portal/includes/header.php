@@ -90,13 +90,15 @@
             <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
             <div class="flex items-center gap-3 pl-1">
-                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-sm flex items-center justify-center shadow-md shadow-emerald-600/20">
-                    A
-                </div>
-                <div class="hidden lg:block text-left">
-                    <h4 class="text-xs font-bold text-slate-800 leading-tight">Admin User</h4>
-                    <span class="text-[10px] text-emerald-600 font-semibold">Super Admin</span>
-                </div>
+                <a href="index.php?page=view_member&id=<?= isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0 ?>" class="flex items-center gap-2 group">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-sm flex items-center justify-center shadow-md shadow-emerald-600/20">
+                        <i><?php echo isset($_SESSION['member_name']) ? substr($_SESSION['member_name'], 0, 1) : 'U'; ?></i>
+                    </div>
+                    <div class="hidden lg:block text-left">
+                        <h4 class="text-xs font-bold text-slate-800 leading-tight"><?php echo isset($_SESSION['member_name']) ? ($_SESSION['member_name']) : 'User Name'; ?></h4>
+                        <span class="text-[10px] text-emerald-600 font-semibold"><?php echo isset($_SESSION['user_type']) ? ($_SESSION['user_type']) : 'User Type'; ?></span>
+                    </div>
+                </a>
             </div>
         </div>
     </header>
