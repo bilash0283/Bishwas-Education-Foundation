@@ -35,8 +35,8 @@
                     case 'volunteers':
                         $filePath = 'pages/volunteers.php';
                         break;
-                    case 'members':
-                        $filePath = 'pages/members.php';
+                    case 'events':
+                        $filePath = 'pages/events.php';
                         break;
                     case 'projects':
                         $filePath = 'pages/projects.php';
