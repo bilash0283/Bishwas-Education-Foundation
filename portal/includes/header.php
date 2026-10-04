@@ -7,6 +7,16 @@
     $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
     $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
     $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
+
+
+    $sql_con = "SELECT * FROM contact_settings WHERE id = 1 LIMIT 1";
+    $result_con = mysqli_query($db, $sql_con);
+    $contact_data = ($result_con && mysqli_num_rows($result_con) > 0) ? mysqli_fetch_assoc($result_con) : null;
+    
+    $office_address = $contact_data['office_address'] ?? '১/জি/১০/১, মীরবাগ হাতিরঝিল, নতুন রাস্তা, ৩ নং লেন, ঢাকা-১২১৭, বাংলাদেশ';
+    $phone_number   = $contact_data['phone_number'] ?? '+৮৮০ ১৭১৫-৪৮২৩৬৩';
+    $email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
+    $google_map_url = $contact_data['google_map_url'] ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.79815276802313!2d90.4128057552314!3d23.76047066860609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b9e214dcf989%3A0x38ba85b6e6cbed80!2sBag%20Abdul!5e0!3m2!1sen!2sbd!4v1784616353959!5m2!1sen!2sbd';
 ?>
 
 <!DOCTYPE html>

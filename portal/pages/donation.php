@@ -1282,8 +1282,8 @@ function h($value)
     // ===== সংস্থার তথ্য (নিজের তথ্য দিন) =====
     const ORG = {
         name:    '<?php echo $site_title; ?>',
-        address: 'আপনার ঠিকানা, ঢাকা',
-        contact: 'ফোন: 01XXXXXXXXX | ইমেইল: info@example.com',
+        address: '<?php echo $office_address; ?>',
+        contact: 'ফোন: <?php echo $phone_number; ?> | ইমেইল: <?php echo $email_address; ?>',
         logo:    '../public/assets/<?php echo $favicon_icon; ?>'  // লোগো ফাইলের path (যেমন: uploads/logo.png)
     };
 
