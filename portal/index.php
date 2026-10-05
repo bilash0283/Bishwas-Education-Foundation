@@ -38,8 +38,8 @@
                     case 'events':
                         $filePath = 'pages/events.php';
                         break;
-                    case 'projects':
-                        $filePath = 'pages/projects.php';
+                    case 'finance_expenses':
+                        $filePath = 'pages/finance_expenses.php';
                         break;
                     case 'reports':
                         $filePath = 'pages/reports.php';
