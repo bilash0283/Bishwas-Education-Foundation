@@ -93,10 +93,10 @@ if ($u && !empty($u['dob']) && $u['dob'] !== '0000-00-00') {
 <div class="max-w-4xl mx-auto space-y-6">
     <!-- উপরের বাটন -->
     <div class="flex items-center justify-between print:hidden">
-        <!-- <a href="<?= h($back_page) ?>"
-            class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:text-emerald-600 flex items-center gap-2 shadow-sm">
-            <i class="fa-solid fa-arrow-left"></i> Back to list
-        </a> -->
+        <button onclick="history.back()" 
+            class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> Go Back
+        </button>
         <?php if ($u) { ?>
             <div class="flex items-center gap-2">
                 <button onclick="openModal('memberDonationModal')"
