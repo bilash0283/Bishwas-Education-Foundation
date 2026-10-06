@@ -1,7 +1,7 @@
 <?php
 /* ==========================================================
    expense.php  -> index.php?page=expense
-   Finance & Expenses (add / edit / delete / VIEW + PRINT in modal, live search,
+   Service Recipients (add / edit / delete / VIEW + PRINT in modal, live search,
    category + status totals, session filter, pagination)
    NOTE: AJAX JSON er jonno layout output er age ei file run hoy
    (donation page er moto). Na hole layout er shurute ob_start() din.
@@ -403,18 +403,18 @@ function exp_field($k, $d, $inp, $lbl) {
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">Finance & Expenses</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">Service Recipients</h2>
             <p class="text-xs text-slate-500 mt-0.5">Record expenses for activities and service recipients.</p>
         </div>
         <button type="button" onclick="expOpenForm()" class="px-4 py-3 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-plus"></i> Add Expense
+            <i class="fa-solid fa-plus"></i> Add New
         </button>
     </div>
 
     <!-- Totals -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div class="col-span-2 lg:col-span-1 p-4 sm:p-5 bg-gradient-to-br from-slate-900 to-slate-700 text-white rounded-2xl">
-            <p class="text-[10px] font-bold text-slate-300 uppercase">Total Expense <span id="fBadge" class="hidden ml-1 px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[9px] normal-case">Filtered</span></p>
+            <p class="text-[10px] font-bold text-slate-300 uppercase">Total Amount <span id="fBadge" class="hidden ml-1 px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[9px] normal-case">Filtered</span></p>
             <h3 class="text-xl sm:text-2xl font-bold mt-0.5" data-stat="total_amount">৳0.00</h3>
         </div>
         <div class="p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-200/80 flex items-center gap-3">
