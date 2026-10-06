@@ -58,6 +58,10 @@
                         $filePath = 'pages/view_member.php';
                         break;
 
+                    case 'certificates':
+                        $filePath = 'pages/certificates.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
