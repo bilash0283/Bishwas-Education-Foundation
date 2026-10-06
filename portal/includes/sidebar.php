@@ -36,6 +36,8 @@
             <i class="fa-solid fa-user-ninja w-4 text-sm <?php echo getIconClass('volunteers', $currentPage, 'text-teal-500'); ?>"></i> Members & Volunteers
         </a>
 
+        <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accounts</div>
+
         <a href="?page=donation" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('donation', $currentPage); ?>">
             <i class="fa-solid fa-hand-holding-heart w-4 text-sm <?php echo getIconClass('donation', $currentPage, 'text-emerald-500'); ?>"></i> Donation 
         </a>
@@ -44,22 +46,28 @@
             <i class="fa-solid fa-calendar-days w-4 text-sm <?php echo getIconClass('events', $currentPage, 'text-sky-500'); ?>"></i> Events
         </a>
 
-        <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Management</div>
-
         <a href="?page=finance_expenses" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('finance_expenses', $currentPage); ?>">
             <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('finance_expenses', $currentPage, 'text-amber-500'); ?>"></i> Service Recipients
         </a>
 
         <a href="?page=report" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('report', $currentPage); ?>">
-            <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('report', $currentPage, 'text-rose-500'); ?>"></i> Reports & Audits
+            <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('report', $currentPage, 'text-rose-500'); ?>"></i> Reports
         </a>
 
-        <a href="?page=certificates" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('certificates', $currentPage); ?>">
-            <i class="fa-solid fa-id-card w-4 text-sm <?php echo getIconClass('certificates', $currentPage, 'text-indigo-500'); ?>"></i> Certificates & ID Cards
-        </a>
+        <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Management</div>
 
         <a href="?page=inventory" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('inventory', $currentPage); ?>">
             <i class="fa-solid fa-boxes-stacked w-4 text-sm <?php echo getIconClass('inventory', $currentPage, 'text-indigo-500'); ?>"></i> Inventory Management
+        </a>
+
+        <a href="?page=reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('reports', $currentPage); ?>">
+            <i class="fa-solid fa-file-invoice w-4 text-sm <?php echo getIconClass('reports', $currentPage, 'text-fuchsia-500'); ?>"></i> Tasks Management
+        </a>  
+
+        <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Others</div>
+
+        <a href="?page=certificates" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('certificates', $currentPage); ?>">
+            <i class="fa-solid fa-id-card w-4 text-sm <?php echo getIconClass('certificates', $currentPage, 'text-indigo-500'); ?>"></i> Certificates & ID Cards
         </a>
 
         <a href="?page=notice_board" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('notice_board', $currentPage); ?>">
@@ -70,9 +78,7 @@
             <i class="fa-solid fa-handshake w-4 text-sm <?php echo getIconClass('meetings', $currentPage, 'text-cyan-500'); ?>"></i> Meetings 
         </a>
 
-        <a href="?page=reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('reports', $currentPage); ?>">
-            <i class="fa-solid fa-file-invoice w-4 text-sm <?php echo getIconClass('reports', $currentPage, 'text-fuchsia-500'); ?>"></i> Tasks Management
-        </a>   
+ 
 
     </div>
     <!-- Sidebar Bottom Logout Footer -->
