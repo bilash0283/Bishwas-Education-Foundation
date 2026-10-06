@@ -16,19 +16,19 @@ $MODS = [
               'title' => 'name',  'sub' => 'fund',     'search' => ['name', 'email', 'phone', 'transaction_id', 'fund'],
               'statuses' => ['pending', 'paid', 'failed', 'rejected'],       'link' => 'index.php?page=donation&edit=',
               'badge' => 'bg-emerald-50 text-emerald-700', 'icon' => 'fa-hand-holding-heart'],
-    'evt' => ['label' => 'Event Khoros', 'table' => 'events', 'date' => 'start_date', 'amt' => 'actual_cost', 'st' => 'status',
+    'evt' => ['label' => 'Events', 'table' => 'events', 'date' => 'start_date', 'amt' => 'actual_cost', 'st' => 'status',
               'title' => 'title', 'sub' => 'category', 'search' => ['title', 'location', 'organizer', 'category'],
               'statuses' => ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'], 'link' => 'index.php?page=events&edit=',
               'badge' => 'bg-sky-50 text-sky-700', 'icon' => 'fa-calendar-days'],
-    'exp' => ['label' => 'Finance Khoros', 'table' => 'expenses', 'date' => 'expense_date', 'amt' => 'amount', 'st' => 'status',
+    'exp' => ['label' => 'Expenses', 'table' => 'expenses', 'date' => 'expense_date', 'amt' => 'amount', 'st' => 'status',
               'title' => 'title', 'sub' => 'category', 'search' => ['voucher_no', 'title', 'paid_to', 'category'],
               'statuses' => ['Pending', 'Complete'],                         'link' => 'index.php?page=expense&edit=',
               'badge' => 'bg-rose-50 text-rose-700', 'icon' => 'fa-receipt'],
 ];
 
 /* ---------- 2) Filter neya (URL theke) ---------- */
-$period = $_GET['period'] ?? 'monthly';
-if (!in_array($period, ['daily', 'weekly', 'monthly', 'yearly', 'custom'])) { $period = 'monthly'; }
+$period = $_GET['period'] ?? 'all';
+if (!in_array($period, ['all', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])) { $period = 'all'; }
 $date = (!empty($_GET['date']) && strtotime($_GET['date'])) ? date('Y-m-d', strtotime($_GET['date'])) : date('Y-m-d');
 $df   = $_GET['df'] ?? '';
 $dt   = $_GET['dt'] ?? '';
@@ -61,6 +61,8 @@ function rep_range($period, $date, $nav, $df, $dt) {
             $s = $a; $e = strtotime(date('Y-m-t', $a)); $label = date('F Y', $a); break;
         case 'yearly':
             $y = (int)date('Y', $a) + $nav; $a = $s = strtotime("$y-01-01"); $e = strtotime("$y-12-31"); $label = (string)$y; break;
+        case 'all':
+            $s = strtotime('2000-01-01'); $e = strtotime('2099-12-31'); $label = 'All Time'; break;
         default:
             $s = strtotime($df) ?: $a; $e = strtotime($dt) ?: $s;
             if ($e < $s) { $x = $s; $s = $e; $e = $x; }
@@ -91,8 +93,8 @@ $d = rep_rows($db, "SELECT COUNT(*) c,
         COALESCE(SUM(CASE WHEN payment_status='pending' THEN amount ELSE 0 END),0) pend
         FROM donations WHERE donation_date BETWEEN ? AND ?", 'ss', [$from, $to])[0] ?? ['c' => 0, 'paid' => 0, 'pend' => 0];
 
-$v = rep_rows($db, "SELECT COUNT(*) c, COALESCE(SUM(actual_cost),0) cost, COALESCE(SUM(budget),0) budget
-        FROM events WHERE start_date BETWEEN ? AND ? AND status <> 'Cancelled'", 'ss', [$from, $to])[0] ?? ['c' => 0, 'cost' => 0, 'budget' => 0];
+$v = rep_rows($db, "SELECT COUNT(*) c, COALESCE(SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END),0) done_c, COALESCE(SUM(actual_cost),0) cost, COALESCE(SUM(budget),0) budget
+        FROM events WHERE start_date BETWEEN ? AND ? AND status <> 'Cancelled'", 'ss', [$from, $to])[0] ?? ['c' => 0, 'done_c' => 0, 'cost' => 0, 'budget' => 0];
 
 $x = rep_rows($db, "SELECT COUNT(*) c,
         COALESCE(SUM(CASE WHEN status='Complete' THEN amount ELSE 0 END),0) done,
@@ -136,13 +138,13 @@ $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focu
 ?>
 <style>@media print{.no-print{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
 
-<section class="page-content space-y-5 max-w-7xl mx-auto">
+<section class=" space-y-5 max-w-7xl mx-auto">
 
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Reports</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Donation, Event Khoros ar Finance Khoros — ek jaygay.</p>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Reports <small class="normal-case font-medium text-slate-400">/ রিপোর্ট</small></h2>
+            <p class="text-xs text-slate-500 mt-0.5">Donation, event and finance expense summary in one place. / অনুদান, ইভেন্ট ও আর্থিক খরচের সারসংক্ষেপ</p>
         </div>
         <button type="button" onclick="window.print()" class="no-print px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold">
             <i class="fa-solid fa-print mr-1.5"></i> Print
@@ -159,12 +161,12 @@ $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focu
     <div class="no-print bg-white rounded-2xl border border-slate-200/80 p-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
             <div class="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-xl">
-                <?php foreach (['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly', 'custom' => 'Custom'] as $k => $l) { ?>
+                <?php foreach (['all' => 'All Time', 'daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly', 'custom' => 'Custom'] as $k => $l) { ?>
                 <a href="<?= h(rep_url(['period' => $k, 'pg' => 1])) ?>"
                    class="px-3.5 py-2 rounded-lg text-xs font-bold <?= $period === $k ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' ?>"><?= $l ?></a>
                 <?php } ?>
             </div>
-            <?php if ($period !== 'custom') { ?>
+            <?php if (!in_array($period, ['custom', 'all'])) { ?>
             <div class="flex items-center gap-1.5 sm:ml-auto">
                 <a href="<?= h(rep_url(['date' => $prevDate, 'pg' => 1])) ?>" class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"><i class="fa-solid fa-chevron-left"></i></a>
                 <span class="min-w-44 text-center text-sm font-bold text-slate-800"><?= h($label) ?></span>
@@ -188,35 +190,35 @@ $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focu
         <div class="p-5 bg-white rounded-2xl ring-1 ring-slate-200/80">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg"><i class="fa-solid fa-hand-holding-heart"></i></div>
-                <div><p class="text-[11px] font-bold uppercase text-slate-500">Total Donation (Paid)</p><p class="text-xl font-bold text-emerald-700"><?= tk($totalDonation) ?></p></div>
+                <div><p class="text-[11px] font-bold uppercase text-slate-500">Total Donation <small class="normal-case font-medium text-slate-400">/ মোট অনুদান</small></p><p class="text-xl font-bold text-emerald-700"><?= tk($totalDonation) ?></p></div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-3"><?= (int)$d['c'] ?> ti record • Pending: <b class="text-amber-600"><?= tk($d['pend']) ?></b></p>
+            <p class="text-[11px] text-slate-400 mt-3"><?= (int)$d['c'] ?> records • Pending: <b class="text-amber-600"><?= tk($d['pend']) ?></b></p>
         </div>
         <div class="p-5 bg-white rounded-2xl ring-1 ring-slate-200/80">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-days"></i></div>
-                <div><p class="text-[11px] font-bold uppercase text-slate-500">Event-e Khoros</p><p class="text-xl font-bold text-sky-700"><?= tk($totalEvent) ?></p></div>
+                <div><p class="text-[11px] font-bold uppercase text-slate-500">Event Expenses <small class="normal-case font-medium text-slate-400">/ ইভেন্ট খরচ</small></p><p class="text-xl font-bold text-sky-700"><?= tk($totalEvent) ?></p></div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-3"><?= (int)$v['c'] ?> ti event • Budget: <b><?= tk($v['budget']) ?></b></p>
+            <p class="text-[11px] text-slate-400 mt-3"><?= (int)$v['c'] ?> events • <b class="text-sky-700"><?= (int)$v['done_c'] ?> completed</b> • Budget: <b><?= tk($v['budget']) ?></b></p>
         </div>
         <div class="p-5 bg-white rounded-2xl ring-1 ring-slate-200/80">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg"><i class="fa-solid fa-receipt"></i></div>
-                <div><p class="text-[11px] font-bold uppercase text-slate-500">Finance & Expenses</p><p class="text-xl font-bold text-rose-700"><?= tk($totalExpense) ?></p></div>
+                <div><p class="text-[11px] font-bold uppercase text-slate-500">Finance & Expenses <small class="normal-case font-medium text-slate-400">/ আর্থিক খরচ</small></p><p class="text-xl font-bold text-rose-700"><?= tk($totalExpense) ?></p></div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-3"><?= (int)$x['c'] ?> ti record • Pending: <b class="text-amber-600"><?= tk($x['pend']) ?></b></p>
+            <p class="text-[11px] text-slate-400 mt-3"><?= (int)$x['c'] ?> records • Pending: <b class="text-amber-600"><?= tk($x['pend']) ?></b></p>
         </div>
         <div class="p-5 rounded-2xl text-white bg-gradient-to-br <?= $balance >= 0 ? 'from-emerald-700 to-teal-600' : 'from-rose-700 to-red-500' ?>">
-            <p class="text-[11px] font-bold uppercase text-white/80">Balance (Bakee)</p>
+            <p class="text-[11px] font-bold uppercase text-white/80">Balance <small class="normal-case font-medium text-white/70">/ অবশিষ্ট</small></p>
             <p class="text-2xl font-bold mt-1"><?= ($balance < 0 ? '-' : '') . tk(abs($balance)) ?></p>
-            <p class="text-[11px] text-white/80 mt-3">Donation − Event − Finance Khoros</p>
+            <p class="text-[11px] text-white/80 mt-3">Donation − Event Expenses − Finance Expenses</p>
         </div>
     </div>
 
     <!-- Tulona bar -->
     <div class="bg-white rounded-2xl ring-1 ring-slate-200/80 p-5 space-y-3">
-        <h3 class="text-sm font-bold text-slate-800">Tulona (<?= h($label) ?>)</h3>
-        <?php foreach ([['Donation', $totalDonation, 'bg-emerald-500'], ['Event Khoros', $totalEvent, 'bg-sky-500'], ['Finance Khoros', $totalExpense, 'bg-rose-500']] as $b) { ?>
+        <h3 class="text-sm font-bold text-slate-800">Comparison / তুলনা (<?= h($label) ?>)</h3>
+        <?php foreach ([['Donation', $totalDonation, 'bg-emerald-500'], ['Event Expenses', $totalEvent, 'bg-sky-500'], ['Finance Expenses', $totalExpense, 'bg-rose-500']] as $b) { ?>
         <div>
             <div class="flex justify-between text-xs mb-1"><span class="font-semibold text-slate-600"><?= $b[0] ?></span><span class="font-bold text-slate-800"><?= tk($b[1]) ?></span></div>
             <div class="h-3 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full <?= $b[2] ?>" style="width:<?= round($b[1] / $barMax * 100) ?>%"></div></div>
@@ -236,9 +238,9 @@ $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focu
             <form method="GET" action="index.php" class="grid grid-cols-2 md:grid-cols-12 gap-2">
                 <?php foreach (['period' => $period, 'date' => $date, 'df' => $df, 'dt' => $dt, 'tab' => $tab] as $n => $val) { echo '<input type="hidden" name="' . $n . '" value="' . h($val) . '">'; } ?>
                 <input type="hidden" name="page" value="report">
-                <input type="text" name="q" value="<?= h($q) ?>" placeholder="Search: name, title, phone, voucher..." class="col-span-2 md:col-span-6 <?= $inp ?>">
+                <input type="text" name="q" value="<?= h($q) ?>" placeholder="Search name, title, phone, voucher... / খুঁজুন" class="col-span-2 md:col-span-6 <?= $inp ?>">
                 <select name="status" onchange="this.form.submit()" class="md:col-span-3 <?= $inp ?>" <?= $tab === 'all' ? 'disabled' : '' ?>>
-                    <option value=""><?= $tab === 'all' ? 'Status (tab bachai korun)' : 'All Status' ?></option>
+                    <option value=""><?= $tab === 'all' ? 'Status (select a tab first)' : 'All Status' ?></option>
                     <?php if ($tab !== 'all') { foreach ($MODS[$tab]['statuses'] as $s) { echo '<option value="' . h($s) . '"' . ($status === $s ? ' selected' : '') . '>' . h(ucfirst($s)) . '</option>'; } } ?>
                 </select>
                 <button class="md:col-span-2 px-3 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-magnifying-glass mr-1"></i>Search</button>
@@ -249,11 +251,11 @@ $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focu
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-600">
                 <thead class="bg-slate-50 text-slate-700 uppercase font-bold border-b border-slate-200">
-                    <tr><th class="p-4">Date</th><th class="p-4">Details</th><th class="p-4 hidden sm:table-cell">Type</th><th class="p-4">Amount</th><th class="p-4">Status</th><th class="p-4 text-right no-print">Action</th></tr>
+                    <tr><th class="p-4">Date <small class="normal-case font-medium text-slate-400">/ তারিখ</small></th><th class="p-4">Details <small class="normal-case font-medium text-slate-400">/ বিবরণ</small></th><th class="p-4 hidden sm:table-cell">Type <small class="normal-case font-medium text-slate-400">/ ধরন</small></th><th class="p-4">Amount <small class="normal-case font-medium text-slate-400">/ পরিমাণ</small></th><th class="p-4">Status <small class="normal-case font-medium text-slate-400">/ অবস্থা</small></th><th class="p-4 text-right no-print">Action</th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     <?php if (!$show) { ?>
-                    <tr><td colspan="6" class="p-10 text-center text-slate-400"><i class="fa-regular fa-folder-open text-3xl mb-2"></i><p>Ei somoye kono record nei.</p></td></tr>
+                    <tr><td colspan="6" class="p-10 text-center text-slate-400"><i class="fa-regular fa-folder-open text-3xl mb-2"></i><p>No records found for this period. / এই সময়ে কোনো রেকর্ড নেই।</p></td></tr>
                     <?php } ?>
                     <?php foreach ($show as $r) { $m = $MODS[$r['ty']]; $link = $m['link'] . (int)$r['id']; ?>
                     <tr class="hover:bg-slate-50/80">
@@ -273,7 +275,7 @@ $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focu
                 </tbody>
                 <?php if ($total) { ?>
                 <tfoot class="bg-slate-50 font-bold text-slate-800">
-                    <tr><td colspan="3" class="p-4 text-right">Mot (<?= $total ?> ti record)</td><td class="p-4"><?= tk($listSum) ?></td><td colspan="2"></td></tr>
+                    <tr><td colspan="3" class="p-4 text-right">Total (<?= $total ?> records) / মোট</td><td class="p-4"><?= tk($listSum) ?></td><td colspan="2"></td></tr>
                 </tfoot>
                 <?php } ?>
             </table>
