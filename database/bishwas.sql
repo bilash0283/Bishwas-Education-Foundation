@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Oct 05, 2026 at 02:15 PM
+-- Generation Time: Oct 06, 2026 at 01:54 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -121,6 +121,35 @@ INSERT INTO `branding_settings` (`id`, `site_title`, `site_logo`, `favicon_icon`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `certificates`
+--
+
+CREATE TABLE `certificates` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `cert_no` varchar(30) NOT NULL DEFAULT '',
+  `user_id` int(11) DEFAULT NULL,
+  `recipient_name` varchar(150) NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `event_name` varchar(200) NOT NULL DEFAULT '',
+  `organization` varchar(200) NOT NULL DEFAULT '',
+  `supported_by` varchar(200) NOT NULL DEFAULT '',
+  `description` text DEFAULT NULL,
+  `theme` varchar(20) NOT NULL DEFAULT 'classic',
+  `issue_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `certificates`
+--
+
+INSERT INTO `certificates` (`id`, `cert_no`, `user_id`, `recipient_name`, `title`, `event_name`, `organization`, `supported_by`, `description`, `theme`, `issue_date`, `created_at`) VALUES
+(1, 'CERT-1985-00001', 10, 'Isaac Guy', 'Autem eiusmod accusa', 'Charlotte Watts', 'Finch and Michael Inc', 'Ea aperiam inventore', 'Eum et sit vel ut v', 'classic', '1985-01-21', '2026-10-06 10:20:41'),
+(2, 'CERT-2026-00002', 15, 'Duncan Moody', 'Cycle Reching', 'Independent Day', 'Bishwas Education Foundation', 'BK TECH 24', 'This is test', 'royal', '2026-10-06', '2026-10-06 10:23:02');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `contact_messages`
 --
 
@@ -205,11 +234,11 @@ INSERT INTO `donations` (`id`, `donor_id`, `type`, `name`, `email`, `phone`, `am
 (4, NULL, 'Public', 'Abel Hoffman', 'riwemive@mailinator.com', '+1 (469) 619-2641', 51, 'General', 'General Fund', 'Nagad', 'Aspernatur velit com', 'Failed', '2026-09-12', '', '1789215427_2331.png', '2026-09-12 12:17:07', '2026-10-04 06:36:42'),
 (6, 82, '', 'Drake Kline', 'binimurop@mailinator.com', '+1 (714) 299-9814', 26, 'Rerum eiusmod ut sit', 'Omnis ea esse conse', 'Dolore esse eum mini', 'Est eveniet quia ut', 'Rejected', '2005-11-01', 'Vero occaecat fugit', 'Nostrud dolore verit', '2026-10-01 11:59:50', '2026-10-04 06:34:22'),
 (7, NULL, 'Public', 'Porter Jensen', 'qywin@mailinator.com', '+1 (822) 309-4316', 5000, 'General', 'General Fund', 'Nagad', 'Eaque sit natus qui', 'Pending', '2026-10-03', NULL, '1791010912_5108.png', '2026-10-03 07:01:52', '2026-10-03 07:01:52'),
-(8, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 23434, 'Monthly', 'General Fund', 'Rocket', '', 'Paid', '2026-10-03', 'sfsfsf', '', '2026-10-03 11:14:36', '2026-10-03 11:14:36'),
+(8, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 23434, 'Monthly', 'General Fund', 'Rocket', '', 'Paid', '2026-06-03', 'sfsfsf', '', '2026-10-03 11:14:36', '2026-10-06 06:35:43'),
 (9, 1, 'Member', 'Kenneth Andrews', 'admin@gmail.com', '01709897865', 444, 'Zakat', 'General Fund', 'Nagod', '5353535', 'Pending', '2026-10-03', 'etetete', '', '2026-10-03 11:15:43', '2026-10-04 06:34:09'),
-(11, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 80, 'General', 'General Fund', 'Cash', 'Itaque occaecat nisi', 'Paid', '1980-05-24', 'Fuga Provident ani', '', '2026-10-03 11:20:32', '2026-10-03 11:20:32'),
+(11, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 80, 'General', 'General Fund', 'Cash', 'Itaque occaecat nisi', 'Paid', '2026-05-24', 'Fuga Provident ani', '', '2026-10-03 11:20:32', '2026-10-06 06:35:52'),
 (12, 3, 'Member', 'Christen Davenport', 'tafu@mailinator.com', '01689786567', 66, 'General', 'নিয়মিত অনুদান তহবিল', 'SureCash', 'Id nemo unde ullamco', 'Pending', '2026-10-04', 'Aut cupidatat cupida', '', '2026-10-03 11:20:50', '2026-10-04 06:57:02'),
-(13, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 91, 'Monthly', 'সাধারণ তহবিল', 'Upay', 'ggggggggggggggggg', 'Paid', '2015-01-03', 'Alias modi suscipit', '1791026947_9584.png', '2026-10-03 11:29:07', '2026-10-04 06:02:45'),
+(13, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 91, 'Monthly', 'সাধারণ তহবিল', 'Upay', 'ggggggggggggggggg', 'Pending', '2026-01-03', 'Alias modi suscipit', '1791026947_9584.png', '2026-10-03 11:29:07', '2026-10-06 06:34:12'),
 (21, 9, 'Member', 'Reece Cotton', 'xenimiw@mailinator.com', '01784675345', 5000, 'Monthly', 'সাধারণ তহবিল', 'Bank', 'Nam repudiandae vita', 'Pending', '2015-09-24', 'Sint sint quis vel d', '', '2026-10-04 10:17:36', '2026-10-04 10:18:48');
 
 -- --------------------------------------------------------
@@ -272,7 +301,9 @@ CREATE TABLE `events` (
 --
 
 INSERT INTO `events` (`id`, `title`, `category`, `description`, `image`, `location`, `start_date`, `end_date`, `start_time`, `end_time`, `budget`, `actual_cost`, `expected_beneficiaries`, `max_volunteers`, `organizer`, `contact_phone`, `status`, `created_at`, `updated_at`) VALUES
-(2, 'Perspiciatis nisi d', 'Education', 'Illo enim aspernatur', 'event_1791115562_1357.png', 'Reprehenderit expli', '2017-03-11', '2026-10-04', '15:14:00', '13:56:00', 54.00, 69.00, 83, 95, 'Ipsam suscipit sunt', '+1 (519) 709-5813', 'Ongoing', '2026-10-04 12:06:02', '2026-10-04 12:06:02');
+(3, 'Sunt sint ipsa du', 'Medical Camp', 'Alias Nam lorem rem', '', 'Nulla laudantium eo', '2026-10-06', '2026-10-15', '01:05:00', '23:05:00', 50.00, 50.00, 87, 61, 'Laborum Obcaecati e', '+1 (393) 806-4132', 'Completed', '2026-10-06 05:45:38', '2026-10-06 06:21:46'),
+(4, 'Dolores reprehenderi', 'Relief', 'Do deserunt nulla qu', '', 'Sint pariatur Cupi', '2026-12-29', '2026-12-29', '16:01:00', '18:12:00', 100.00, 80.00, 93, 89, 'Aut magni veniam in', '+1 (165) 351-8332', 'Completed', '2026-10-06 06:41:06', '2026-10-06 06:41:06'),
+(5, 'Id quam et quo sint', 'Other', 'Ea ex dolor impedit', '', 'Proident cumque pos', '2026-02-02', '2026-04-04', '12:07:00', '21:27:00', 50.00, 500.00, 5, 33, 'Lorem sed soluta des', '+1 (667) 564-6401', 'Completed', '2026-10-06 06:45:07', '2026-10-06 06:46:20');
 
 -- --------------------------------------------------------
 
@@ -286,15 +317,6 @@ CREATE TABLE `event_volunteers` (
   `user_id` int(11) NOT NULL,
   `assigned_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `event_volunteers`
---
-
-INSERT INTO `event_volunteers` (`id`, `event_id`, `user_id`, `assigned_at`) VALUES
-(4, 2, 15, '2026-10-04 12:15:20'),
-(5, 2, 10, '2026-10-04 12:15:20'),
-(6, 2, 6, '2026-10-04 12:15:20');
 
 -- --------------------------------------------------------
 
@@ -326,7 +348,8 @@ CREATE TABLE `expenses` (
 --
 
 INSERT INTO `expenses` (`id`, `voucher_no`, `title`, `category`, `amount`, `expense_date`, `activity_id`, `recipient_id`, `payment_method`, `transaction_id`, `paid_to`, `description`, `receipt`, `status`, `created_at`, `updated_at`) VALUES
-(2, 'EXP-000002', 'Molestias totam sint', 'Shelter', 38.00, '1987-09-27', 5, NULL, 'Upay', 'Illum sint dolor al', 'Ullam et quo et cons', 'Dolorum autem ut exe', '', 'Pending', '2026-10-05 10:55:17', '2026-10-05 10:55:33');
+(2, 'EXP-000002', 'Molestias totam sint', 'Shelter', 38.00, '2026-09-27', 5, NULL, 'Upay', 'Illum sint dolor al', 'Ullam et quo et cons', 'Dolorum autem ut exe', '', 'Pending', '2026-10-05 10:55:17', '2026-10-06 08:46:09'),
+(4, 'EXP-000004', 'Sed ex asperiores an', 'Education', 30.00, '2026-09-30', 3, NULL, 'Cash', 'Repudiandae dicta ac', 'Sed Nam in in numqua', 'Consequuntur dolores', '', 'Complete', '2026-10-06 06:38:34', '2026-10-06 06:38:54');
 
 -- --------------------------------------------------------
 
@@ -382,6 +405,69 @@ CREATE TABLE `hero_settings` (
 
 INSERT INTO `hero_settings` (`id`, `badge_text`, `heading_title`, `heading_highlight`, `description`, `cta_primary_text`, `cta_secondary_text`, `stat_1_number`, `stat_1_label`, `stat_2_number`, `stat_2_label`, `stat_3_number`, `stat_3_label`, `stat_4_number`, `stat_4_label`, `updated_at`) VALUES
 (1, 'মানবসেবায় একটি বিশ্বস্তযোগ্য প্রতিষ্ঠান', 'জন স্বার্থে,', 'বিশ্বাস ও আস্থার সাথে।', 'বিশ্বাস এডুকেশন ফাউন্ডেশন একটি অলাভজনক ও সম্পূর্ণ দাতব্য সংস্থা যা মানুষের কল্যাণ, শিক্ষা বিস্তার, ও দুস্থদের কর্মসংস্থান তৈরিতে নিরলসভাবে কাজ করে যাচ্ছে। আপনার একটি ছোট অনুদান বদলে দিতে পারে একটি অসহায় পরিবারের ভাগ্য।', 'আজই শরীক হোন', 'আমাদের লক্ষ্য জানুন', '1700', 'উপকারভোগী মানুষ', '10', 'সক্রিয় প্রজেক্ট', '100', 'স্বচ্ছতা ও আমানত', '100', 'নিবন্ধিত ভলান্টিয়ার', '2026-08-31 04:33:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_categories`
+--
+
+CREATE TABLE `inventory_categories` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `inventory_categories`
+--
+
+INSERT INTO `inventory_categories` (`id`, `name`, `created_at`) VALUES
+(1, 'Food & Relief', '2026-10-06 11:21:01'),
+(2, 'Clothing & Blankets', '2026-10-06 11:21:01'),
+(3, 'Medical Supplies', '2026-10-06 11:21:01'),
+(4, 'Education Materials', '2026-10-06 11:21:01'),
+(5, 'Office Supplies', '2026-10-06 11:21:01'),
+(6, 'Equipment & Tools', '2026-10-06 11:21:01'),
+(7, 'Other', '2026-10-06 11:21:01');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_items`
+--
+
+CREATE TABLE `inventory_items` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `sku` varchar(40) NOT NULL DEFAULT '',
+  `description` text DEFAULT NULL,
+  `image` varchar(255) NOT NULL DEFAULT '',
+  `unit` varchar(30) NOT NULL DEFAULT 'pcs',
+  `quantity` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `min_stock` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `unit_price` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `location` varchar(150) NOT NULL DEFAULT '',
+  `supplier` varchar(150) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_movements`
+--
+
+CREATE TABLE `inventory_movements` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `item_id` int(10) UNSIGNED NOT NULL,
+  `type` enum('IN','OUT') NOT NULL,
+  `qty` decimal(12,2) NOT NULL,
+  `note` varchar(255) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -449,6 +535,80 @@ CREATE TABLE `site_settings` (
 
 INSERT INTO `site_settings` (`id`, `donate_btn_text`, `footer_about_text`, `footer_social_title`, `facebook_url`, `youtube_url`, `twitter_url`, `linkedin_url`) VALUES
 (1, 'অনুদান দিন', 'একটি স্বচ্ছ, নির্ভরযোগ্য ও অলাভজনক দাতব্য প্রতিষ্ঠান, যা মানবতার কল্যাণ ও ইসলামের সুমহান আদর্শ প্রসারে কাজ করছে।', 'আমাদের কাজের সর্বশেষ আপডেট জানতে যুক্ত থাকুন।', 'https://facebook.com/bishwas', 'https://youtube.com/bishwas', 'https://twitter.com/bishwas', 'https://linkedin.com/company/bishwas');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tasks`
+--
+
+CREATE TABLE `tasks` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `description` text DEFAULT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `priority` enum('Low','Medium','High','Urgent') NOT NULL DEFAULT 'Medium',
+  `status` enum('To Do','In Progress','In Review','On Hold','Completed','Cancelled') NOT NULL DEFAULT 'To Do',
+  `progress` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `start_date` date DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `tasks`
+--
+
+INSERT INTO `tasks` (`id`, `title`, `description`, `project_id`, `priority`, `status`, `progress`, `start_date`, `due_date`, `created_by`, `completed_at`, `created_at`, `updated_at`) VALUES
+(1, 'most', 'descrpiont', 5, 'Medium', 'In Progress', 30, '2026-10-06', '2026-10-31', 6, NULL, '2026-10-06 11:44:01', '2026-10-06 11:53:34');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_assignees`
+--
+
+CREATE TABLE `task_assignees` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `task_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `assigned_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `task_assignees`
+--
+
+INSERT INTO `task_assignees` (`id`, `task_id`, `user_id`, `assigned_at`) VALUES
+(1, 1, 15, '2026-10-06 11:44:01');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_updates`
+--
+
+CREATE TABLE `task_updates` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `task_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT '',
+  `progress` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `note` varchar(500) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `task_updates`
+--
+
+INSERT INTO `task_updates` (`id`, `task_id`, `user_id`, `status`, `progress`, `note`, `created_at`) VALUES
+(1, 1, 6, 'To Do', 0, 'Task created', '2026-10-06 11:44:01'),
+(3, 1, 15, 'To Do', 30, 'first step done', '2026-10-06 11:52:37'),
+(4, 1, 6, 'In Progress', 30, '', '2026-10-06 11:53:35');
 
 -- --------------------------------------------------------
 
@@ -541,6 +701,14 @@ ALTER TABLE `branding_settings`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `certificates`
+--
+ALTER TABLE `certificates`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user` (`user_id`),
+  ADD KEY `idx_event` (`event_name`);
+
+--
 -- Indexes for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
@@ -605,6 +773,28 @@ ALTER TABLE `hero_settings`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `inventory_categories`
+--
+ALTER TABLE `inventory_categories`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
+-- Indexes for table `inventory_items`
+--
+ALTER TABLE `inventory_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_cat` (`category_id`),
+  ADD KEY `idx_name` (`name`);
+
+--
+-- Indexes for table `inventory_movements`
+--
+ALTER TABLE `inventory_movements`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_item` (`item_id`);
+
+--
 -- Indexes for table `service_recipients`
 --
 ALTER TABLE `service_recipients`
@@ -617,6 +807,30 @@ ALTER TABLE `service_recipients`
 --
 ALTER TABLE `site_settings`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `tasks`
+--
+ALTER TABLE `tasks`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_due` (`due_date`),
+  ADD KEY `idx_project` (`project_id`);
+
+--
+-- Indexes for table `task_assignees`
+--
+ALTER TABLE `task_assignees`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_task_user` (`task_id`,`user_id`),
+  ADD KEY `idx_user` (`user_id`);
+
+--
+-- Indexes for table `task_updates`
+--
+ALTER TABLE `task_updates`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_task` (`task_id`);
 
 --
 -- Indexes for table `users`
@@ -654,6 +868,12 @@ ALTER TABLE `blogs`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `certificates`
+--
+ALTER TABLE `certificates`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
@@ -681,19 +901,19 @@ ALTER TABLE `donation_sectors`
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `event_volunteers`
 --
 ALTER TABLE `event_volunteers`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `expenses`
 --
 ALTER TABLE `expenses`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `galleries`
@@ -708,10 +928,46 @@ ALTER TABLE `hero_settings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `inventory_categories`
+--
+ALTER TABLE `inventory_categories`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `inventory_items`
+--
+ALTER TABLE `inventory_items`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `inventory_movements`
+--
+ALTER TABLE `inventory_movements`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `service_recipients`
 --
 ALTER TABLE `service_recipients`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `tasks`
+--
+ALTER TABLE `tasks`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `task_assignees`
+--
+ALTER TABLE `task_assignees`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `task_updates`
+--
+ALTER TABLE `task_updates`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `users`
