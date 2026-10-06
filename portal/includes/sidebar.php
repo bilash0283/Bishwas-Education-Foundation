@@ -49,6 +49,11 @@
         <a href="?page=report" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('report', $currentPage); ?>">
             <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('report', $currentPage, 'text-rose-500'); ?>"></i> Reports & Audits
         </a>
+
+        <a href="?page=certificates" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('certificates', $currentPage); ?>">
+            <i class="fa-solid fa-id-card w-4 text-sm <?php echo getIconClass('certificates', $currentPage, 'text-indigo-500'); ?>"></i> Certificates & ID Cards
+        </a>
+        
     </div>
 
     <!-- Sidebar Bottom Logout Footer -->
