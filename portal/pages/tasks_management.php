@@ -4,17 +4,21 @@
    Task Management (Admin + Volunteer view ek-i page-e)
    Role: $_SESSION['user_type'] = Admin | Volunteer Member | (onno der access nei)
    Logged-in user id: $_SESSION['user_id'] (na thakle id/uid/member_id try kore)
-   Table gulo auto-create hoy.
+   Table gulo database-e age theke thakte hobe (tasks.sql import korun).
    ========================================================== */
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 mysqli_set_charset($db, 'utf8mb4');
 
 /* ---------- Role ---------- */
+$me      = (int)($_SESSION['user_id'] ?? $_SESSION['id'] ?? $_SESSION['uid'] ?? $_SESSION['member_id'] ?? 0);
 $utype   = $_SESSION['user_type'] ?? '';
+if ($me > 0) {   // role database (users table) theke verify kora hoy
+    $ur = mysqli_fetch_row(mysqli_query($db, "SELECT user_type FROM users WHERE id = " . $me . " LIMIT 1"));
+    if ($ur) { $utype = $ur[0]; }
+}
 $isAdmin = ($utype === 'Admin');
 $isVol   = ($utype === 'Volunteer Member');
-$me      = (int)($_SESSION['user_id'] ?? $_SESSION['id'] ?? $_SESSION['uid'] ?? $_SESSION['member_id'] ?? 0);
 if (!$isAdmin && !($isVol && $me > 0)) {
     echo '<section class="page-content max-w-xl mx-auto"><div class="p-6 bg-white rounded-2xl ring-1 ring-slate-200 text-center space-y-2">
           <i class="fa-solid fa-lock text-3xl text-slate-300"></i><h3 class="font-bold text-slate-800">Access Restricted</h3>
@@ -22,31 +26,17 @@ if (!$isAdmin && !($isVol && $me > 0)) {
     return;
 }
 
-/* ---------- Tables ---------- */
-mysqli_query($db, "CREATE TABLE IF NOT EXISTS tasks (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(200) NOT NULL,
-  description TEXT NULL,
-  project_id INT NULL,
-  priority ENUM('Low','Medium','High','Urgent') NOT NULL DEFAULT 'Medium',
-  status ENUM('To Do','In Progress','In Review','On Hold','Completed','Cancelled') NOT NULL DEFAULT 'To Do',
-  progress TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  start_date DATE NULL, due_date DATE NULL,
-  created_by INT NULL, completed_at DATETIME NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY idx_status (status), KEY idx_due (due_date), KEY idx_project (project_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-mysqli_query($db, "CREATE TABLE IF NOT EXISTS task_assignees (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  task_id INT UNSIGNED NOT NULL, user_id INT NOT NULL,
-  assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_task_user (task_id, user_id), KEY idx_user (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-mysqli_query($db, "CREATE TABLE IF NOT EXISTS task_updates (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  task_id INT UNSIGNED NOT NULL, user_id INT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT '', progress TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  note VARCHAR(500) NOT NULL DEFAULT '',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_task (task_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+/* ---------- Database table check (tasks.sql age import korte hobe) ---------- */
+$dbReady = true;
+try { foreach (['tasks', 'task_assignees', 'task_updates'] as $tb) { if (!mysqli_query($db, "SELECT 1 FROM $tb LIMIT 1")) { $dbReady = false; } } }
+catch (Throwable $e) { $dbReady = false; }
+if (!$dbReady) {
+    echo '<section class="page-content max-w-xl mx-auto"><div class="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-center space-y-2">
+          <i class="fa-solid fa-database text-3xl text-amber-400"></i><h3 class="font-bold text-slate-800">Database tables not found</h3>
+          <p class="text-xs text-slate-600">Please import <b>tasks.sql</b> in phpMyAdmin first. / আগে phpMyAdmin-এ tasks.sql ইম্পোর্ট করুন।</p></div></section>';
+    return;
+}
+
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 
 $page   = $_GET['page'] ?? 'tasks';
