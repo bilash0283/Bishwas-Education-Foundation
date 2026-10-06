@@ -182,7 +182,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '"><
     <?php if ($flash) { ?><div class="p-3 rounded-xl text-xs font-semibold border <?= $flash[0] ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700' ?>"><?= h($flash[1]) ?></div><?php } ?>
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
         <a href="<?= h(tk_url(['status' => '', 'due' => '', 'pg' => 1])) ?>" class="p-3.5 bg-slate-900 text-white rounded-2xl"><p class="text-[10px] font-bold uppercase text-slate-300">Total</p><p class="text-2xl font-bold"><?= $stat['total'] ?></p></a>
         <?php foreach ($STATUS as $k => $cls) { ?>
         <a href="<?= h(tk_url(['status' => $k, 'due' => '', 'pg' => 1])) ?>" class="p-3.5 bg-white rounded-2xl ring-1 <?= $fs === $k ? 'ring-2 ring-emerald-500' : 'ring-slate-200/80' ?> hover:shadow-md transition">

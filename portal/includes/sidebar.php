@@ -28,7 +28,7 @@
             <i class="fa-solid fa-chart-pie w-4 text-sm <?php echo getIconClass('dashboard', $currentPage, 'text-emerald-500'); ?>"></i> Dashboard
         </a>
 
-        <a href="?page=view_member" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('view_member', $currentPage); ?>">
+        <a href="?page=view_member&&id=<?php echo (int)$_SESSION['user_id']; ?>" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('view_member', $currentPage); ?>">
             <i class="fa-solid fa-user w-4 text-sm <?php echo getIconClass('view_member', $currentPage, 'text-sky-500'); ?>"></i> My Profile
         </a>
 
