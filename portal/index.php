@@ -62,6 +62,10 @@
                         $filePath = 'pages/certificates.php';
                         break;
 
+                    case 'inventory':
+                        $filePath = 'pages/inventory.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
