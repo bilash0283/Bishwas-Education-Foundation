@@ -60,8 +60,8 @@
             <i class="fa-solid fa-boxes-stacked w-4 text-sm <?php echo getIconClass('inventory', $currentPage, 'text-indigo-500'); ?>"></i> Inventory Management
         </a>
 
-        <a href="?page=reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('reports', $currentPage); ?>">
-            <i class="fa-solid fa-file-invoice w-4 text-sm <?php echo getIconClass('reports', $currentPage, 'text-fuchsia-500'); ?>"></i> Tasks Management
+        <a href="?page=tasks_management" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('tasks_management', $currentPage); ?>">
+            <i class="fa-solid fa-file-invoice w-4 text-sm <?php echo getIconClass('tasks_management', $currentPage, 'text-fuchsia-500'); ?>"></i> Tasks Management
         </a>  
 
         <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Others</div>

@@ -66,6 +66,10 @@
                         $filePath = 'pages/inventory.php';
                         break;
 
+                    case 'tasks_management':
+                        $filePath = 'pages/tasks_management.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
