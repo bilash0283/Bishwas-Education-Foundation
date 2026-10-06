@@ -46,8 +46,8 @@
                         $filePath = 'pages/finance_expenses.php';
                         break;
 
-                    case 'reports':
-                        $filePath = 'pages/reports.php';
+                    case 'report':
+                        $filePath = 'pages/report.php';
                         break;
 
                     case 'logout':

@@ -46,8 +46,8 @@
             <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('finance_expenses', $currentPage, 'text-amber-500'); ?>"></i> Finance & Expenses
         </a>
 
-        <a href="?page=reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('reports', $currentPage); ?>">
-            <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('reports', $currentPage, 'text-rose-500'); ?>"></i> Reports & Audits
+        <a href="?page=report" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('report', $currentPage); ?>">
+            <i class="fa-solid fa-file-invoice-dollar w-4 text-sm <?php echo getIconClass('report', $currentPage, 'text-rose-500'); ?>"></i> Reports & Audits
         </a>
     </div>
 
