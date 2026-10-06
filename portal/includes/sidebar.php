@@ -28,12 +28,16 @@
             <i class="fa-solid fa-chart-pie w-4 text-sm <?php echo getIconClass('dashboard', $currentPage, 'text-emerald-500'); ?>"></i> Dashboard
         </a>
 
-        <a href="?page=donation" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('donation', $currentPage); ?>">
-            <i class="fa-solid fa-hand-holding-heart w-4 text-sm <?php echo getIconClass('donation', $currentPage, 'text-emerald-500'); ?>"></i> Donation 
+        <a href="?page=view_member" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('view_member', $currentPage); ?>">
+            <i class="fa-solid fa-user w-4 text-sm <?php echo getIconClass('view_member', $currentPage, 'text-sky-500'); ?>"></i> My Profile
         </a>
 
         <a href="?page=volunteers" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('volunteers', $currentPage); ?>">
             <i class="fa-solid fa-user-ninja w-4 text-sm <?php echo getIconClass('volunteers', $currentPage, 'text-teal-500'); ?>"></i> Members & Volunteers
+        </a>
+
+        <a href="?page=donation" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('donation', $currentPage); ?>">
+            <i class="fa-solid fa-hand-holding-heart w-4 text-sm <?php echo getIconClass('donation', $currentPage, 'text-emerald-500'); ?>"></i> Donation 
         </a>
 
         <a href="?page=events" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('events', $currentPage); ?>">
@@ -57,8 +61,20 @@
         <a href="?page=inventory" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('inventory', $currentPage); ?>">
             <i class="fa-solid fa-boxes-stacked w-4 text-sm <?php echo getIconClass('inventory', $currentPage, 'text-indigo-500'); ?>"></i> Inventory Management
         </a>
-    </div>
 
+        <a href="?page=notice_board" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('notice_board', $currentPage); ?>">
+            <i class="fa-solid fa-bullhorn w-4 text-sm <?php echo getIconClass('notice_board', $currentPage, 'text-orange-500'); ?>"></i> Notice Board
+        </a>
+
+        <a href="?page=meetings" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('meetings', $currentPage); ?>">
+            <i class="fa-solid fa-handshake w-4 text-sm <?php echo getIconClass('meetings', $currentPage, 'text-cyan-500'); ?>"></i> Meetings 
+        </a>
+
+        <a href="?page=reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('reports', $currentPage); ?>">
+            <i class="fa-solid fa-file-invoice w-4 text-sm <?php echo getIconClass('reports', $currentPage, 'text-fuchsia-500'); ?>"></i> Tasks Management
+        </a>   
+
+    </div>
     <!-- Sidebar Bottom Logout Footer -->
     <div class="p-3 border-t border-slate-200 shrink-0">
         <a href="?page=logout" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-rose-600 hover:bg-rose-500/10 transition-colors text-xs font-semibold">
