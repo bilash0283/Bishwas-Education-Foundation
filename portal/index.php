@@ -29,21 +29,27 @@
                     case 'dashboard':
                         $filePath = 'pages/dashboard.php';
                         break;
+                        
                     case 'donation':
                         $filePath = 'pages/donation.php';
                         break;
+
                     case 'volunteers':
                         $filePath = 'pages/volunteers.php';
                         break;
+
                     case 'events':
                         $filePath = 'pages/events.php';
                         break;
+
                     case 'finance_expenses':
                         $filePath = 'pages/finance_expenses.php';
                         break;
+
                     case 'reports':
                         $filePath = 'pages/reports.php';
                         break;
+
                     case 'logout':
                         $filePath = 'pages/logout.php'; 
                         break;
