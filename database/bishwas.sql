@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Oct 06, 2026 at 01:54 PM
+-- Generation Time: Oct 07, 2026 at 12:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -144,7 +144,7 @@ CREATE TABLE `certificates` (
 --
 
 INSERT INTO `certificates` (`id`, `cert_no`, `user_id`, `recipient_name`, `title`, `event_name`, `organization`, `supported_by`, `description`, `theme`, `issue_date`, `created_at`) VALUES
-(1, 'CERT-1985-00001', 10, 'Isaac Guy', 'Autem eiusmod accusa', 'Charlotte Watts', 'Finch and Michael Inc', 'Ea aperiam inventore', 'Eum et sit vel ut v', 'classic', '1985-01-21', '2026-10-06 10:20:41'),
+(1, 'CERT-1985-00001', 10, 'Md Tarek Rahman', 'Autem eiusmod accusa', 'Charlotte Watts', 'Finch and Michael Inc', 'Ea aperiam inventore', 'Eum et sit vel ut v', 'emerald', '1985-01-21', '2026-10-06 10:20:41'),
 (2, 'CERT-2026-00002', 15, 'Duncan Moody', 'Cycle Reching', 'Independent Day', 'Bishwas Education Foundation', 'BK TECH 24', 'This is test', 'royal', '2026-10-06', '2026-10-06 10:23:02');
 
 -- --------------------------------------------------------
@@ -454,6 +454,13 @@ CREATE TABLE `inventory_items` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `inventory_items`
+--
+
+INSERT INTO `inventory_items` (`id`, `category_id`, `name`, `sku`, `description`, `image`, `unit`, `quantity`, `min_stock`, `unit_price`, `location`, `supplier`, `created_at`, `updated_at`) VALUES
+(2, 1, 'fsdfs', 'fsf', 'fsfsf', '', 'pcs', 232.00, 5.00, 37.00, 'sfdfsf', 'fsdf', '2026-10-06 12:02:40', '2026-10-06 12:02:40');
+
 -- --------------------------------------------------------
 
 --
@@ -468,6 +475,136 @@ CREATE TABLE `inventory_movements` (
   `note` varchar(255) NOT NULL DEFAULT '',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `inventory_movements`
+--
+
+INSERT INTO `inventory_movements` (`id`, `item_id`, `type`, `qty`, `note`, `created_at`) VALUES
+(4, 2, 'IN', 232.00, 'Opening stock', '2026-10-06 12:02:40');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `meetings`
+--
+
+CREATE TABLE `meetings` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `meeting_no` varchar(30) NOT NULL DEFAULT '',
+  `title` varchar(255) NOT NULL,
+  `agenda` text DEFAULT NULL,
+  `category` varchar(60) NOT NULL DEFAULT 'General',
+  `meeting_date` date NOT NULL,
+  `start_time` time DEFAULT NULL,
+  `end_time` time DEFAULT NULL,
+  `mtype` enum('Online','Offline','Hybrid') NOT NULL DEFAULT 'Offline',
+  `link` varchar(500) NOT NULL DEFAULT '',
+  `address` varchar(500) NOT NULL DEFAULT '',
+  `organizer` varchar(150) NOT NULL DEFAULT '',
+  `audience` set('Admin','General Member','Associate Member','Life Member','Volunteer Member') NOT NULL,
+  `status` enum('Scheduled','Ongoing','Completed','Postponed','Cancelled') NOT NULL DEFAULT 'Scheduled',
+  `minutes` text DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `updated_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `meetings`
+--
+
+INSERT INTO `meetings` (`id`, `meeting_no`, `title`, `agenda`, `category`, `meeting_date`, `start_time`, `end_time`, `mtype`, `link`, `address`, `organizer`, `audience`, `status`, `minutes`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
+(1, 'MTG-2026-00001', 'this is title', 'title one \r\ntitle two', 'Annual General Meeting', '2026-10-16', '15:29:00', '17:32:00', 'Offline', '', 'Gulshan - 1', 'Bilash Kumar', 'Admin,General Member,Associate Member,Life Member,Volunteer Member', 'Completed', 'this is  test description', 6, 6, '2026-10-07 07:30:01', '2026-10-07 07:31:50');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `meeting_editors`
+--
+
+CREATE TABLE `meeting_editors` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `granted_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `meeting_editors`
+--
+
+INSERT INTO `meeting_editors` (`id`, `user_id`, `granted_by`, `created_at`) VALUES
+(1, 15, 6, '2026-10-07 07:27:17');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notices`
+--
+
+CREATE TABLE `notices` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `ref_no` varchar(30) NOT NULL DEFAULT '',
+  `title` varchar(255) NOT NULL,
+  `recipient` varchar(500) NOT NULL DEFAULT '',
+  `body` text NOT NULL,
+  `category` varchar(40) NOT NULL DEFAULT 'General',
+  `priority` enum('Normal','Important','Urgent') NOT NULL DEFAULT 'Normal',
+  `audience` set('Admin','General Member','Associate Member','Life Member','Volunteer Member') NOT NULL,
+  `signatory_name` varchar(150) NOT NULL DEFAULT '',
+  `signatory_title` varchar(150) NOT NULL DEFAULT '',
+  `contact` varchar(150) NOT NULL DEFAULT '',
+  `attachment` varchar(255) NOT NULL DEFAULT '',
+  `is_pinned` tinyint(1) NOT NULL DEFAULT 0,
+  `status` enum('Published','Draft') NOT NULL DEFAULT 'Published',
+  `publish_date` date NOT NULL,
+  `expire_date` date DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `updated_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `notices`
+--
+
+INSERT INTO `notices` (`id`, `ref_no`, `title`, `recipient`, `body`, `category`, `priority`, `audience`, `signatory_name`, `signatory_title`, `contact`, `attachment`, `is_pinned`, `status`, `publish_date`, `expire_date`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
+(1, 'NTC-2026-00001', 'this is subject', 'All Members', 'Dear ,\r\nthis is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section', 'General', 'Important', 'Admin,General Member,Associate Member,Life Member,Volunteer Member', 'Bilash Kumar', 'Web Developer', '01787673543', 'ntc_1791357118_2650.png', 0, 'Published', '2026-10-07', '2026-10-08', 6, NULL, '2026-10-07 07:11:58', '2026-10-07 07:11:58');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notice_editors`
+--
+
+CREATE TABLE `notice_editors` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `granted_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `notice_editors`
+--
+
+INSERT INTO `notice_editors` (`id`, `user_id`, `granted_by`, `created_at`) VALUES
+(1, 15, 6, '2026-10-07 07:09:21');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `portal_settings`
+--
+
+CREATE TABLE `portal_settings` (
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -613,6 +750,30 @@ INSERT INTO `task_updates` (`id`, `task_id`, `user_id`, `status`, `progress`, `n
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `terms_conditions`
+--
+
+CREATE TABLE `terms_conditions` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` text NOT NULL,
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active',
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `updated_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `terms_conditions`
+--
+
+INSERT INTO `terms_conditions` (`id`, `title`, `content`, `status`, `sort_order`, `updated_by`, `created_at`, `updated_at`) VALUES
+(1, 'this is short title', 'this this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test description', 'Active', 1, 6, '2026-10-07 08:41:51', '2026-10-07 10:18:11');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -648,7 +809,10 @@ INSERT INTO `users` (`id`, `photo`, `member_name`, `mother_name`, `father_husban
 (9, '', 'Reece Cotton', 'Macaulay Sampson', 'Hector Sellers', '2025-06-22', 'Other', 'Birth Certificate', '195', 'Cumque laudantium a', '01784675345', 'xenimiw@mailinator.com', 'Tempore id atque a', 'Sit culpa ut volupta', 'Facere magna placeat', 'Life Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:27'),
 (10, '', 'Isaac Guy', 'Sasha Slater', 'Keane Tanner', '1997-12-28', 'Male', 'NID', '169', 'Fugiat molestiae sa', '01784675365', 'qybazome@mailinator.com', 'Animi fugiat mollit', 'Soluta ea asperiores', 'Rerum aliquid aute b', 'Volunteer Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:43'),
 (13, '', 'Ira Lindsey', 'Nasim Wheeler', 'Henry Zamora', '1989-01-08', 'Male', 'NID', '495', 'Voluptas reprehender', '01785575345', 'wanor@mailinator.com', 'Atque est deserunt v', 'Cum ea in dolores in', 'Explicabo Deleniti', 'General Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 09:56:56'),
-(15, '', 'Duncan Moody', 'Noble Bernard', 'Destiny Whitehead', '2011-11-03', 'Female', 'Passport', '841', 'Voluptas hic totam i', '01787678767', 'noxek@mailinator.com', 'Ea enim et placeat', 'Doloribus dolor mole', 'Voluptates autem eos', 'Volunteer Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 12:00:17');
+(15, '', 'Duncan Moody', 'Noble Bernard', 'Destiny Whitehead', '2011-11-03', 'Female', 'Passport', '841', 'Voluptas hic totam i', '01787678767', 'noxek@mailinator.com', 'Ea enim et placeat', 'Doloribus dolor mole', 'Voluptates autem eos', 'Volunteer Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 12:00:17'),
+(16, '', 'Stone Mitchell', 'Germaine Dickerson', 'Erasmus Wright', '1994-10-24', 'Other', 'Passport', '865', 'Recusandae Voluptat', '01786787656', 'byhy@mailinator.com', 'Voluptas et voluptas', 'In odio obcaecati ac', 'Officiis suscipit en', 'Life Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 09:53:35'),
+(17, '', 'Rhea Hutchinson', 'Colt Riggs', 'Molly Allen', '1988-10-18', 'Female', 'NID', '327', 'Nam aut ad veritatis', '01789786754', 'zexutesu@mailinator.com', 'Quod sed nostrud quo', 'Aut voluptatibus dol', 'Ullamco minim rerum', 'General Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 09:57:48'),
+(18, '', 'Alisa Hawkins', 'Naomi Webb', 'Hope Bass', '1977-05-13', 'Female', 'Passport', '630', 'Nesciunt quis sunt', '01786787644', 'suvigygexy@mailinator.com', 'Nihil doloremque exp', 'Sapiente sint harum', 'Nihil quia libero ex', 'Life Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 10:18:35');
 
 -- --------------------------------------------------------
 
@@ -795,6 +959,44 @@ ALTER TABLE `inventory_movements`
   ADD KEY `idx_item` (`item_id`);
 
 --
+-- Indexes for table `meetings`
+--
+ALTER TABLE `meetings`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_date` (`meeting_date`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_created_by` (`created_by`);
+
+--
+-- Indexes for table `meeting_editors`
+--
+ALTER TABLE `meeting_editors`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_user` (`user_id`);
+
+--
+-- Indexes for table `notices`
+--
+ALTER TABLE `notices`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status_date` (`status`,`publish_date`),
+  ADD KEY `idx_pinned` (`is_pinned`),
+  ADD KEY `idx_created_by` (`created_by`);
+
+--
+-- Indexes for table `notice_editors`
+--
+ALTER TABLE `notice_editors`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_user` (`user_id`);
+
+--
+-- Indexes for table `portal_settings`
+--
+ALTER TABLE `portal_settings`
+  ADD PRIMARY KEY (`setting_key`);
+
+--
 -- Indexes for table `service_recipients`
 --
 ALTER TABLE `service_recipients`
@@ -831,6 +1033,13 @@ ALTER TABLE `task_assignees`
 ALTER TABLE `task_updates`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_task` (`task_id`);
+
+--
+-- Indexes for table `terms_conditions`
+--
+ALTER TABLE `terms_conditions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status_order` (`status`,`sort_order`);
 
 --
 -- Indexes for table `users`
@@ -937,13 +1146,37 @@ ALTER TABLE `inventory_categories`
 -- AUTO_INCREMENT for table `inventory_items`
 --
 ALTER TABLE `inventory_items`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `inventory_movements`
 --
 ALTER TABLE `inventory_movements`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `meetings`
+--
+ALTER TABLE `meetings`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `meeting_editors`
+--
+ALTER TABLE `meeting_editors`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `notices`
+--
+ALTER TABLE `notices`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `notice_editors`
+--
+ALTER TABLE `notice_editors`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `service_recipients`
@@ -970,10 +1203,16 @@ ALTER TABLE `task_updates`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `terms_conditions`
+--
+ALTER TABLE `terms_conditions`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `volunteer_cta_settings`
