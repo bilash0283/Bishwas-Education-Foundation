@@ -74,6 +74,10 @@
                         $filePath = 'pages/notice_board.php';
                         break;
 
+                    case 'meetings':
+                        $filePath = 'pages/meetings.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
