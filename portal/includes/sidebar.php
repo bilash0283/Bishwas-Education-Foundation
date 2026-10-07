@@ -78,7 +78,9 @@
             <i class="fa-solid fa-handshake w-4 text-sm <?php echo getIconClass('meetings', $currentPage, 'text-cyan-500'); ?>"></i> Meetings 
         </a>
 
- 
+        <a href="?page=settings" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('settings', $currentPage); ?>">
+            <i class="fa-solid fa-gear w-4 text-sm <?php echo getIconClass('settings', $currentPage, 'text-slate-500'); ?>"></i> Settings
+        </a>
 
     </div>
     <!-- Sidebar Bottom Logout Footer -->

@@ -78,6 +78,10 @@
                         $filePath = 'pages/meetings.php';
                         break;
 
+                    case 'settings':
+                        $filePath = 'pages/settings.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
