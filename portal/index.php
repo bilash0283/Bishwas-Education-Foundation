@@ -70,6 +70,10 @@
                         $filePath = 'pages/tasks_management.php';
                         break;
 
+                    case 'notice_board':
+                        $filePath = 'pages/notice_board.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
