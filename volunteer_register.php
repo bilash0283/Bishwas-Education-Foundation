@@ -20,6 +20,31 @@ $email_address  = $contact_data['email_address'] ?? 'info@bishwas.org';
 // Registration result message (member_registration.php theke ashbe)
 $success_msg = isset($_GET['success']) ? true : false;
 $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
+
+/* ==========================================================
+   Dynamic Terms & Conditions (Admin > Settings page theke ashe)
+   Table: terms_conditions (active dhulo), portal_settings (heading/intro/checkbox text)
+   Table na thakle ba kono dhara na thakle ager default text dekhabe.
+   ========================================================== */
+$terms_list = [];
+$terms_cfg  = [
+    'terms_heading'     => 'Terms & Conditions',
+    'terms_intro'       => '',
+    'terms_agree_label' => 'I hereby declare that all information provided above is true and accurate to the best of my knowledge. I agree to abide by the rules and regulations of Bishwas Education Foundation.',
+];
+if ($connection) {
+    try {
+        $tq = mysqli_query($connection, "SELECT title, content FROM terms_conditions WHERE status = 'Active' ORDER BY sort_order, id");
+        while ($tq && $tr = mysqli_fetch_assoc($tq)) { $terms_list[] = $tr; }
+
+        $cq = mysqli_query($connection, "SELECT setting_key, setting_value FROM portal_settings WHERE setting_key LIKE 'terms_%'");
+        while ($cq && $cr = mysqli_fetch_assoc($cq)) {
+            if (trim((string)$cr['setting_value']) !== '') { $terms_cfg[$cr['setting_key']] = $cr['setting_value']; }
+        }
+    } catch (Throwable $e) {
+        // table na thakle default text-i dekhabe
+    }
+}
 ?>
 
 <script>
@@ -341,13 +366,49 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
                     </div>
                 </div>
 
-                <div class="pt-4">
-                    <div class="flex items-start gap-2.5 pt-2">
-                        <input type="checkbox" id="termsCheck" required class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-                        <label for="termsCheck" class="text-xs text-slate-600 leading-relaxed cursor-pointer select-none">
-                            I hereby declare that all information provided above is true and accurate to the best of my knowledge. I agree to abide by the rules and regulations of Bishwas Education Foundation.
-                        </label>
+                <!-- ============ Terms & Conditions (dynamic: Admin > Settings) ============ -->
+                <!-- <?php if (!empty($terms_list)) { ?>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/60 overflow-hidden mb-6">
+                        <div class="px-4 sm:px-5 py-3.5 bg-white border-b border-slate-200 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 text-sm">
+                                <i class="fa-solid fa-file-contract"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($terms_cfg['terms_heading']); ?></h3>
+                        </div>
+
+                        <?php if (trim($terms_cfg['terms_intro']) !== '') { ?>
+                            <p class="px-4 sm:px-5 pt-4 text-xs sm:text-sm text-slate-500 leading-relaxed">
+                                <?php echo nl2br(htmlspecialchars($terms_cfg['terms_intro'])); ?>
+                            </p>
+                        <?php } ?>
+
+                        <ol class="max-h-72 overflow-y-auto p-4 sm:p-5 space-y-4">
+                            <?php $tn = 0; foreach ($terms_list as $term) { $tn++; ?>
+                                <li class="flex gap-3">
+                                    <span class="w-7 h-7 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold shrink-0"><?php echo $tn; ?></span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-bold text-slate-800"><?php echo htmlspecialchars($term['title']); ?></p>
+                                        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mt-0.5"><?php echo nl2br(htmlspecialchars($term['content'])); ?></p>
+                                    </div>
+                                </li>
+                            <?php } ?>
+                        </ol>
+                        <div class="p-4 bg-white border-t border-slate-200 text-center">
+                            
+                        </div>
                     </div>
+                <?php } ?> -->
+
+                <div class="flex items-start gap-2.5 pt-2">
+                    <input type="checkbox" id="termsCheck" required class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                    <label for="termsCheck" class="text-xs text-slate-600 leading-relaxed cursor-pointer select-none">
+                        <?php echo htmlspecialchars($terms_cfg['terms_agree_label']); ?> 
+                        <button type="button" onclick="openTermsModal()" 
+                                class="inline-flex items-center gap-2 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                            <span>Tames & Conditions</span>
+                            <!-- <i class="fa-solid fa-arrow-right text-xs"></i> -->
+                        </button>
+                    </label>
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-100">
@@ -366,6 +427,59 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
     </div>
 </main>
 
+<!-- Terms & Conditions Modal -->
+<div id="termsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600">
+                    <i class="fa-solid fa-file-contract text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900"><?php echo htmlspecialchars($terms_cfg['terms_heading']); ?></h2>
+            </div>
+            <button onclick="closeTermsModal()" 
+                    class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-2xl hover:bg-slate-100 transition-all">
+                <i class="fa-solid fa-xmark text-2xl"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="overflow-auto max-h-[calc(90vh-130px)]">
+            <?php if (trim($terms_cfg['terms_intro']) !== '') { ?>
+                <div class="px-6 py-6 border-b border-slate-100 bg-slate-50">
+                    <p class="text-slate-600 leading-relaxed text-[15px]">
+                        <?php echo nl2br(htmlspecialchars($terms_cfg['terms_intro'])); ?>
+                    </p>
+                </div>
+            <?php } ?>
+
+            <div class="px-6 py-6">
+                <ol class="space-y-6 text-sm">
+                    <?php $tn = 0; foreach ($terms_list as $term) { $tn++; ?>
+                        <li class="flex gap-4">
+                            <span class="shrink-0 w-7 h-7 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs">০<?php echo $tn; ?></span>
+                            <div>
+                                <p class="font-semibold text-slate-800 mb-1"><?php echo htmlspecialchars($term['title']); ?></p>
+                                <p class="text-slate-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($term['content'])); ?></p>
+                            </div>
+                        </li>
+                    <?php } ?>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
+            <button onclick="closeTermsModal()" 
+                    class="px-8 py-3 rounded-2xl bg-slate-900 text-white font-semibold text-sm hover:bg-black transition-all flex items-center gap-2">
+                <span>Close</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // Photo Preview
     function previewAvatar(input) {
@@ -374,7 +488,6 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
         const removeBtn = document.getElementById('removePhotoBtn');
 
         if (input.files && input.files[0]) {
-            // 2MB check
             if (input.files[0].size > 2 * 1024 * 1024) {
                 alert('ছবির সাইজ সর্বোচ্চ 2MB হতে পারবে।');
                 input.value = '';
@@ -444,7 +557,7 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
         });
 
         if (!isValid) {
-            e.preventDefault(); // form submit hobe na
+            e.preventDefault();
             alert('অনুগ্রহ করে সব প্রয়োজনীয় (*) তথ্য পূরণ করুন এবং শর্তে টিক দিন।');
             return;
         }
@@ -452,6 +565,28 @@ $error_msg   = isset($_GET['error']) ? $_GET['error'] : '';
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Submitting...';
+    });
+
+    // Terms Modal
+    function openTermsModal() {
+        document.getElementById('termsModal').classList.remove('hidden');
+        document.getElementById('termsModal').classList.add('flex');
+    }
+
+    function closeTermsModal() {
+        const modal = document.getElementById('termsModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    // Keyboard escape support
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            const modal = document.getElementById('termsModal');
+            if (!modal.classList.contains('hidden')) {
+                closeTermsModal();
+            }
+        }
     });
 </script>
 
