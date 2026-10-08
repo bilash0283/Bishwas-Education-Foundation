@@ -82,6 +82,14 @@
                         $filePath = 'pages/settings.php';
                         break;
 
+                    case 'my_donation':
+                        $filePath = 'pages/my_donation.php';
+                        break;
+
+                    case 'my_certificates':
+                        $filePath = 'pages/my_certificates.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
