@@ -1,9 +1,9 @@
 <?php
-/* ==========================================================
-   report.php  ->  index.php?page=report
-   Simple Report: Donation + Event Khoros + Finance/Expense Khoros
-   (AJAX nei, shob data PHP diye sorasori dekhano hoy)
-   ========================================================== */
+if($_SESSION['user_type'] !== 'Admin') {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 function tk($n) { return '৳' . number_format((float)$n, 2); }
