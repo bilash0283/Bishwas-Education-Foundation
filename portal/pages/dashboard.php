@@ -1,6 +1,6 @@
 <?php
 // only admin and volunters can visite 
-if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+if (!isset($_SESSION['user_type'])) {
     header('Location: index.php?page=dashboard');
     exit;
 }
