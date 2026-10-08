@@ -42,7 +42,7 @@
                         $filePath = 'pages/events.php';
                         break;
 
-                    case 'finance_expenses':
+                    case 'expense':
                         $filePath = 'pages/finance_expenses.php';
                         break;
 
