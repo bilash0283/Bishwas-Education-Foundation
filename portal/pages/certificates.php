@@ -332,7 +332,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         var t = TH[c.theme] || TH.classic, logo = esc(abs(ORG.logo)), org = c.organization || DEFORG;
         return '<div style="width:1000px;height:707px;position:relative;box-sizing:border-box;background:' + t.bg + ';border:18px solid ' + t.b1 + ';font-family:Georgia,serif;overflow:hidden">' +
             '<div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:4px dashed ' + t.b2 + '"></div>' +
-            '<img src="' + logo + '" style="position:absolute;top:210px;left:310px;width:380px;opacity:.08" onerror="this.style.display=\'none\'">' +
+            '<img src="' + logo + '" style="position:absolute;top:210px;left:310px;width:380px;opacity:.08;" onerror="this.style.display=\'none\'">' +
             '<div style="position:relative;padding:34px 60px 0;text-align:center">' +
               '<div style="display:flex;align-items:center;justify-content:center;gap:18px"><img src="' + logo + '" style="width:96px;height:96px;object-fit:contain" onerror="this.style.display=\'none\'">' +
               '<div style="text-align:left"><div style="font:bold 42px Arial,sans-serif;color:' + t.a1 + '">' + esc(org) + '</div>' +
@@ -367,7 +367,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     function idBack(m) {
         return '<div style="width:330px;height:520px;background:#fff;border-radius:18px;overflow:hidden;font-family:Arial,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.15);position:relative;flex-shrink:0;text-align:center">' +
             '<div style="height:10px;background:linear-gradient(90deg,#a7f3d0,#10b981,#065f46)"></div>' +
-            '<img src="' + esc(abs(ORG.logo)) + '" style="width:90px;height:90px;object-fit:contain;margin-top:40px" onerror="this.style.display=\'none\'">' +
+            '<img src="' + esc(abs(ORG.logo)) + '" style="margin:auto; width:90px;height:90px;object-fit:contain;margin-top:40px" onerror="this.style.display=\'none\'">' +
             '<div style="font-weight:bold;font-size:17px;color:#065f46;margin-top:10px;padding:0 20px">' + esc(ORG.name) + '</div>' +
             '<div style="font-size:12px;color:#475569;padding:12px 30px;line-height:1.6">' + esc(ORG.address) + '<br>' + esc(ORG.phone) + '<br>' + esc(ORG.email) + '</div>' +
             '<div style="margin:18px 28px;padding:12px;border:1px dashed #94a3b8;border-radius:10px;font-size:11px;color:#64748b;line-height:1.5">This card is the property of the organization. If found, please return to the above address.<br><i>এই কার্ডটি সংস্থার সম্পত্তি। পেলে উপরের ঠিকানায় ফেরত দিন।</i></div>' +
