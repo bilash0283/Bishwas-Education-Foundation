@@ -1,11 +1,10 @@
 <?php
-/* ==========================================================
-   expense.php  -> index.php?page=expense
-   Service Recipients (add / edit / delete / VIEW + PRINT in modal, live search,
-   category + status totals, session filter, pagination)
-   NOTE: AJAX JSON er jonno layout output er age ei file run hoy
-   (donation page er moto). Na hole layout er shurute ob_start() din.
-   ========================================================== */
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
 $exp_dir  = 'uploads/expenses/';      // receipt (index.php folder er bhetor)

@@ -1,4 +1,10 @@
 <?php
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 $baseUrl = "index.php?page=donation";
 
 /* =====================================================================

@@ -1,11 +1,10 @@
 <?php
-/* ==========================================================
-   tasks.php  ->  index.php?page=tasks
-   Task Management (Admin + Volunteer view ek-i page-e)
-   Role: $_SESSION['user_type'] = Admin | Volunteer Member | (onno der access nei)
-   Logged-in user id: $_SESSION['user_id'] (na thakle id/uid/member_id try kore)
-   Table gulo database-e age theke thakte hobe (tasks.sql import korun).
-   ========================================================== */
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 mysqli_set_charset($db, 'utf8mb4');

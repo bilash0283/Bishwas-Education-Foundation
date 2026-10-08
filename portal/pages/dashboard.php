@@ -1,11 +1,10 @@
 <?php
-/* ==========================================================
-   dashboard.php  ->  index.php?page=dashboard
-   Fully dynamic Dashboard (Donation, Expense, Event, Members, Tasks,
-   Meetings, Notices, Inventory...). Je table nei sheta nijei skip hoy.
-   - Admin: shob (finance shoho)
-   - Onno user: nijer jonno shudhu (notice, meeting, event, task)
-   ========================================================== */
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 

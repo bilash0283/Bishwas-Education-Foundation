@@ -52,6 +52,13 @@ CREATE TABLE IF NOT EXISTS `event_volunteers` (
    + volunteer assign + live search + pagination + session filter)
    NOTE: layout a ob_start() thaka valo (ajax JSON clean rakhar jonno).
    ========================================================== */
+
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!isset($db)) { ob_start(); include 'include/header.php'; ob_end_clean(); }
 mysqli_set_charset($db, "utf8mb4");

@@ -1,4 +1,10 @@
 <?php
+// all type members can visite 
+if (!isset($_SESSION['user_id'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
 if ($connection) {
     mysqli_set_charset($connection, "utf8mb4");

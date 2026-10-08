@@ -1,9 +1,9 @@
 <?php
-/* ==========================================================
-   volunteers.php  (SINGLE FILE: page + add/edit/delete/approve
-   + live search + pagination + session filter)
-   NOTE: ajax response clean korte hole layout a ob_start() thaka valo.
-   ========================================================== */
+if($_SESSION['user_type'] !== 'Admin') {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!isset($db)) { ob_start(); include 'include/header.php'; ob_end_clean(); }
 mysqli_set_charset($db, "utf8mb4");

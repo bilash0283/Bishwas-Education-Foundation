@@ -1,10 +1,10 @@
 <?php
-/* ==========================================================
-   certificates.php  ->  index.php?page=certificates
-   1) Member ID Card (view + PNG/PDF download)
-   2) Certificates: custom create, history, view, edit, delete, download
-   Table 'certificates' nijei toiri hoye jabe (kono SQL import lagbe na).
-   ========================================================== */
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}  
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 mysqli_set_charset($db, 'utf8mb4');

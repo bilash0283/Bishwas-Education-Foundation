@@ -1,9 +1,10 @@
 <?php
-/* ==========================================================
-   inventory_module.php  ->  index.php?page=inventory
-   Foundation Inventory: Category, Item (image/price/stock), Stock In/Out,
-   Edit / Delete, Low-stock alert. Table gulo auto-create hoy.
-   ========================================================== */
+// only admin and volunters can visite 
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+    header('Location: index.php?page=dashboard');
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 mysqli_set_charset($db, 'utf8mb4');

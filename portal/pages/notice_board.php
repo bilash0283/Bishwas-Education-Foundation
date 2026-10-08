@@ -1,11 +1,6 @@
 <?php
-/* ==========================================================
-   notice_board.php  ->  index.php?page=notice_board
-   - Admin: add / edit / delete / pin / audience / editor permission
-   - Permitted user (notice_editors): add + edit own notice
-   - Others: shudhu je notice tader user_type er jonno, view only
-   Table: notices.sql age import korte hobe.
-   ========================================================== */
+
+
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 mysqli_set_charset($db, 'utf8mb4');
