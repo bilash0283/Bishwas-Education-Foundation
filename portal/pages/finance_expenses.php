@@ -133,20 +133,71 @@ function exp_upload($file, $dir, &$err, $prefix) {
 function exp_unlink($dir, $f) { if ($f != '' && is_file($dir . basename($f))) { @unlink($dir . basename($f)); } }
 function exp_url($dir, $f) { return ($f != '' && is_file($dir . basename($f))) ? $dir . $f : ''; }
 
-function exp_row($r, $rd) {
+// 111111111111
+// function exp_row($r, $rd) {
+//     $cs = exp_cat($r['category']);
+//     $done = $r['status'] === 'Complete';
+//     $for = '';
+//     if ($r['rec_name'] !== null) {
+//         $ph = exp_url($rd, $r['rec_photo']);
+//         $av = $ph ? '<img src="' . h($ph) . '" class="w-4 h-4 rounded-full object-cover">' : '<i class="fa-solid fa-user text-sky-500"></i>';
+//         $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">' . $av . h($r['rec_name']) . ' <span class="text-slate-400">' . h($r['rec_serial']) . '</span></span>';
+//     }
+//     if ($r['act_title'] !== null) {
+//         $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600"><i class="fa-solid fa-diagram-project text-emerald-600"></i>' . h($r['act_title']) . '</span>';
+//     }
+//     $id = (int)$r['id'];
+//     return '
+//     <tr class="hover:bg-slate-50/80 align-top">
+//       <td class="p-4"><button type="button" data-act="view" data-id="' . $id . '" class="font-semibold text-left text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['title']) . '</button>
+//         <span class="block text-[10px] text-slate-400 mt-0.5">' . h($r['voucher_no']) . ' • ' . h(date('d M Y', strtotime($r['expense_date']))) . '</span>
+//         <span class="sm:hidden inline-block mt-1 px-2 py-0.5 rounded-md font-bold text-[10px] ' . $cs[0] . '">' . h($r['category']) . '</span>
+//         <div class="mt-1.5 flex flex-col gap-1">' . $for . '</div></td>
+//       <td class="p-4 hidden sm:table-cell"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] whitespace-nowrap ' . $cs[0] . '"><i class="fa-solid ' . $cs[3] . ' mr-1"></i>' . h($r['category']) . '</span></td>
+//       <td class="p-4 font-bold text-slate-800 whitespace-nowrap">' . exp_money($r['amount']) . '</td>
+//       <td class="p-4"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] ' . ($done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700') . '">' . h($r['status']) . '</span></td>
+//       <td class="p-4 text-right whitespace-nowrap">
+//         <button type="button" data-act="view" data-id="' . $id . '" title="View" class="p-1.5 text-slate-400 hover:text-sky-600"><i class="fa-solid fa-eye"></i></button>
+//         <button type="button" data-act="toggle" data-id="' . $id . '" title="' . ($done ? 'Mark Pending' : 'Mark Complete') . '" class="p-1.5 ' . ($done ? 'text-emerald-500 hover:text-amber-600' : 'text-slate-400 hover:text-emerald-600') . '"><i class="fa-solid ' . ($done ? 'fa-circle-check' : 'fa-hourglass-half') . '"></i></button>
+//         <button type="button" data-act="edit" data-id="' . $id . '" title="Edit" class="p-1.5 text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-pen"></i></button>
+//         <button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+//       </td>
+//     </tr>';
+// }
+
+   
+// 222222222222
+function exp_row($r, $rd, $user_type = 'user') { // ba $is_admin boolean pass korte paren
+    $is_admin = ($user_type === 'admin');
+    
     $cs = exp_cat($r['category']);
     $done = $r['status'] === 'Complete';
     $for = '';
+    
     if ($r['rec_name'] !== null) {
         $ph = exp_url($rd, $r['rec_photo']);
         $av = $ph ? '<img src="' . h($ph) . '" class="w-4 h-4 rounded-full object-cover">' : '<i class="fa-solid fa-user text-sky-500"></i>';
         $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">' . $av . h($r['rec_name']) . ' <span class="text-slate-400">' . h($r['rec_serial']) . '</span></span>';
     }
+    
     if ($r['act_title'] !== null) {
         $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600"><i class="fa-solid fa-diagram-project text-emerald-600"></i>' . h($r['act_title']) . '</span>';
     }
+    
     $id = (int)$r['id'];
-    return '<tr class="hover:bg-slate-50/80 align-top">
+
+    // Admin Action Buttons Setup
+    $toggle_btn = '';
+    $delete_btn = '';
+
+    if ($is_admin) {
+        $toggle_btn = '<button type="button" data-act="toggle" data-id="' . $id . '" title="' . ($done ? 'Mark Pending' : 'Mark Complete') . '" class="p-1.5 ' . ($done ? 'text-emerald-500 hover:text-amber-600' : 'text-slate-400 hover:text-emerald-600') . '"><i class="fa-solid ' . ($done ? 'fa-circle-check' : 'fa-hourglass-half') . '"></i></button>';
+        
+        $delete_btn = '<button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>';
+    }
+
+    return '
+    <tr class="hover:bg-slate-50/80 align-top">
       <td class="p-4"><button type="button" data-act="view" data-id="' . $id . '" class="font-semibold text-left text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['title']) . '</button>
         <span class="block text-[10px] text-slate-400 mt-0.5">' . h($r['voucher_no']) . ' • ' . h(date('d M Y', strtotime($r['expense_date']))) . '</span>
         <span class="sm:hidden inline-block mt-1 px-2 py-0.5 rounded-md font-bold text-[10px] ' . $cs[0] . '">' . h($r['category']) . '</span>
@@ -156,10 +207,11 @@ function exp_row($r, $rd) {
       <td class="p-4"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] ' . ($done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700') . '">' . h($r['status']) . '</span></td>
       <td class="p-4 text-right whitespace-nowrap">
         <button type="button" data-act="view" data-id="' . $id . '" title="View" class="p-1.5 text-slate-400 hover:text-sky-600"><i class="fa-solid fa-eye"></i></button>
-        <button type="button" data-act="toggle" data-id="' . $id . '" title="' . ($done ? 'Mark Pending' : 'Mark Complete') . '" class="p-1.5 ' . ($done ? 'text-emerald-500 hover:text-amber-600' : 'text-slate-400 hover:text-emerald-600') . '"><i class="fa-solid ' . ($done ? 'fa-circle-check' : 'fa-hourglass-half') . '"></i></button>
+        ' . $toggle_btn . '
         <button type="button" data-act="edit" data-id="' . $id . '" title="Edit" class="p-1.5 text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-pen"></i></button>
-        <button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
-      </td></tr>';
+        ' . $delete_btn . '
+      </td>
+    </tr>';
 }
 
 function exp_pager($page, $pages) {
