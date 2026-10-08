@@ -66,7 +66,7 @@
                         $filePath = 'pages/inventory.php';
                         break;
 
-                    case 'tasks_management':
+                    case 'tasks':
                         $filePath = 'pages/tasks_management.php';
                         break;
 
