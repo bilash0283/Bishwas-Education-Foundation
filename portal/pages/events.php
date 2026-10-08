@@ -51,15 +51,22 @@ CREATE TABLE IF NOT EXISTS `event_volunteers` (
    events.php  (SINGLE FILE: page + add/edit/delete/view
    + volunteer assign + live search + pagination + session filter)
    NOTE: layout a ob_start() thaka valo (ajax JSON clean rakhar jonno).
-   ========================================================== */
 
-// only admin and volunters can visite 
-if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
+   PERMISSION:
+   - Admin                : create + edit + delete + view
+   - Volunteer Member     : edit + view   (create / delete noy)
+   - Onno shob user       : shudhu view
+   (SQL table: events + event_volunteers ager moto-i, ei file-e SQL rakha hoyni
+    karon file-er shurute kono output thakle JSON/redirect bhenge jay.)
+   ========================================================== */
+if (session_status() === PHP_SESSION_NONE) { @session_start(); }
+
+// login chara dhukte parbe na
+if (!isset($_SESSION['user_type'])) {
     header('Location: index.php?page=dashboard');
     exit;
 }
 
-if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!isset($db)) { ob_start(); include 'include/header.php'; ob_end_clean(); }
 mysqli_set_charset($db, "utf8mb4");
 
@@ -69,6 +76,19 @@ $vol_types  = ['Volunteer Member', 'Volunteer'];     // kon user_type gulo event
 $categories = ['Medical Camp', 'Education', 'Food Distribution', 'Fundraising', 'Awareness', 'Training', 'Relief', 'Other'];
 $statuses   = ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'];
 $per_opts   = [6, 12, 24, 48];
+
+/* ---------- Role (database theke verify) ---------- */
+$me = (int)($_SESSION['user_id'] ?? $_SESSION['id'] ?? $_SESSION['uid'] ?? $_SESSION['member_id'] ?? 0);
+$utype = (string)$_SESSION['user_type'];
+if ($me > 0) {
+    $ur = mysqli_fetch_row(mysqli_query($db, "SELECT user_type FROM users WHERE id = " . $me . " LIMIT 1"));
+    if ($ur) { $utype = $ur[0]; }
+}
+$isAdmin   = ($utype === 'Admin');
+$isVol     = in_array($utype, $vol_types, true);
+$canCreate = $isAdmin;               // notun event: shudhu Admin
+$canEdit   = ($isAdmin || $isVol);   // edit: Admin + Volunteer
+$canDelete = $isAdmin;               // delete: shudhu Admin
 
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 
@@ -149,7 +169,7 @@ function evt_dates($r) {
     return $a == $b ? date('d M Y', $a) : date('d M', $a) . ' – ' . date('d M Y', $b);
 }
 
-function evt_card($r, $vols, $ed, $md) {
+function evt_card($r, $vols, $ed, $md, $canEdit = false, $canDelete = false) {
     $img = ($r['image'] != '' && is_file($ed . basename($r['image']))) ? $ed . $r['image'] : '';
     $s = evt_style($r['status']);
     $cover = $img
@@ -165,6 +185,18 @@ function evt_card($r, $vols, $ed, $md) {
     if (!$vols) { $stack = '<span class="text-[11px] text-slate-400">No volunteer assigned</span>'; }
     $max = (int)$r['max_volunteers'];
     $id = (int)$r['id'];
+
+    // button gulo role onujayi
+    $btns = '<button type="button" data-act="view" data-id="' . $id . '" class="py-2 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"><i class="fa-solid fa-eye"></i> View</button>';
+    $cols = 'grid-cols-1';
+    if ($canEdit) {
+        $btns .= '<button type="button" data-act="edit" data-id="' . $id . '" class="py-2 rounded-xl border border-sky-200 bg-sky-50 text-[11px] font-semibold text-sky-700 hover:bg-sky-100"><i class="fa-solid fa-pen-to-square"></i> Edit</button>';
+        $cols = 'grid-cols-2';
+    }
+    if ($canDelete) {
+        $btns .= '<button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" class="py-2 rounded-xl border border-rose-200 bg-rose-50 text-[11px] font-semibold text-rose-600 hover:bg-rose-100"><i class="fa-solid fa-trash"></i> Delete</button>';
+        $cols = 'grid-cols-3';
+    }
 
     return '<div class="group bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col hover:shadow-lg transition">
       <div class="relative h-40 bg-slate-100 overflow-hidden cursor-pointer" data-act="view" data-id="' . $id . '">' . $cover . '
@@ -186,11 +218,7 @@ function evt_card($r, $vols, $ed, $md) {
           <span class="text-[11px] font-semibold text-slate-500 whitespace-nowrap"><i class="fa-solid fa-user-group mr-1"></i>' . count($vols) . ($max > 0 ? '/' . $max : '') . '</span>
         </div>
       </div>
-      <div class="px-4 pb-4 grid grid-cols-3 gap-2">
-        <button type="button" data-act="view" data-id="' . $id . '" class="py-2 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"><i class="fa-solid fa-eye"></i> View</button>
-        <button type="button" data-act="edit" data-id="' . $id . '" class="py-2 rounded-xl border border-sky-200 bg-sky-50 text-[11px] font-semibold text-sky-700 hover:bg-sky-100"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-        <button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" class="py-2 rounded-xl border border-rose-200 bg-rose-50 text-[11px] font-semibold text-rose-600 hover:bg-rose-100"><i class="fa-solid fa-trash"></i> Delete</button>
-      </div></div>';
+      <div class="px-4 pb-4 grid ' . $cols . ' gap-2">' . $btns . '</div></div>';
 }
 
 function evt_pager($page, $pages) {
@@ -258,7 +286,7 @@ if ($act !== '') {
             while ($vr && $v = mysqli_fetch_assoc($vr)) { $vm[$v['event_id']][] = $v; }
         }
         $html = '';
-        foreach ($rows as $r) { $html .= evt_card($r, $vm[$r['id']] ?? [], $event_dir, $member_dir); }
+        foreach ($rows as $r) { $html .= evt_card($r, $vm[$r['id']] ?? [], $event_dir, $member_dir, $canEdit, $canDelete); }
         if ($html === '') {
             $html = '<div class="col-span-full py-16 text-center text-slate-400"><i class="fa-regular fa-calendar-xmark text-4xl mb-3"></i><p class="text-sm font-semibold">কোনো ইভেন্ট পাওয়া যায়নি।</p></div>';
         }
@@ -282,8 +310,9 @@ if ($act !== '') {
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { evt_json(['ok' => false, 'msg' => 'Invalid request.']); }
 
-    /* ----- DELETE ----- */
+    /* ----- DELETE (shudhu Admin) ----- */
     if ($act === 'delete') {
+        if (!$canDelete) { evt_json(['ok' => false, 'msg' => 'শুধু Admin ইভেন্ট ডিলিট করতে পারবে।']); }
         $id = (int)($_POST['id'] ?? 0);
         $old = mysqli_fetch_assoc(mysqli_stmt_get_result(evt_q($db, "SELECT image FROM events WHERE id = ? LIMIT 1", 'i', [$id])));
         if (!$old) { evt_json(['ok' => false, 'msg' => 'ইভেন্ট পাওয়া যায়নি।']); }
@@ -293,9 +322,12 @@ if ($act !== '') {
         evt_json(['ok' => false, 'msg' => 'ডিলিট করা যায়নি।']);
     }
 
-    /* ----- SAVE (add + edit) ----- */
+    /* ----- SAVE (add = shudhu Admin, edit = Admin + Volunteer) ----- */
     if ($act === 'save') {
         $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0 && !$canEdit)   { evt_json(['ok' => false, 'msg' => 'আপনার এই ইভেন্ট এডিট করার অনুমতি নেই।']); }
+        if ($id <= 0 && !$canCreate) { evt_json(['ok' => false, 'msg' => 'শুধু Admin নতুন ইভেন্ট তৈরি করতে পারবে।']); }
+
         $f = [];
         foreach (['title', 'category', 'description', 'location', 'start_date', 'end_date', 'start_time', 'end_time',
                   'budget', 'actual_cost', 'expected_beneficiaries', 'max_volunteers', 'organizer', 'contact_phone', 'status'] as $k) {
@@ -356,16 +388,18 @@ $saved = $_SESSION['evt_filter'] ?? ['q' => '', 'status' => '', 'cat' => '', 'pe
 if (!in_array($saved['status'], array_merge([''], $statuses))) { $saved['status'] = ''; }
 if (!in_array($saved['cat'], array_merge([''], $categories))) { $saved['cat'] = ''; }
 
-// Assign korar jonno SOB member/volunteer (status jai hok), volunteer type gulo age
-$vres = mysqli_query($db, "SELECT id, member_name, mobile_no, photo, user_type, status FROM users ORDER BY member_name");
+// Assign korar jonno SOB member/volunteer (shudhu edit korte parbe jara, tader jonno-i lagbe)
 $VOLS = [];
-while ($vres && $v = mysqli_fetch_assoc($vres)) {
-    $v['photo_url'] = ($v['photo'] != '' && is_file($member_dir . basename($v['photo']))) ? $member_dir . $v['photo'] : '';
-    $v['is_vol'] = in_array($v['user_type'], $vol_types) ? 1 : 0;
-    unset($v['photo']);
-    $VOLS[] = $v;
+if ($canEdit) {
+    $vres = mysqli_query($db, "SELECT id, member_name, mobile_no, photo, user_type, status FROM users ORDER BY member_name");
+    while ($vres && $v = mysqli_fetch_assoc($vres)) {
+        $v['photo_url'] = ($v['photo'] != '' && is_file($member_dir . basename($v['photo']))) ? $member_dir . $v['photo'] : '';
+        $v['is_vol'] = in_array($v['user_type'], $vol_types) ? 1 : 0;
+        unset($v['photo']);
+        $VOLS[] = $v;
+    }
+    usort($VOLS, function ($x, $y) { return $y['is_vol'] <=> $x['is_vol']; });   // volunteer gulo upore
 }
-usort($VOLS, function ($x, $y) { return $y['is_vol'] <=> $x['is_vol']; });   // volunteer gulo upore
 
 $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
@@ -376,12 +410,20 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">Event Management</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Plan events, track costs and assign volunteers.</p>
+            <p class="text-xs text-slate-500 mt-0.5">
+                <?php if ($isAdmin) { echo 'Admin — create, edit and delete events, track costs and assign volunteers.'; }
+                      elseif ($isVol) { echo 'Volunteer — you can view and edit events.'; }
+                      else { echo 'View all events, schedules and assigned volunteers.'; } ?>
+            </p>
         </div>
+        <?php if ($canCreate) { ?>
         <button type="button" onclick="evtOpenForm()"
             class="px-4 py-3 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2">
             <i class="fa-solid fa-plus"></i> Create Event
         </button>
+        <?php } elseif (!$canEdit) { ?>
+        <span class="px-3 py-2 rounded-xl bg-slate-100 text-slate-500 text-[11px] font-bold"><i class="fa-solid fa-eye mr-1.5"></i>View only</span>
+        <?php } ?>
     </div>
 
     <!-- Stats -->
@@ -441,7 +483,8 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     </div>
 </section>
 
-<!-- ADD / EDIT MODAL -->
+<?php if ($canEdit) { ?>
+<!-- ADD / EDIT MODAL (Admin + Volunteer) -->
 <div id="evtFormModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-end sm:items-center justify-center sm:p-4 z-50">
     <div class="bg-white w-full sm:max-w-3xl max-h-[94vh] flex flex-col rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
         <div class="p-4 sm:p-5 bg-slate-900 text-white flex justify-between items-center shrink-0">
@@ -531,6 +574,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         </form>
     </div>
 </div>
+<?php } ?>
 
 <!-- VIEW MODAL -->
 <div id="evtViewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-end sm:items-center justify-center sm:p-4 z-50">
@@ -540,7 +584,8 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     </div>
 </div>
 
-<!-- DELETE MODAL -->
+<?php if ($canDelete) { ?>
+<!-- DELETE MODAL (shudhu Admin) -->
 <div id="evtDeleteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center space-y-4">
         <div class="w-14 h-14 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -554,6 +599,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         </div>
     </div>
 </div>
+<?php } ?>
 
 <div id="evtToast" class="fixed top-4 left-4 right-4 sm:left-auto sm:right-5 sm:w-80 z-[60] hidden px-4 py-3 rounded-xl text-xs font-semibold shadow-lg border"></div>
 <div class="hidden ring-2 ring-sky-500 ring-emerald-500 ring-violet-500 ring-slate-400"></div>
@@ -561,6 +607,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
 <script>
 (function () {
     var CSRF = <?php echo json_encode($_SESSION['csrf']); ?>;
+    var CAN_CREATE = <?php echo $canCreate ? 'true' : 'false'; ?>, CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>, CAN_DELETE = <?php echo $canDelete ? 'true' : 'false'; ?>;
     var state = <?php echo json_encode($saved); ?>;
     var VOLS = <?php echo json_encode($VOLS, JSON_UNESCAPED_UNICODE); ?>;
     var $ = function (id) { return document.getElementById(id); };
@@ -585,7 +632,8 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         t.textContent = msg; clearTimeout(t._t); t._t = setTimeout(function () { t.classList.add('hidden'); }, 3500);
     }
     window.evtModal = function (id, show) {
-        var m = $(id); m.classList.toggle('hidden', !show); m.classList.toggle('flex', show);
+        var m = $(id); if (!m) { return; }
+        m.classList.toggle('hidden', !show); m.classList.toggle('flex', show);
         document.body.style.overflow = show ? 'hidden' : '';
     };
 
@@ -639,13 +687,15 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         var b = e.target.closest('[data-act]'); if (!b) { return; }
         var id = b.dataset.id, act = b.dataset.act;
         if (act === 'view') { openView(id); }
-        if (act === 'edit') { evtOpenForm(id); }
-        if (act === 'delete') { delId = id; $('evtDelName').textContent = b.dataset.name; evtModal('evtDeleteModal', true); }
+        if (act === 'edit' && CAN_EDIT) { evtOpenForm(id); }
+        if (act === 'delete' && CAN_DELETE) { delId = id; $('evtDelName').textContent = b.dataset.name; evtModal('evtDeleteModal', true); }
     });
-    $('evtDelConfirm').addEventListener('click', function () {
-        var fd = new FormData(); fd.append('id', delId);
-        post('delete', fd).then(function (d) { toast(d.msg, d.ok); evtModal('evtDeleteModal', false); if (d.ok) { load(); } });
-    });
+    if (CAN_DELETE) {
+        $('evtDelConfirm').addEventListener('click', function () {
+            var fd = new FormData(); fd.append('id', delId);
+            post('delete', fd).then(function (d) { toast(d.msg, d.ok); evtModal('evtDeleteModal', false); if (d.ok) { load(); } });
+        });
+    }
 
     /* ---------- VIEW ---------- */
     function openView(id) {
@@ -663,6 +713,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                 return '<div class="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-white">' + av + '<div class="min-w-0"><p class="text-xs font-semibold text-slate-800 truncate">' + esc(v.member_name) + '</p><p class="text-[10px] text-slate-400">+88' + esc(v.mobile_no) + '</p></div></div>';
             }).join('') : '<p class="text-xs text-slate-400 col-span-full">কোনো volunteer assign করা হয়নি।</p>';
 
+            var editBtn = CAN_EDIT ? '<button type="button" onclick="evtModal(\'evtViewModal\', false); evtOpenForm(' + e.id + ')" class="flex-1 py-3 rounded-xl bg-sky-600 text-white text-xs font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit Event</button>' : '';
             $('evtViewBody').innerHTML =
                 '<div class="h-48 sm:h-56 relative">' + cover + '<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>' +
                 '<div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex gap-2 mb-2"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold ' + (STYLE[e.status] || '') + '">' + esc(e.status) + '</span><span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/20 backdrop-blur">' + esc(e.category) + '</span></div><h3 class="text-lg sm:text-xl font-bold leading-snug">' + esc(e.title) + '</h3></div></div>' +
@@ -674,118 +725,123 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                 '<div class="p-3 rounded-xl bg-emerald-50 text-emerald-700"><p class="text-[10px] uppercase font-bold">Spent</p><p class="text-sm font-bold">' + money(e.actual_cost) + '</p></div>' +
                 '<div class="p-3 rounded-xl ' + (diff < 0 ? 'bg-rose-50 text-rose-700' : 'bg-sky-50 text-sky-700') + '"><p class="text-[10px] uppercase font-bold">' + (diff < 0 ? 'Over' : 'Remaining') + '</p><p class="text-sm font-bold">' + money(Math.abs(diff)) + '</p></div></div>' +
                 '<div><h4 class="text-xs font-bold text-slate-800 mb-3"><i class="fa-solid fa-user-group text-teal-600 mr-1.5"></i>Volunteers (' + d.vols.length + (Number(e.max_volunteers) > 0 ? '/' + e.max_volunteers : '') + ')</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + vols + '</div></div>' +
-                '<div class="flex gap-2"><button type="button" onclick="evtModal(\'evtViewModal\', false); evtOpenForm(' + e.id + ')" class="flex-1 py-3 rounded-xl bg-sky-600 text-white text-xs font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit Event</button>' +
+                '<div class="flex gap-2">' + editBtn +
                 '<button type="button" onclick="evtModal(\'evtViewModal\', false)" class="flex-1 py-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Close</button></div></div>';
             evtModal('evtViewModal', true);
         });
     }
 
-    /* ---------- VOLUNTEER PICKER ---------- */
-    var volTab = 'all';
-    function visibleVols() {
-        var q = $('e_volSearch').value.trim().toLowerCase();
-        return VOLS.filter(function (v) {
-            if (volTab === 'vol' && !+v.is_vol) { return false; }
-            return !q || (v.member_name + ' ' + v.mobile_no).toLowerCase().indexOf(q) !== -1;
-        });
-    }
-    function updCount() {
-        var m = parseInt($('e_max_volunteers').value || 0, 10);
-        $('e_volCount').textContent = selected.size + (m > 0 ? ' / ' + m : '') + ' selected';
-    }
-    function renderVols() {
-        var list = visibleVols(), html = '';
-        list.forEach(function (v) {
-            var av = v.photo_url ? '<img src="' + esc(v.photo_url) + '" class="w-9 h-9 rounded-full object-cover shrink-0">'
-                : '<div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">' + esc((v.member_name || '?').charAt(0).toUpperCase()) + '</div>';
-            var tag = '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold ' + (+v.is_vol ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500') + '">' + esc(v.user_type || '') + '</span>' +
-                (v.status && v.status !== 'Active' ? ' <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700">' + esc(v.status) + '</span>' : '');
-            html += '<label class="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-slate-50"><input type="checkbox" value="' + v.id + '" class="rounded border-slate-300 text-emerald-600 w-4 h-4" ' + (selected.has(+v.id) ? 'checked' : '') + '>' + av +
-                '<div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-800 truncate">' + esc(v.member_name) + '</p><p class="text-[10px] text-slate-400">+88' + esc(v.mobile_no) + ' &nbsp;' + tag + '</p></div></label>';
-        });
-        $('e_volList').innerHTML = html || '<p class="p-4 text-center text-xs text-slate-400">কোনো member পাওয়া যায়নি।</p>';
-        $('e_volTotal').textContent = 'Showing ' + list.length + ' of ' + VOLS.length + ' members';
-        updCount();
-    }
-    document.querySelectorAll('.vtab').forEach(function (b) {
-        b.addEventListener('click', function () {
-            volTab = this.dataset.vtab;
-            document.querySelectorAll('.vtab').forEach(function (x) {
-                var on = x.dataset.vtab === volTab;
-                x.className = 'vtab px-3 py-1.5 rounded-lg text-[11px] font-bold ' + (on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600');
+    ['evtFormModal', 'evtViewModal', 'evtDeleteModal'].forEach(function (id) {
+        var m = $(id); if (m) { m.addEventListener('mousedown', function (e) { if (e.target === this) { evtModal(id, false); } }); }
+    });
+
+    /* ---------- ADD / EDIT (shudhu jader permission ache) ---------- */
+    if (CAN_EDIT) {
+        /* VOLUNTEER PICKER */
+        var volTab = 'all';
+        var visibleVols = function () {
+            var q = $('e_volSearch').value.trim().toLowerCase();
+            return VOLS.filter(function (v) {
+                if (volTab === 'vol' && !+v.is_vol) { return false; }
+                return !q || (v.member_name + ' ' + v.mobile_no).toLowerCase().indexOf(q) !== -1;
             });
+        };
+        var updCount = function () {
+            var m = parseInt($('e_max_volunteers').value || 0, 10);
+            $('e_volCount').textContent = selected.size + (m > 0 ? ' / ' + m : '') + ' selected';
+        };
+        var renderVols = function () {
+            var list = visibleVols(), html = '';
+            list.forEach(function (v) {
+                var av = v.photo_url ? '<img src="' + esc(v.photo_url) + '" class="w-9 h-9 rounded-full object-cover shrink-0">'
+                    : '<div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">' + esc((v.member_name || '?').charAt(0).toUpperCase()) + '</div>';
+                var tag = '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold ' + (+v.is_vol ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500') + '">' + esc(v.user_type || '') + '</span>' +
+                    (v.status && v.status !== 'Active' ? ' <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700">' + esc(v.status) + '</span>' : '');
+                html += '<label class="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-slate-50"><input type="checkbox" value="' + v.id + '" class="rounded border-slate-300 text-emerald-600 w-4 h-4" ' + (selected.has(+v.id) ? 'checked' : '') + '>' + av +
+                    '<div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-800 truncate">' + esc(v.member_name) + '</p><p class="text-[10px] text-slate-400">+88' + esc(v.mobile_no) + ' &nbsp;' + tag + '</p></div></label>';
+            });
+            $('e_volList').innerHTML = html || '<p class="p-4 text-center text-xs text-slate-400">কোনো member পাওয়া যায়নি।</p>';
+            $('e_volTotal').textContent = 'Showing ' + list.length + ' of ' + VOLS.length + ' members';
+            updCount();
+        };
+        document.querySelectorAll('.vtab').forEach(function (b) {
+            b.addEventListener('click', function () {
+                volTab = this.dataset.vtab;
+                document.querySelectorAll('.vtab').forEach(function (x) {
+                    var on = x.dataset.vtab === volTab;
+                    x.className = 'vtab px-3 py-1.5 rounded-lg text-[11px] font-bold ' + (on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600');
+                });
+                renderVols();
+            });
+        });
+        $('e_volAll').addEventListener('click', function () {
+            var m = parseInt($('e_max_volunteers').value || 0, 10);
+            visibleVols().forEach(function (v) {
+                if (m > 0 && selected.size >= m && !selected.has(+v.id)) { return; }
+                selected.add(+v.id);
+            });
+            if (m > 0 && selected.size >= m) { toast('Max volunteer limit (' + m + ') পর্যন্ত select হয়েছে।', false); }
             renderVols();
         });
-    });
-    $('e_volAll').addEventListener('click', function () {
-        var m = parseInt($('e_max_volunteers').value || 0, 10);
-        visibleVols().forEach(function (v) {
-            if (m > 0 && selected.size >= m && !selected.has(+v.id)) { return; }
-            selected.add(+v.id);
+        $('e_volNone').addEventListener('click', function () {
+            visibleVols().forEach(function (v) { selected.delete(+v.id); });
+            renderVols();
         });
-        if (m > 0 && selected.size >= m) { toast('Max volunteer limit (' + m + ') পর্যন্ত select হয়েছে।', false); }
-        renderVols();
-    });
-    $('e_volNone').addEventListener('click', function () {
-        visibleVols().forEach(function (v) { selected.delete(+v.id); });
-        renderVols();
-    });
-    $('e_max_volunteers').addEventListener('input', updCount);
-    $('e_volSearch').addEventListener('input', renderVols);
-    $('e_volList').addEventListener('change', function (e) {
-        var id = +e.target.value;
-        if (e.target.checked) { selected.add(id); } else { selected.delete(id); }
-        updCount();
-    });
+        $('e_max_volunteers').addEventListener('input', updCount);
+        $('e_volSearch').addEventListener('input', renderVols);
+        $('e_volList').addEventListener('change', function (e) {
+            var id = +e.target.value;
+            if (e.target.checked) { selected.add(id); } else { selected.delete(id); }
+            updCount();
+        });
 
-    /* ---------- ADD / EDIT ---------- */
-    var fields = ['title', 'category', 'status', 'description', 'location', 'start_date', 'end_date', 'start_time', 'end_time', 'budget', 'actual_cost', 'expected_beneficiaries', 'max_volunteers', 'organizer', 'contact_phone'];
-    function setPrev(src) { $('e_prev').classList.toggle('hidden', !src); $('e_prevIcon').classList.toggle('hidden', !!src); $('e_prev').src = src || ''; }
+        /* FORM */
+        var fields = ['title', 'category', 'status', 'description', 'location', 'start_date', 'end_date', 'start_time', 'end_time', 'budget', 'actual_cost', 'expected_beneficiaries', 'max_volunteers', 'organizer', 'contact_phone'];
+        var setPrev = function (src) { $('e_prev').classList.toggle('hidden', !src); $('e_prevIcon').classList.toggle('hidden', !!src); $('e_prev').src = src || ''; };
 
-    window.evtOpenForm = function (id) {
-        $('evtForm').reset(); $('e_id').value = 0; setPrev(''); selected = new Set(); $('e_volSearch').value = '';
-        $('e_removeWrap').classList.add('hidden'); $('e_removeWrap').classList.remove('flex'); $('e_hint').textContent = '';
-        $('evtFormTitle').textContent = 'Create Event';
-        if (!id) { renderVols(); evtModal('evtFormModal', true); return; }
-        $('evtFormTitle').textContent = 'Edit Event';
-        fetch(url('get', { id: id })).then(function (r) { return r.json(); }).then(function (d) {
-            if (!d.ok) { toast(d.msg, false); return; }
-            $('e_id').value = d.data.id;
-            fields.forEach(function (k) { var v = d.data[k]; if (v == null) { v = ''; } if (/time$/.test(k)) { v = String(v).slice(0, 5); } $('e_' + k).value = v; });
-            d.vols.forEach(function (v) {
-                selected.add(+v.id);
-                if (!VOLS.some(function (x) { return +x.id === +v.id; })) { VOLS.push(v); }   // inactive hole o dekhabe
+        window.evtOpenForm = function (id) {
+            if (!id && !CAN_CREATE) { toast('শুধু Admin নতুন ইভেন্ট তৈরি করতে পারবে।', false); return; }
+            $('evtForm').reset(); $('e_id').value = 0; setPrev(''); selected = new Set(); $('e_volSearch').value = '';
+            $('e_removeWrap').classList.add('hidden'); $('e_removeWrap').classList.remove('flex'); $('e_hint').textContent = '';
+            $('evtFormTitle').textContent = 'Create Event';
+            if (!id) { renderVols(); evtModal('evtFormModal', true); return; }
+            $('evtFormTitle').textContent = 'Edit Event';
+            fetch(url('get', { id: id })).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d.ok) { toast(d.msg, false); return; }
+                $('e_id').value = d.data.id;
+                fields.forEach(function (k) { var v = d.data[k]; if (v == null) { v = ''; } if (/time$/.test(k)) { v = String(v).slice(0, 5); } $('e_' + k).value = v; });
+                d.vols.forEach(function (v) {
+                    selected.add(+v.id);
+                    if (!VOLS.some(function (x) { return +x.id === +v.id; })) { VOLS.push(v); }   // inactive hole o dekhabe
+                });
+                setPrev(d.data.image_url);
+                if (d.data.image_url) {
+                    $('e_removeWrap').classList.remove('hidden'); $('e_removeWrap').classList.add('flex');
+                    $('e_hint').textContent = 'নতুন ছবি দিলে পুরনো ছবি ডিলিট হয়ে যাবে।';
+                }
+                renderVols(); evtModal('evtFormModal', true);
             });
-            setPrev(d.data.image_url);
-            if (d.data.image_url) {
-                $('e_removeWrap').classList.remove('hidden'); $('e_removeWrap').classList.add('flex');
-                $('e_hint').textContent = 'নতুন ছবি দিলে পুরনো ছবি ডিলিট হয়ে যাবে।';
-            }
-            renderVols(); evtModal('evtFormModal', true);
+        };
+        $('e_image').addEventListener('change', function () {
+            var f = this.files[0]; if (!f) { return; }
+            if (f.size > 3 * 1024 * 1024) { toast('ছবির সাইজ সর্বোচ্চ 3MB।', false); this.value = ''; return; }
+            var r = new FileReader(); r.onload = function (ev) { setPrev(ev.target.result); }; r.readAsDataURL(f);
         });
-    };
-    $('e_image').addEventListener('change', function () {
-        var f = this.files[0]; if (!f) { return; }
-        if (f.size > 3 * 1024 * 1024) { toast('ছবির সাইজ সর্বোচ্চ 3MB।', false); this.value = ''; return; }
-        var r = new FileReader(); r.onload = function (ev) { setPrev(ev.target.result); }; r.readAsDataURL(f);
-    });
-    $('e_start_date').addEventListener('change', function () { if (!$('e_end_date').value || $('e_end_date').value < this.value) { $('e_end_date').value = this.value; } });
+        $('e_start_date').addEventListener('change', function () { if (!$('e_end_date').value || $('e_end_date').value < this.value) { $('e_end_date').value = this.value; } });
 
-    $('evtForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        var max = parseInt($('e_max_volunteers').value || 0, 10);
-        if (max > 0 && selected.size > max) { toast('Max volunteer limit (' + max + ') এর বেশি select করা হয়েছে।', false); return; }
-        var fd = new FormData(this);
-        selected.forEach(function (id) { fd.append('volunteers[]', id); });
-        var btn = $('e_submit'); btn.disabled = true; btn.textContent = 'Saving...';
-        post('save', fd).then(function (d) { toast(d.msg, d.ok); if (d.ok) { evtModal('evtFormModal', false); load(); } })
-            .catch(function () { toast('Server error.', false); })
-            .finally(function () { btn.disabled = false; btn.textContent = 'Save Event'; });
-    });
+        $('evtForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var max = parseInt($('e_max_volunteers').value || 0, 10);
+            if (max > 0 && selected.size > max) { toast('Max volunteer limit (' + max + ') এর বেশি select করা হয়েছে।', false); return; }
+            var fd = new FormData(this);
+            selected.forEach(function (id) { fd.append('volunteers[]', id); });
+            var btn = $('e_submit'); btn.disabled = true; btn.textContent = 'Saving...';
+            post('save', fd).then(function (d) { toast(d.msg, d.ok); if (d.ok) { evtModal('evtFormModal', false); load(); } })
+                .catch(function () { toast('Server error.', false); })
+                .finally(function () { btn.disabled = false; btn.textContent = 'Save Event'; });
+        });
+    }
 
-    ['evtFormModal', 'evtViewModal', 'evtDeleteModal'].forEach(function (id) {
-        $(id).addEventListener('mousedown', function (e) { if (e.target === this) { evtModal(id, false); } });
-    });
     load();
 })();
 </script>
