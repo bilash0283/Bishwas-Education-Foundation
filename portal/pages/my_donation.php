@@ -396,7 +396,6 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
 <?php } ?>
 
 <section class="page-content space-y-6 max-w-6xl mx-auto">
-
     <!-- Hero -->
     <div
         class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-700 text-white p-5 sm:p-8">
@@ -698,6 +697,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
             </div>
         <?php } ?>
     </div>
+    
 </section>
 
 <!-- VIEW -->

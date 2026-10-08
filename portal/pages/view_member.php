@@ -248,20 +248,20 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     <div class="flex items-center justify-between print:hidden">
         <button onclick="history.back()" 
             class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
-            <i class="fa-solid fa-arrow-left"></i> Go Back
+            <i class="fa-solid fa-arrow-left"></i> Back
         </button>
         <?php if ($u) { ?>
             <div class="flex flex-wrap items-center justify-end gap-2">
                 <?php if ($canEdit) { ?>
                 <button onclick="openModal('memberEditModal')"
                     class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                    <i class="fa-solid fa-pen-to-square"></i>
                 </button>
                 <?php } ?>
                 <button onclick="openModal('memberDonationModal')"
                     class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-hand-holding-heart"></i>
-                    Donation History
+                    
                     <span class="px-1.5 py-0.5 rounded bg-white/20 text-[10px]"><?= count($donations) ?></span>
                 </button>
                 <button onclick="window.print()"
