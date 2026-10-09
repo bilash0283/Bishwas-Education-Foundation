@@ -1,14 +1,5 @@
 <?php
-/* ==========================================================
-   my_donations.php  ->  index.php?page=my_donations
-   Logged-in user-er nijer Donation page:
-   Add donation | Report (month/year, total/paid/pending) | History
-   View / Edit / Delete | Invoice | Pay Slip (PNG/PDF)
-   Rules:
-   - Notun donation shob shomoy "Pending" hoye jay (Admin verify kore Paid kore)
-   - Edit/Delete shudhu Pending / Failed / Rejected donation-e. Paid = locked
-   - Pay Slip shudhu Paid donation-er
-   ========================================================== */
+
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
@@ -396,6 +387,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
 <?php } ?>
 
 <section class="page-content space-y-6 max-w-6xl mx-auto">
+
     <!-- Hero -->
     <div
         class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-700 text-white p-5 sm:p-8">
@@ -418,31 +410,27 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
         </div>
     </div>
 
-    <!-- Add donation -->
-    <div class="bg-white rounded-3xl ring-1 ring-slate-200/80 shadow-sm overflow-hidden no-print">
-        <div class="px-5 sm:px-8 py-4 border-b border-slate-100 flex items-center gap-3 bg-emerald-50/50">
-            <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center"><i
-                    class="fa-solid fa-circle-plus"></i></span>
+    <!-- Add donation (CTA) : form modal-e khole -->
+    <div
+        class="no-print rounded-3xl bg-white ring-1 ring-emerald-200 shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <span
+                class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-emerald-600/30 shrink-0"><i
+                    class="fa-solid fa-hand-holding-heart"></i></span>
             <div>
                 <h3 class="font-bold text-slate-800">Make a Donation <small class="font-medium text-slate-400">/ নতুন
                         ডোনেশন</small></h3>
-                <p class="text-[11px] text-slate-500">Submit your payment details. Admin will verify and mark it as
+                <p class="text-xs text-slate-500 mt-0.5">Add your payment details. Admin will verify and mark it as
                     Paid.</p>
             </div>
         </div>
-        <form method="POST" action="" enctype="multipart/form-data" class="p-5 sm:p-8 space-y-5" autocomplete="off">
-            <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf']) ?>"><input type="hidden" name="do"
-                value="add">
-            <?= md_form('a_', $funds, $methods, $types, $inp, $lbl) ?>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                <p class="text-[11px] text-slate-400"><i class="fa-solid fa-lock text-emerald-500 mr-1"></i>Status will
-                    be <b>Pending</b> until verified by Admin.</p>
-                <button
-                    class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2"><i
-                        class="fa-solid fa-paper-plane"></i> Submit Donation</button>
-            </div>
-        </form>
+        <button type="button" onclick="mdModal('mdAdd', true)"
+            class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2"><i
+                class="fa-solid fa-plus"></i> Add Donation</button>
     </div>
+    <button type="button" onclick="mdModal('mdAdd', true)" title="Add Donation"
+        class="sm:hidden no-print fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 text-white text-xl shadow-xl shadow-emerald-700/40 flex items-center justify-center"><i
+            class="fa-solid fa-plus"></i></button>
 
     <!-- KPI cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -658,14 +646,9 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                                     <button type="button" onclick="mdEdit(<?= (int) $d['id'] ?>)" title="Edit"
                                         class="p-2 text-slate-400 hover:text-emerald-600"><i
                                             class="fa-solid fa-pen"></i></button>
-                                    <form method="POST" action="" class="inline"
-                                        onsubmit="return confirm('Delete this donation? / ডোনেশনটি মুছে ফেলবেন?')"><input
-                                            type="hidden" name="csrf" value="<?= h($_SESSION['csrf']) ?>"><input type="hidden"
-                                            name="do" value="delete"><input type="hidden" name="id"
-                                            value="<?= (int) $d['id'] ?>">
-                                        <button title="Delete" class="p-2 text-slate-400 hover:text-rose-600"><i
-                                                class="fa-solid fa-trash"></i></button>
-                                    </form>
+                                    <button type="button" onclick="mdAskDelete(<?= (int) $d['id'] ?>)" title="Delete"
+                                        class="p-2 text-slate-400 hover:text-rose-600"><i
+                                            class="fa-solid fa-trash"></i></button>
                                 <?php } else { ?><span title="Paid donation locked" class="p-2 text-slate-300"><i
                                             class="fa-solid fa-lock"></i></span><?php } ?>
                             </td>
@@ -697,8 +680,77 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
             </div>
         <?php } ?>
     </div>
-    
 </section>
+
+<!-- ADD DONATION MODAL -->
+<div id="mdAdd"
+    class="fixed inset-0 bg-slate-900/60 hidden items-end sm:items-center justify-center sm:p-4 z-50 no-print">
+    <div
+        class="bg-white w-full sm:max-w-2xl max-h-[94vh] flex flex-col rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
+        <div
+            class="p-4 sm:p-5 bg-gradient-to-r from-emerald-700 to-teal-600 text-white flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3"><span
+                    class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center"><i
+                        class="fa-solid fa-circle-plus"></i></span>
+                <div>
+                    <h3 class="font-bold text-sm">Make a Donation <small class="font-normal text-emerald-100">/ নতুন
+                            ডোনেশন</small></h3>
+                    <p class="text-[11px] text-emerald-100">Status will be Pending until verified by Admin</p>
+                </div>
+            </div>
+            <button type="button" onclick="mdModal('mdAdd', false)" class="text-white/70 hover:text-white p-1"><i
+                    class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="" enctype="multipart/form-data" class="p-4 sm:p-6 space-y-5 overflow-y-auto"
+            autocomplete="off">
+            <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf']) ?>"><input type="hidden" name="do"
+                value="add">
+            <?= md_form('a_', $funds, $methods, $types, $inp, $lbl) ?>
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="mdModal('mdAdd', false)"
+                    class="flex-1 sm:flex-none px-5 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button
+                    class="flex-1 sm:flex-none sm:ml-auto px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2"><i
+                        class="fa-solid fa-paper-plane"></i> Submit Donation</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="mdDel" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[60] no-print">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
+        <div class="p-6 text-center space-y-3">
+            <div
+                class="w-16 h-16 mx-auto rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-3xl ring-8 ring-rose-50/60">
+                <i class="fa-solid fa-trash-can"></i></div>
+            <div>
+                <h3 class="font-bold text-lg text-slate-800">Delete this donation?</h3>
+                <p class="text-xs text-slate-500 mt-1">এই ডোনেশনটি স্থায়ীভাবে মুছে যাবে। This action cannot be undone.
+                </p>
+            </div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3.5 text-left text-xs space-y-1.5">
+                <div class="flex justify-between gap-3"><span class="text-slate-400">Donation No</span><b id="del_no"
+                        class="text-slate-800"></b></div>
+                <div class="flex justify-between gap-3"><span class="text-slate-400">Amount</span><b id="del_amt"
+                        class="text-rose-600"></b></div>
+                <div class="flex justify-between gap-3"><span class="text-slate-400">Fund</span><b id="del_fund"
+                        class="text-slate-800 text-right break-words"></b></div>
+                <div class="flex justify-between gap-3"><span class="text-slate-400">Date</span><b id="del_date"
+                        class="text-slate-800"></b></div>
+            </div>
+        </div>
+        <form method="POST" action="" class="px-6 pb-6 grid grid-cols-2 gap-3">
+            <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf']) ?>"><input type="hidden" name="do"
+                value="delete"><input type="hidden" name="id" id="del_id">
+            <button type="button" onclick="mdModal('mdDel', false)"
+                class="py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button
+                class="py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-lg shadow-rose-600/25"><i
+                    class="fa-solid fa-trash mr-1.5"></i>Yes, Delete</button>
+        </form>
+    </div>
+</div>
 
 <!-- VIEW -->
 <div id="mdView"
@@ -781,7 +833,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
         function find(id) { return D.filter(function (x) { return +x.id === +id; })[0]; }
         function no(d) { return 'DN-' + String(d.id).padStart(6, '0'); }
         window.mdModal = function (id, on) { var m = $(id); m.classList.toggle('hidden', !on); m.classList.toggle('flex', on); document.body.style.overflow = on ? 'hidden' : ''; };
-        ['mdView', 'mdEdit', 'mdDoc'].forEach(function (id) { $(id).addEventListener('mousedown', function (e) { if (e.target === this) { mdModal(id, false); } }); });
+        ['mdAdd', 'mdDel', 'mdView', 'mdEdit', 'mdDoc'].forEach(function (id) { $(id).addEventListener('mousedown', function (e) { if (e.target === this) { mdModal(id, false); } }); });
 
         /* amount chips */
         document.querySelectorAll('[data-chip]').forEach(function (b) {
@@ -809,6 +861,14 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                 }
             });
         }
+
+        /* delete confirm modal */
+        window.mdAskDelete = function (id) {
+            var d = find(id); if (!d) { return; }
+            $('del_id').value = d.id; $('del_no').textContent = no(d); $('del_amt').textContent = tk(d.amount);
+            $('del_fund').textContent = d.fund || 'General'; $('del_date').textContent = fd(d.donation_date);
+            mdModal('mdDel', true);
+        };
 
         /* view */
         window.mdView = function (id) {
