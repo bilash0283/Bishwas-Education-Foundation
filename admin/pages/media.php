@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         }
 
         if (ob_get_length()) ob_end_clean();
-        header("Location: dashboard.php?page=gallery");
+        header("Location: dashboard.php?page=media");
         exit;
     }
 }
