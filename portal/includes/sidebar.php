@@ -106,8 +106,8 @@
 
             <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accounts</div>
 
-            <a href="?page=notice_board" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('notice_board', $currentPage); ?>">
-                <i class="fa-solid fa-bullhorn w-4 text-sm <?php echo getIconClass('notice_board', $currentPage, 'text-orange-500'); ?>"></i> Notice Board
+            <a href="?page=my_donation" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('my_donation', $currentPage); ?>">
+                <i class="fa-solid fa-hand-holding-heart w-4 text-sm <?php echo getIconClass('donation', $currentPage, 'text-emerald-500'); ?>"></i> Donation 
             </a>
 
             <a href="?page=events" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('events', $currentPage); ?>">
