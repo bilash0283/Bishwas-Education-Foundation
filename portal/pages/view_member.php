@@ -1,57 +1,231 @@
 <?php
-// all type members can visite 
+/*
+ * PROFILE PAGE - PHP 7.2 compatible, beginner friendly version
+ *
+ * Live server-e ja problem hochhilo (ebong fix):
+ * 1. mysqli_stmt_get_result()  -> mysqlnd driver na thakle kaj kore na.
+ *                                 Tai nijer helper function (db_select) banano hoyeche.
+ * 2. header('Location: ...')   -> age kono output hoye gele "headers already sent" error.
+ *                                 Tai ob_start() + safe redirect function (go_to) deya hoyeche.
+ * 3. session_start()           -> $_SESSION check korar AGE session start korte hobe.
+ *                                 Ekhon sobar upore kora hoyeche.
+ * 4. function duplicate        -> file duibar include hole fatal error hoto.
+ *                                 Ekhon function_exists() diye bachano hoyeche.
+ * 5. $db / $conn               -> include kora file-er bhitor theke connection na pele
+ *                                 'global' diye ante hoyeche.
+ *
+ * IMPORTANT: File ta "UTF-8 (without BOM)" encoding-e save korben, noile Bangla
+ * lekha bhenge jabe ebong BOM-er karone header error hobe.
+ */
+
+// ---------- 0. Output buffer & Session (sobar upore) ----------
+if (!headers_sent()) {
+    ob_start();
+}
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
+
+// ---------- 1. Helper functions ----------
+if (!function_exists('h')) {
+    // Safe output (XSS theke bachay)
+    function h($s)
+    {
+        return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('go_to')) {
+    // Safe redirect: header kaj na korle JavaScript diye redirect hobe
+    function go_to($url)
+    {
+        if (!headers_sent()) {
+            header('Location: ' . $url);
+        } else {
+            echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+            echo '<noscript><meta http-equiv="refresh" content="0;url=' . h($url) . '"></noscript>';
+        }
+        exit;
+    }
+}
+
+if (!function_exists('db_select')) {
+    /*
+     * SELECT query chalay ebong sob row array hishebe ferot dey.
+     * mysqlnd (get_result) lage na, tai shob hosting-e kaj korbe.
+     *
+     * $types  = 'i' (integer), 's' (string)   jemon: 'iss'
+     * $params = value-gulo array-te            jemon: array(5, 'a', 'b')
+     */
+    function db_select($conn, $sql, $types = '', $params = array())
+    {
+        $rows = array();
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            return $rows;
+        }
+
+        if ($types !== '' && count($params) > 0) {
+            $args = array($stmt, $types);
+            foreach ($params as $k => $v) {
+                $args[] = &$params[$k];   // bind_param-e reference lage
+            }
+            call_user_func_array('mysqli_stmt_bind_param', $args);
+        }
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_store_result($stmt);
+
+        $meta = mysqli_stmt_result_metadata($stmt);
+        if ($meta) {
+            $row  = array();
+            $bind = array($stmt);
+            while ($field = mysqli_fetch_field($meta)) {
+                $row[$field->name] = null;
+                $bind[] = &$row[$field->name];
+            }
+            call_user_func_array('mysqli_stmt_bind_result', $bind);
+
+            while (mysqli_stmt_fetch($stmt)) {
+                $copy = array();
+                foreach ($row as $key => $val) {
+                    $copy[$key] = $val;
+                }
+                $rows[] = $copy;
+            }
+            mysqli_free_result($meta);
+        }
+
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('db_select_one')) {
+    // Shudhu prothom row ferot dey (na thakle null)
+    function db_select_one($conn, $sql, $types = '', $params = array())
+    {
+        $rows = db_select($conn, $sql, $types, $params);
+        return count($rows) > 0 ? $rows[0] : null;
+    }
+}
+
+if (!function_exists('db_execute')) {
+    // INSERT / UPDATE / DELETE chalay. Success hole true.
+    function db_execute($conn, $sql, $types = '', $params = array())
+    {
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            return false;
+        }
+        if ($types !== '' && count($params) > 0) {
+            $args = array($stmt, $types);
+            foreach ($params as $k => $v) {
+                $args[] = &$params[$k];
+            }
+            call_user_func_array('mysqli_stmt_bind_param', $args);
+        }
+        $ok = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        return $ok;
+    }
+}
+
+if (!function_exists('info_row')) {
+    function info_row($label, $value, $icon)
+    {
+        $v = trim((string) $value) === ''
+            ? '<span class="text-slate-300">—</span>'
+            : nl2br(h($value));
+        return '<div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <i class="fa-solid ' . $icon . ' text-emerald-600"></i> ' . h($label) . '
+            </p>
+            <p class="text-sm font-semibold text-slate-800 mt-1 break-words">' . $v . '</p>
+        </div>';
+    }
+}
+
+if (!function_exists('status_badge_class')) {
+    function status_badge_class($status)
+    {
+        $map = array(
+            'paid'     => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'pending'  => 'bg-amber-50 text-amber-700 border-amber-200',
+            'failed'   => 'bg-sky-50 text-sky-700 border-sky-200',
+            'rejected' => 'bg-red-50 text-red-700 border-red-200',
+        );
+        $key = strtolower((string) $status);
+        return isset($map[$key]) ? $map[$key] : 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+}
+
+// ---------- 2. Login check (all type members can visit) ----------
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php?page=dashboard');
-    exit;
+    go_to('index.php?page=dashboard');
 }
 
-$connection = isset($db) ? $db : (isset($conn) ? $conn : null);
-if ($connection) {
-    mysqli_set_charset($connection, "utf8mb4");
+// ---------- 3. Database connection ----------
+// Include kora file-er bhitor theke $db / $conn pete 'global' lage
+global $db, $conn;
+$connection = null;
+if (isset($db) && $db) {
+    $connection = $db;
+} elseif (isset($conn) && $conn) {
+    $connection = $conn;
 }
-if (session_status() === PHP_SESSION_NONE) { @session_start(); }
-if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 
+if (!$connection) {
+    die('Database connection not found.');
+}
+mysqli_set_charset($connection, 'utf8mb4');
+
+// ---------- 4. CSRF token ----------
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+}
+
+// ---------- 5. Basic settings ----------
 $upload_dir = 'public/uploads/members/';
 $back_page  = 'index.php?page=volunteers';
 
-if (!function_exists('h')) {
-    function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
-}
+// ---------- 6. User-er tothyo ----------
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$u  = db_select_one($connection, "SELECT * FROM users WHERE id = ? LIMIT 1", 'i', array($id));
 
-/* ---------------- ইউজারের তথ্য ---------------- */
-$id = (int) ($_GET['id'] ?? 0);
-$st = mysqli_prepare($connection, "SELECT * FROM users WHERE id = ? LIMIT 1");
-mysqli_stmt_bind_param($st, 'i', $id);
-mysqli_stmt_execute($st);
-$u = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
-mysqli_stmt_close($st);
+// ---------- 7. Ke edit korte parbe? ----------
+// Admin = je kono profile, baki = shudhu nijer profile
+$me = (int) $_SESSION['user_id'];
+$utype = isset($_SESSION['user_type']) ? $_SESSION['user_type'] : '';
 
-/* ---------------- কে edit করতে পারবে ----------------
-   Admin = যে কারো profile, বাকিরা = শুধু নিজের profile */
-$me = (int) ($_SESSION['user_id'] ?? $_SESSION['id'] ?? $_SESSION['uid'] ?? $_SESSION['member_id'] ?? 0);
-$utype = $_SESSION['user_type'] ?? '';
 if ($me > 0) {
-    $rr = mysqli_fetch_row(mysqli_query($connection, "SELECT user_type FROM users WHERE id = " . $me . " LIMIT 1"));
-    if ($rr) { $utype = $rr[0]; }
+    $meRow = db_select_one($connection, "SELECT user_type FROM users WHERE id = ? LIMIT 1", 'i', array($me));
+    if ($meRow) {
+        $utype = $meRow['user_type'];
+    }
 }
-$isAdmin = ($utype === 'Admin');
-$canEdit = ($u && ($isAdmin || ($me > 0 && $me === (int) $u['id'])));
-$user_types = ['Admin', 'General Member', 'Associate Member', 'Life Member', 'Volunteer Member'];
 
-/* ---------------- PROFILE UPDATE (POST) ---------------- */
-if ($u && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'update_profile') {
+$isAdmin    = ($utype === 'Admin');
+$canEdit    = ($u && ($isAdmin || ($me > 0 && $me === (int) $u['id'])));
+$user_types = array('Admin', 'General Member', 'Associate Member', 'Life Member', 'Volunteer Member');
+
+// ---------- 8. PROFILE UPDATE (POST) ----------
+if ($u && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['do']) ? $_POST['do'] : '') === 'update_profile') {
+
     $ok  = false;
     $msg = '';
 
-    if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+    $postedCsrf = isset($_POST['csrf']) ? $_POST['csrf'] : '';
+
+    if (!hash_equals($_SESSION['csrf'], $postedCsrf)) {
         $msg = 'Session expired. Please reload the page.';
     } elseif (!$canEdit) {
         $msg = 'You can only update your own profile.';
     } else {
-        $name   = trim($_POST['member_name'] ?? '');
-        $mobile = preg_replace('/\D/', '', $_POST['mobile_no'] ?? '');
-        $email  = trim($_POST['email'] ?? '');
+        $name   = trim(isset($_POST['member_name']) ? $_POST['member_name'] : '');
+        $mobile = preg_replace('/\D/', '', isset($_POST['mobile_no']) ? $_POST['mobile_no'] : '');
+        $email  = trim(isset($_POST['email']) ? $_POST['email'] : '');
 
         if ($name === '') {
             $msg = 'নাম দেওয়া আবশ্যক।';
@@ -61,93 +235,151 @@ if ($u && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'upd
             $msg = 'সঠিক ইমেইল দিন।';
         } else {
             // অন্য কারো সাথে মোবাইল/ইমেইল মিলে গেলে আটকানো
-            $dup = mysqli_prepare($connection, "SELECT mobile_no, email FROM users WHERE id <> ? AND (mobile_no = ? OR (? <> '' AND email = ?)) LIMIT 1");
-            mysqli_stmt_bind_param($dup, 'isss', $id, $mobile, $email, $email);
-            mysqli_stmt_execute($dup);
-            $dr = mysqli_fetch_assoc(mysqli_stmt_get_result($dup));
-            mysqli_stmt_close($dup);
+            $dr = db_select_one(
+                $connection,
+                "SELECT mobile_no, email FROM users
+                 WHERE id <> ? AND (mobile_no = ? OR (? <> '' AND email = ?)) LIMIT 1",
+                'isss',
+                array($id, $mobile, $email, $email)
+            );
 
             if ($dr) {
-                $msg = ($dr['mobile_no'] === $mobile) ? 'এই মোবাইল নম্বর অন্য একজন ব্যবহার করছেন।' : 'এই ইমেইল অন্য একজন ব্যবহার করছেন।';
+                $msg = ($dr['mobile_no'] === $mobile)
+                    ? 'এই মোবাইল নম্বর অন্য একজন ব্যবহার করছেন।'
+                    : 'এই ইমেইল অন্য একজন ব্যবহার করছেন।';
             } else {
                 // ---- নতুন ছবি (দিলে) ----
                 $new_photo = '';
-                $up_ok = true;
+                $up_ok     = true;
+
                 if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-                    $f = $_FILES['photo'];
+                    $f   = $_FILES['photo'];
                     $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+
                     if ($f['error'] !== UPLOAD_ERR_OK) {
-                        $msg = 'ছবি আপলোড করা যায়নি।'; $up_ok = false;
-                    } elseif (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp']) || !@getimagesize($f['tmp_name'])) {
-                        $msg = 'ছবি শুধু JPG, PNG বা WEBP হতে হবে।'; $up_ok = false;
+                        $msg   = 'ছবি আপলোড করা যায়নি।';
+                        $up_ok = false;
+                    } elseif (!in_array($ext, array('jpg', 'jpeg', 'png', 'webp')) || !@getimagesize($f['tmp_name'])) {
+                        $msg   = 'ছবি শুধু JPG, PNG বা WEBP হতে হবে।';
+                        $up_ok = false;
                     } elseif ($f['size'] > 2 * 1024 * 1024) {
-                        $msg = 'ছবির সাইজ সর্বোচ্চ 2MB।'; $up_ok = false;
+                        $msg   = 'ছবির সাইজ সর্বোচ্চ 2MB।';
+                        $up_ok = false;
                     } else {
-                        if (!is_dir($upload_dir)) { mkdir($upload_dir, 0755, true); }
+                        if (!is_dir($upload_dir)) {
+                            @mkdir($upload_dir, 0755, true);
+                        }
                         $new_photo = 'mem_' . time() . '_' . random_int(1000, 9999) . '.' . $ext;
                         if (!move_uploaded_file($f['tmp_name'], $upload_dir . $new_photo)) {
-                            $msg = 'ছবি সেভ করা যায়নি (ফোল্ডার পারমিশন চেক করুন)।'; $up_ok = false; $new_photo = '';
+                            $msg       = 'ছবি সেভ করা যায়নি (ফোল্ডার পারমিশন চেক করুন)।';
+                            $up_ok     = false;
+                            $new_photo = '';
                         }
                     }
                 }
 
                 if ($up_ok) {
-                    $set  = ['member_name = ?', 'mother_name = ?', 'father_husband_name = ?', 'id_number = ?', 'qualification = ?',
-                             'mobile_no = ?', 'email = ?', 'present_address = ?', 'permanent_address = ?', 'other_info = ?'];
-                    $vals = [$name, trim($_POST['mother_name'] ?? ''), trim($_POST['father_husband_name'] ?? ''), trim($_POST['id_number'] ?? ''),
-                             trim($_POST['qualification'] ?? ''), $mobile, $email, trim($_POST['present_address'] ?? ''),
-                             trim($_POST['permanent_address'] ?? ''), trim($_POST['other_info'] ?? '')];
+                    // Je column-gulo update hobe tar list
+                    $set = array(
+                        'member_name = ?', 'mother_name = ?', 'father_husband_name = ?',
+                        'id_number = ?', 'qualification = ?', 'mobile_no = ?', 'email = ?',
+                        'present_address = ?', 'permanent_address = ?', 'other_info = ?'
+                    );
+                    // Tader value (ager list-er sathe same order)
+                    $vals = array(
+                        $name,
+                        trim(isset($_POST['mother_name']) ? $_POST['mother_name'] : ''),
+                        trim(isset($_POST['father_husband_name']) ? $_POST['father_husband_name'] : ''),
+                        trim(isset($_POST['id_number']) ? $_POST['id_number'] : ''),
+                        trim(isset($_POST['qualification']) ? $_POST['qualification'] : ''),
+                        $mobile,
+                        $email,
+                        trim(isset($_POST['present_address']) ? $_POST['present_address'] : ''),
+                        trim(isset($_POST['permanent_address']) ? $_POST['permanent_address'] : ''),
+                        trim(isset($_POST['other_info']) ? $_POST['other_info'] : '')
+                    );
 
-                    $dob = $_POST['dob'] ?? '';
-                    if ($dob !== '' && strtotime($dob)) { $set[] = 'dob = ?'; $vals[] = date('Y-m-d', strtotime($dob)); }
-                    if (in_array($_POST['gender'] ?? '', ['Male', 'Female', 'Other'])) { $set[] = 'gender = ?'; $vals[] = $_POST['gender']; }
-                    if (in_array($_POST['id_type'] ?? '', ['NID', 'Passport', 'Birth Certificate'])) { $set[] = 'id_type = ?'; $vals[] = $_POST['id_type']; }
-                    if ($new_photo !== '') { $set[] = 'photo = ?'; $vals[] = $new_photo; }
-                    if ($isAdmin && in_array($_POST['user_type'] ?? '', $user_types)) { $set[] = 'user_type = ?'; $vals[] = $_POST['user_type']; }
-
-                    $vals[] = $id;
-                    try {
-                        $us = mysqli_prepare($connection, "UPDATE users SET " . implode(', ', $set) . " WHERE id = ?");
-                        mysqli_stmt_bind_param($us, str_repeat('s', count($vals) - 1) . 'i', ...$vals);
-                        $ok = mysqli_stmt_execute($us);
-                        mysqli_stmt_close($us);
-                    } catch (Throwable $e) {
-                        $ok = false;
+                    $dob = isset($_POST['dob']) ? $_POST['dob'] : '';
+                    if ($dob !== '' && strtotime($dob)) {
+                        $set[]  = 'dob = ?';
+                        $vals[] = date('Y-m-d', strtotime($dob));
                     }
+
+                    $gender = isset($_POST['gender']) ? $_POST['gender'] : '';
+                    if (in_array($gender, array('Male', 'Female', 'Other'))) {
+                        $set[]  = 'gender = ?';
+                        $vals[] = $gender;
+                    }
+
+                    $id_type = isset($_POST['id_type']) ? $_POST['id_type'] : '';
+                    if (in_array($id_type, array('NID', 'Passport', 'Birth Certificate'))) {
+                        $set[]  = 'id_type = ?';
+                        $vals[] = $id_type;
+                    }
+
+                    if ($new_photo !== '') {
+                        $set[]  = 'photo = ?';
+                        $vals[] = $new_photo;
+                    }
+
+                    $new_type = isset($_POST['user_type']) ? $_POST['user_type'] : '';
+                    if ($isAdmin && in_array($new_type, $user_types)) {
+                        $set[]  = 'user_type = ?';
+                        $vals[] = $new_type;
+                    }
+
+                    // Shesh-e WHERE id = ? er jonno id
+                    $types  = str_repeat('s', count($vals)) . 'i';
+                    $vals[] = $id;
+
+                    $ok = db_execute(
+                        $connection,
+                        "UPDATE users SET " . implode(', ', $set) . " WHERE id = ?",
+                        $types,
+                        $vals
+                    );
 
                     if ($ok) {
                         $msg = 'Profile updated successfully! / প্রোফাইল সফলভাবে আপডেট হয়েছে।';
-                        if ($new_photo !== '' && !empty($u['photo']) && is_file($upload_dir . basename($u['photo']))) { @unlink($upload_dir . basename($u['photo'])); }
+                        // Notun chhobi dile purono chhobi muche fela
+                        if ($new_photo !== '' && !empty($u['photo']) && is_file($upload_dir . basename($u['photo']))) {
+                            @unlink($upload_dir . basename($u['photo']));
+                        }
                     } else {
                         $msg = 'আপডেট করা যায়নি। আবার চেষ্টা করুন।';
-                        if ($new_photo !== '') { @unlink($upload_dir . $new_photo); }
+                        if ($new_photo !== '') {
+                            @unlink($upload_dir . $new_photo);
+                        }
                     }
                 }
             }
         }
     }
 
-    $_SESSION['pf_flash'] = [$ok, $msg];
-    header('Location: ' . $_SERVER['REQUEST_URI']);
-    exit;
+    $_SESSION['pf_flash'] = array($ok, $msg);
+    go_to($_SERVER['REQUEST_URI']);
 }
-$flash = $_SESSION['pf_flash'] ?? null;
+
+$flash = isset($_SESSION['pf_flash']) ? $_SESSION['pf_flash'] : null;
 unset($_SESSION['pf_flash']);
 
-$photo = ($u && !empty($u['photo']) && is_file($upload_dir . basename($u['photo'])))
-    ? $upload_dir . basename($u['photo']) : '';
+// ---------- 9. Profile photo ----------
+$photo = '';
+if ($u && !empty($u['photo']) && is_file($upload_dir . basename($u['photo']))) {
+    $photo = $upload_dir . basename($u['photo']);
+}
 
-/* ---------------- Donation History ----------------
-   ID অথবা ইমেইল অথবা ফোনের শেষ ১০ সংখ্যা, যেকোনো একটা মিললেই আসবে */
-$donations     = [];
+// ---------- 10. Donation History ----------
+// ID অথবা ইমেইল অথবা ফোনের শেষ ১০ সংখ্যা, যেকোনো একটা মিললেই আসবে
+$donations     = array();
 $total_paid    = 0;
 $total_pending = 0;
-$paid_count    = 0;   // <-- নতুন: paid donation এর সংখ্যা
+$paid_count    = 0;
 
 if ($u) {
-    $email  = trim((string) $u['email']);
-    $digits = preg_replace('/\D/', '', (string) $u['mobile_no']);
-    $last10 = strlen($digits) >= 10 ? substr($digits, -10) : '';
+    $d_email  = trim((string) $u['email']);
+    $d_digits = preg_replace('/\D/', '', (string) $u['mobile_no']);
+    $d_last10 = strlen($d_digits) >= 10 ? substr($d_digits, -10) : '';
 
     $sql = "SELECT id, amount, donation_type, fund, payment_method, transaction_id,
                    payment_status, donation_date
@@ -157,15 +389,15 @@ if ($u) {
                OR (? <> '' AND RIGHT(phone, 10) = ?)
             ORDER BY donation_date DESC, id DESC";
 
-    $ds = mysqli_prepare($connection, $sql);
-    mysqli_stmt_bind_param($ds, 'issss', $id, $email, $email, $last10, $last10);
-    mysqli_stmt_execute($ds);
-    $dres = mysqli_stmt_get_result($ds);
+    $donations = db_select(
+        $connection,
+        $sql,
+        'issss',
+        array($id, $d_email, $d_email, $d_last10, $d_last10)
+    );
 
-    while ($r = mysqli_fetch_assoc($dres)) {
-        $donations[] = $r;
-        $s = strtolower($r['payment_status']);
-
+    foreach ($donations as $r) {
+        $s = strtolower((string) $r['payment_status']);
         if ($s === 'paid') {
             $total_paid += (float) $r['amount'];
             $paid_count++;
@@ -174,36 +406,16 @@ if ($u) {
             $total_pending += (float) $r['amount'];
         }
     }
-    mysqli_stmt_close($ds);
 }
 
-function info_row($label, $value, $icon) {
-    $v = trim((string) $value) === ''
-        ? '<span class="text-slate-300">—</span>'
-        : nl2br(h($value));
-    return '<div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
-        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid ' . $icon . ' text-emerald-600"></i> ' . h($label) . '
-        </p>
-        <p class="text-sm font-semibold text-slate-800 mt-1 break-words">' . $v . '</p>
-    </div>';
-}
-
-function status_badge_class($status) {
-    $map = [
-        'paid'     => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        'pending'  => 'bg-amber-50 text-amber-700 border-amber-200',
-        'failed'   => 'bg-sky-50 text-sky-700 border-sky-200',
-        'rejected' => 'bg-red-50 text-red-700 border-red-200',
-    ];
-    return $map[strtolower($status)] ?? 'bg-slate-100 text-slate-600 border-slate-200';
-}
-
+// ---------- 11. Date & CSS class helpers ----------
 $dob_text = '';
+$dob_val  = '';
 if ($u && !empty($u['dob']) && $u['dob'] !== '0000-00-00') {
     $dob_text = date('d M Y', strtotime($u['dob']));
+    $dob_val  = date('Y-m-d', strtotime($u['dob']));
 }
-$dob_val = ($u && !empty($u['dob']) && $u['dob'] !== '0000-00-00') ? date('Y-m-d', strtotime($u['dob'])) : '';
+
 $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
 ?>
