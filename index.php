@@ -415,7 +415,7 @@
                                     </p>
                                 </div>
                                 
-                                <a href="blog-details.php?id=<?= $blog['id'] ?>"
+                                <a href="blog_details.php?id=<?= $blog['id'] ?>"
                                 class="inline-flex items-center space-x-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition pt-2">
                                     <span>বিস্তারিত পড়ুন</span>
                                     <i class="fa-solid fa-arrow-right text-xs"></i>
