@@ -1,11 +1,9 @@
-<?php 
-// ড্যাটাবেজ কানেকশন
-include 'database/db.php'; 
+<?php
+include 'include/header.php';  
 
-// URL থেকে Blog ID গ্রহণ ও নিরাপত্তা ফিল্টার
-$blog_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($blog_id <= 0) {
+if(isset($_GET['id']) && !empty($_GET['id'])){
+    $blog_id = $_GET['id'];
+} else {
     header("Location: index.php");
     exit();
 }
@@ -14,23 +12,10 @@ if ($blog_id <= 0) {
 $stmt = mysqli_query($db,"SELECT * FROM blogs WHERE id = $blog_id AND status = 'active'");
 $result = mysqli_fetch_assoc($stmt);
 
-if ($result === null) {
-    header("Location: index.php");
-    exit();
-}
-
-$blog = $result;
-
-// রানিং ব্লগ বাদে সাম্প্রতিক ৩টি ব্লগ ফ্যাচ করা (Sidebar-এর জন্য)
-$recent_stmt = $db->prepare("SELECT id, blog_title, blog_image, publish_date FROM blogs WHERE id != ? AND status = 'active' ORDER BY id DESC LIMIT 3");
-$recent_stmt->bind_param("i", $blog_id);
-$recent_stmt->execute();
-$recent_blogs = $recent_stmt->get_result();
-
 // থাম্বনেইল ইমেজ পাথ সেটআপ
-$image_src = !empty($blog['blog_image']) ? 'admin/' . htmlspecialchars($blog['blog_image']) : 'public/assets/gallery_img/8.jpg';
+$image_src = !empty($result['blog_image']) ? 'admin/' . htmlspecialchars($result['blog_image']) : 'public/assets/gallery_img/8.jpg';
 
-include 'include/header.php'; 
+
 ?>
 
 <!-- Blog Details Container -->
@@ -41,7 +26,7 @@ include 'include/header.php';
         <div class="mb-6 flex items-center gap-2 text-xs font-semibold text-slate-500">
             <a href="index.php" class="hover:text-emerald-700 transition">হোম</a>
             <span>/</span>
-            <span class="text-emerald-700"><?= htmlspecialchars($blog['category'] ?? 'ব্লগ') ?></span>
+            <span class="text-emerald-700"><?= htmlspecialchars($result['category'] ?? 'ব্লগ') ?></span>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -52,30 +37,30 @@ include 'include/header.php';
                     <!-- Meta Tag & Date -->
                     <div class="flex items-center gap-3 text-xs font-semibold text-slate-400 mb-4">
                         <span class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100">
-                            <?= htmlspecialchars($blog['category'] ?? 'ব্লগ') ?>
+                            <?= htmlspecialchars($result['category'] ?? 'ব্লগ') ?>
                         </span>
                         <span>•</span>
                         <span class="flex items-center gap-1.5">
                             <i class="fa-regular fa-calendar text-emerald-600"></i>
-                            <?= htmlspecialchars($blog['publish_date']) ?>
+                            <?= htmlspecialchars($result['publish_date']) ?>
                         </span>
                     </div>
 
                     <!-- Title -->
                     <h1 class="text-2xl md:text-3xl font-bold text-slate-900 leading-snug mb-6">
-                        <?= htmlspecialchars($blog['blog_title']) ?>
+                        <?= htmlspecialchars($result['blog_title']) ?>
                     </h1>
 
                     <!-- Image Cover -->
                     <div class="relative aspect-[16/9] overflow-hidden rounded-2xl mb-8 bg-slate-100">
                         <img src="<?= $image_src ?>" 
-                             alt="<?= htmlspecialchars($blog['blog_title']) ?>" 
+                             alt="<?= htmlspecialchars($result['blog_title']) ?>" 
                              class="w-full h-full object-cover">
                     </div>
 
                     <!-- Short Description / Highlight -->
                     <?php
-                        $desc = $blog['short_description'];
+                        $desc = $result['short_description'];
 
                         // literal "\r\n" text ke asol newline e convert kora
                         $desc = str_replace(['\r\n', '\n', '\r'], "\n", $desc);
@@ -89,7 +74,9 @@ include 'include/header.php';
                         </div>
 
                     <!-- Detailed Content -->
-                    
+                    <div class="prose max-w-none">
+                        <?= htmlspecialchars($result['detailed_content']) ?>
+                    </div>
                 </div>
 
                 <!-- Footer/Share Options -->
@@ -122,8 +109,14 @@ include 'include/header.php';
                     </h3>
 
                     <div class="space-y-4">
-                        <?php if ($recent_blogs && $recent_blogs->num_rows > 0): ?>
-                            <?php while ($recent = $recent_blogs->fetch_assoc()): 
+                        <?php 
+                            //recent blogs fetch
+                            $recent_blogs_query = mysqli_query($db, "SELECT * FROM blogs WHERE status = 'active' AND id != $blog_id ORDER BY publish_date DESC LIMIT 5");
+                      
+                        ?>
+                            
+                            <?php while($recent = mysqli_fetch_assoc($recent_blogs_query)){ ?>
+                            <?php
                                 $r_image = !empty($recent['blog_image']) ? 'admin/' . htmlspecialchars($recent['blog_image']) : 'public/assets/gallery_img/8.jpg';
                             ?>
                                 <a href="blog_details.php?id=<?= $recent['id'] ?>" class="flex items-center gap-3 group">
@@ -141,10 +134,7 @@ include 'include/header.php';
                                         </span>
                                     </div>
                                 </a>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <p class="text-xs text-slate-400">অন্য কোনো পোস্ট পাওয়া যায়নি।</p>
-                        <?php endif; ?>
+                            <?php }  ?>
                     </div>
                 </div>
 
