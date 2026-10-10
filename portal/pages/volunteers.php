@@ -1,301 +1,587 @@
 <?php
-if($_SESSION['user_type'] !== 'Admin') {
-    header('Location: index.php?page=dashboard');
+/*
+ * VOLUNTEERS PAGE - PHP 7.2 compatible, beginner friendly version
+ *
+ * Live server-e data na dekhanor main karon ebong fix:
+ * 1. mysqli_stmt_get_result()  -> live server-e mysqlnd na thakle ei function kaj kore na,
+ *                                 tai list/stat/edit kichui ashto na. Ekhon db_select() helper use kora hoyeche.
+ * 2. session_start()           -> $_SESSION check korar AGE session start korte hobe. Ekhon sobar upore.
+ * 3. function h() duplicate    -> header.php te thakle "Cannot redeclare h()" fatal error hoy.
+ *                                 Ekhon function_exists() diye bachano hoyeche.
+ * 4. ob_start()                -> AJAX response (JSON) er age onno kono output thakle JSON bhenge jay.
+ *                                 Ekhon shurute buffer start kora hoyeche.
+ * 5. $db                       -> include file-er bhitor 'global $db' lage.
+ *
+ * IMPORTANT: File ta "UTF-8 (without BOM)" encoding-e save korben.
+ */
+
+// ---------- 0. Output buffer & Session (sobar upore) ----------
+if (!headers_sent()) {
+    ob_start();
+}
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
+
+// ---------- 1. Admin check ----------
+$current_type = isset($_SESSION['user_type']) ? $_SESSION['user_type'] : '';
+if ($current_type !== 'Admin') {
+    if (!headers_sent()) {
+        header('Location: index.php?page=dashboard');
+    } else {
+        echo '<script>window.location.href="index.php?page=dashboard";</script>';
+    }
     exit;
 }
 
-if (session_status() === PHP_SESSION_NONE) { @session_start(); }
-if (!isset($db)) { ob_start(); include 'include/header.php'; ob_end_clean(); }
-mysqli_set_charset($db, "utf8mb4");
+// ---------- 2. Database connection ----------
+global $db;
+if (!isset($db) || !$db) {
+    ob_start();
+    include 'include/header.php';
+    ob_end_clean();
+}
+if (!isset($db) || !$db) {
+    die('Database connection not found.');
+}
+mysqli_set_charset($db, 'utf8mb4');
 
-$upload_dir   = 'public/uploads/members/';        // photo folder
-$profile_page = 'index.php';           // profile page
-$user_types   = ['General Member','Associate Member','Life Member','Volunteer Member'];
+// ---------- 3. Settings ----------
+$upload_dir   = 'public/uploads/members/';   // photo folder
+$profile_page = 'index.php';                 // profile page
+$user_types   = array('General Member', 'Associate Member', 'Life Member', 'Volunteer Member');
 
-if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+}
 
-/* ---------- helpers ---------- */
-function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+/* ==========================================================
+   HELPER FUNCTIONS
+   ========================================================== */
 
-function vol_json($arr) {
-    while (ob_get_level()) { ob_end_clean(); }
+if (!function_exists('h')) {
+    // Safe output (XSS theke bachay)
+    function h($s)
+    {
+        return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+/*
+ * SELECT query chalay, sob row array hishebe ferot dey.
+ * mysqlnd (get_result) lage na, tai shob hosting-e kaj korbe.
+ * $types  = 'i' (number), 's' (text)   jemon: 'iss'
+ * $params = value-gulo array-te        jemon: array(5, 'a', 'b')
+ */
+if (!function_exists('db_select')) {
+    function db_select($conn, $sql, $types = '', $params = array())
+    {
+        $rows = array();
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            return $rows;
+        }
+
+        if ($types !== '' && count($params) > 0) {
+            $args = array($stmt, $types);
+            foreach ($params as $k => $v) {
+                $args[] = &$params[$k];   // bind_param-e reference lage
+            }
+            call_user_func_array('mysqli_stmt_bind_param', $args);
+        }
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_store_result($stmt);
+
+        $meta = mysqli_stmt_result_metadata($stmt);
+        if ($meta) {
+            $row  = array();
+            $bind = array($stmt);
+            while ($field = mysqli_fetch_field($meta)) {
+                $row[$field->name] = null;
+                $bind[] = &$row[$field->name];
+            }
+            call_user_func_array('mysqli_stmt_bind_result', $bind);
+
+            while (mysqli_stmt_fetch($stmt)) {
+                $copy = array();
+                foreach ($row as $key => $val) {
+                    $copy[$key] = $val;
+                }
+                $rows[] = $copy;
+            }
+            mysqli_free_result($meta);
+        }
+
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+// Shudhu prothom row ferot dey (na thakle null)
+if (!function_exists('db_select_one')) {
+    function db_select_one($conn, $sql, $types = '', $params = array())
+    {
+        $rows = db_select($conn, $sql, $types, $params);
+        return count($rows) > 0 ? $rows[0] : null;
+    }
+}
+
+// INSERT / UPDATE / DELETE chalay. Success hole true.
+if (!function_exists('db_execute')) {
+    function db_execute($conn, $sql, $types = '', $params = array())
+    {
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            return false;
+        }
+        if ($types !== '' && count($params) > 0) {
+            $args = array($stmt, $types);
+            foreach ($params as $k => $v) {
+                $args[] = &$params[$k];
+            }
+            call_user_func_array('mysqli_stmt_bind_param', $args);
+        }
+        $ok = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        return $ok;
+    }
+}
+
+// JSON response pathay (AJAX er jonno)
+function vol_json($arr)
+{
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($arr, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function vol_where($q, $type, $status, &$types, &$params) {
-    $w = "WHERE 1=1"; $types = ''; $params = [];
+// Search / filter er WHERE condition banay
+function vol_where($q, $type, $status, &$types, &$params)
+{
+    $w      = 'WHERE 1=1';
+    $types  = '';
+    $params = array();
+
     if ($q !== '') {
-        $w .= " AND (member_name LIKE ? OR email LIKE ? OR mobile_no LIKE ?)";
+        $w .= ' AND (member_name LIKE ? OR email LIKE ? OR mobile_no LIKE ?)';
         $like = '%' . addcslashes($q, '%_\\') . '%';
-        $types .= 'sss'; array_push($params, $like, $like, $like);
+        $types .= 'sss';
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
     }
-    if ($type !== '')   { $w .= " AND user_type = ?"; $types .= 's'; $params[] = $type; }
-    if ($status !== '') { $w .= " AND status = ?";    $types .= 's'; $params[] = $status; }
+    if ($type !== '') {
+        $w .= ' AND user_type = ?';
+        $types .= 's';
+        $params[] = $type;
+    }
+    if ($status !== '') {
+        $w .= ' AND status = ?';
+        $types .= 's';
+        $params[] = $status;
+    }
     return $w;
 }
 
-function vol_group($db, $col, $q, $type, $status) {
+// Kono column onujayi group kore count dey (jemon user_type bা status)
+function vol_group($db, $col, $q, $type, $status)
+{
+    $t = '';
+    $p = array();
     $w = vol_where($q, $type, $status, $t, $p);
-    $st = mysqli_prepare($db, "SELECT $col AS k, COUNT(*) AS c FROM users $w GROUP BY $col");
-    if ($t) { mysqli_stmt_bind_param($st, $t, ...$p); }
-    mysqli_stmt_execute($st);
-    $res = mysqli_stmt_get_result($st);
-    $map = [];
-    while ($r = mysqli_fetch_assoc($res)) { $map[$r['k']] = (int)$r['c']; }
+
+    $rows = db_select($db, "SELECT $col AS k, COUNT(*) AS c FROM users $w GROUP BY $col", $t, $p);
+    $map  = array();
+    foreach ($rows as $r) {
+        $map[$r['k']] = (int) $r['c'];
+    }
     return $map;
 }
 
 // Search soro somoy apply hoy. Category card = search+status, Status card = search+category, Total = sob filter
-function vol_stats($db, $q, $type, $status, $user_types) {
+function vol_stats($db, $q, $type, $status, $user_types)
+{
     $catRaw = vol_group($db, 'user_type', $q, '', $status);
     $staRaw = vol_group($db, 'status', $q, $type, '');
     $all    = array_sum(vol_group($db, 'status', $q, $type, $status));
-    $cats = [];
-    foreach ($user_types as $t) { $cats[$t] = $catRaw[$t] ?? 0; }
-    $active = $staRaw['Active'] ?? 0;
-    return ['total' => $all, 'Active' => $active, 'Pending' => array_sum($staRaw) - $active, 'cats' => $cats];
+
+    $cats = array();
+    foreach ($user_types as $t) {
+        $cats[$t] = isset($catRaw[$t]) ? $catRaw[$t] : 0;
+    }
+    $active = isset($staRaw['Active']) ? $staRaw['Active'] : 0;
+
+    return array(
+        'total'   => $all,
+        'Active'  => $active,
+        'Pending' => array_sum($staRaw) - $active,
+        'cats'    => $cats,
+    );
 }
 
-function vol_upload($file, $dir, &$err) {
-    if (!is_array($file) || $file['error'] === UPLOAD_ERR_NO_FILE) { return ''; }
-    if ($file['error'] !== 0) { $err = 'ছবি আপলোড করা যায়নি।'; return false; }
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['jpg', 'jpeg', 'png']) || !@getimagesize($file['tmp_name'])) {
-        $err = 'ছবি শুধু JPG বা PNG হতে হবে।'; return false;
+// Photo upload kore. Success = file name, kono file na dile = '', error hole false
+function vol_upload($file, $dir, &$err)
+{
+    if (!is_array($file) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return '';
     }
-    if ($file['size'] > 2 * 1024 * 1024) { $err = 'ছবির সাইজ সর্বোচ্চ 2MB।'; return false; }
-    if (!is_dir($dir)) { mkdir($dir, 0755, true); }
+    if ($file['error'] !== 0) {
+        $err = 'ছবি আপলোড করা যায়নি।';
+        return false;
+    }
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, array('jpg', 'jpeg', 'png')) || !@getimagesize($file['tmp_name'])) {
+        $err = 'ছবি শুধু JPG বা PNG হতে হবে।';
+        return false;
+    }
+    if ($file['size'] > 2 * 1024 * 1024) {
+        $err = 'ছবির সাইজ সর্বোচ্চ 2MB।';
+        return false;
+    }
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
     $name = 'member_' . time() . '_' . random_int(1000, 9999) . '.' . $ext;
-    if (!move_uploaded_file($file['tmp_name'], $dir . $name)) { $err = 'ছবি সেভ করা যায়নি।'; return false; }
+    if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
+        $err = 'ছবি সেভ করা যায়নি।';
+        return false;
+    }
     return $name;
 }
 
-function vol_unlink($dir, $photo) {
-    if ($photo != '' && is_file($dir . basename($photo))) { @unlink($dir . basename($photo)); }
+// Photo file muche dey
+function vol_unlink($dir, $photo)
+{
+    if ($photo != '' && is_file($dir . basename($photo))) {
+        @unlink($dir . basename($photo));
+    }
 }
 
-function vol_cat_style($type) {
-    $map = [
-        'General Member'   => ['badge' => 'bg-sky-50 text-sky-700',         'icon' => 'bg-sky-50 text-sky-600',         'ring' => 'ring-sky-500',     'fa' => 'fa-user-check'],
-        'Associate Member' => ['badge' => 'bg-violet-50 text-violet-700',   'icon' => 'bg-violet-50 text-violet-600',   'ring' => 'ring-violet-500',  'fa' => 'fa-user-gear'],
-        'Life Member'      => ['badge' => 'bg-fuchsia-50 text-fuchsia-700', 'icon' => 'bg-fuchsia-50 text-fuchsia-600', 'ring' => 'ring-fuchsia-500', 'fa' => 'fa-crown'],
-        'Volunteer Member' => ['badge' => 'bg-emerald-50 text-emerald-700', 'icon' => 'bg-emerald-50 text-emerald-600', 'ring' => 'ring-emerald-500', 'fa' => 'fa-hand-holding-heart'],
-    ];
-    return $map[$type] ?? ['badge' => 'bg-slate-100 text-slate-600', 'icon' => 'bg-slate-100 text-slate-500', 'ring' => 'ring-slate-400', 'fa' => 'fa-user'];
+// Category onujayi color/icon
+function vol_cat_style($type)
+{
+    $map = array(
+        'General Member'   => array('badge' => 'bg-sky-50 text-sky-700',         'icon' => 'bg-sky-50 text-sky-600',         'ring' => 'ring-sky-500',     'fa' => 'fa-user-check'),
+        'Associate Member' => array('badge' => 'bg-violet-50 text-violet-700',   'icon' => 'bg-violet-50 text-violet-600',   'ring' => 'ring-violet-500',  'fa' => 'fa-user-gear'),
+        'Life Member'      => array('badge' => 'bg-fuchsia-50 text-fuchsia-700', 'icon' => 'bg-fuchsia-50 text-fuchsia-600', 'ring' => 'ring-fuchsia-500', 'fa' => 'fa-crown'),
+        'Volunteer Member' => array('badge' => 'bg-emerald-50 text-emerald-700', 'icon' => 'bg-emerald-50 text-emerald-600', 'ring' => 'ring-emerald-500', 'fa' => 'fa-hand-holding-heart'),
+    );
+    if (isset($map[$type])) {
+        return $map[$type];
+    }
+    return array('badge' => 'bg-slate-100 text-slate-600', 'icon' => 'bg-slate-100 text-slate-500', 'ring' => 'ring-slate-400', 'fa' => 'fa-user');
 }
 
-function vol_row($r, $dir, $profile_page) {
-    $photo = ($r['photo'] != '' && is_file($dir . basename($r['photo'])))
-        ? '<img src="' . h($dir . $r['photo']) . '" class="w-9 h-9 rounded-full object-cover shrink-0">'
-        : '<div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">' . h(mb_strtoupper(mb_substr($r['member_name'], 0, 1))) . '</div>';
-    $status = $r['status'] == 'Active'
-        ? '<span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px]">Active</span>'
-        : '<span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-bold text-[10px]">Pending</span>';
-    $approve = $r['status'] != 'Active'
-        ? '<button type="button" data-act="approve" data-id="' . (int)$r['id'] . '" title="Approve" class="p-1.5 text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-circle-check"></i></button>' : '';
+// Table-er ekta row-er HTML
+function vol_row($r, $dir, $profile_page)
+{
+    if ($r['photo'] != '' && is_file($dir . basename($r['photo']))) {
+        $photo = '<img src="' . h($dir . $r['photo']) . '" class="w-9 h-9 rounded-full object-cover shrink-0">';
+    } else {
+        $photo = '<div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">'
+            . h(mb_strtoupper(mb_substr($r['member_name'], 0, 1, 'UTF-8'), 'UTF-8')) . '</div>';
+    }
+
+    if ($r['status'] == 'Active') {
+        $status = '<span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px]">Active</span>';
+    } else {
+        $status = '<span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-bold text-[10px]">Pending</span>';
+    }
+
+    $approve = '';
+    if ($r['status'] != 'Active') {
+        $approve = '<button type="button" data-act="approve" data-id="' . (int) $r['id'] . '" title="Approve" class="p-1.5 text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-circle-check"></i></button>';
+    }
+
+    $style = vol_cat_style($r['user_type']);
+
     return '<tr class="hover:bg-slate-50/80">
       <td class="p-4"><div class="flex items-center gap-3">' . $photo . '<div class="min-w-0">
-        <a href="' . h($profile_page) . '?page=view_member&id=' . (int)$r['id'] . '" class="font-semibold text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['member_name']) . '</a>
+        <a href="' . h($profile_page) . '?page=view_member&id=' . (int) $r['id'] . '" class="font-semibold text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['member_name']) . '</a>
         <span class="block text-[10px] text-slate-400 truncate">' . h($r['email']) . '</span></div></div></td>
-      <td class="p-4"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] ' . vol_cat_style($r['user_type'])['badge'] . '">' . h($r['user_type']) . '</span></td>
+      <td class="p-4"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] ' . $style['badge'] . '">' . h($r['user_type']) . '</span></td>
       <td class="p-4">+88' . h($r['mobile_no']) . '</td>
       <td class="p-4">' . $status . '</td>
       <td class="p-4 text-right"><div class="flex items-center justify-end gap-1">' . $approve . '
-        <button type="button" data-act="edit" data-id="' . (int)$r['id'] . '" title="Edit" class="p-1.5 text-slate-400 hover:text-sky-600"><i class="fa-solid fa-pen-to-square"></i></button>
-        <button type="button" data-act="delete" data-id="' . (int)$r['id'] . '" data-name="' . h($r['member_name']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+        <button type="button" data-act="edit" data-id="' . (int) $r['id'] . '" title="Edit" class="p-1.5 text-slate-400 hover:text-sky-600"><i class="fa-solid fa-pen-to-square"></i></button>
+        <button type="button" data-act="delete" data-id="' . (int) $r['id'] . '" data-name="' . h($r['member_name']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
       </div></td></tr>';
 }
 
-function vol_pager($page, $pages) {
-    if ($pages <= 1) { return ''; }
+// Pagination button-er HTML
+function vol_pager($page, $pages)
+{
+    if ($pages <= 1) {
+        return '';
+    }
+
     $btn = function ($p, $label, $active = false, $dis = false) {
-        $c = $active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
-        if ($dis) { $c = 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'; }
-        return '<button type="button" ' . ($dis ? 'disabled' : 'data-page="' . $p . '"') . ' class="min-w-8 h-8 px-2 rounded-lg border text-xs font-semibold ' . $c . '">' . $label . '</button>';
+        $c = $active
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+        if ($dis) {
+            $c = 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed';
+        }
+        return '<button type="button" ' . ($dis ? 'disabled' : 'data-page="' . $p . '"')
+            . ' class="min-w-8 h-8 px-2 rounded-lg border text-xs font-semibold ' . $c . '">' . $label . '</button>';
     };
+
     $out = $btn(max(1, $page - 1), '&lsaquo;', false, $page == 1);
-    $set = [1, $pages];
-    for ($i = $page - 2; $i <= $page + 2; $i++) { if ($i > 0 && $i <= $pages) { $set[] = $i; } }
-    $set = array_unique($set); sort($set);
+
+    $set = array(1, $pages);
+    for ($i = $page - 2; $i <= $page + 2; $i++) {
+        if ($i > 0 && $i <= $pages) {
+            $set[] = $i;
+        }
+    }
+    $set = array_unique($set);
+    sort($set);
+
     $prev = 0;
     foreach ($set as $p) {
-        if ($p - $prev > 1) { $out .= '<span class="px-1 text-slate-400">…</span>'; }
+        if ($p - $prev > 1) {
+            $out .= '<span class="px-1 text-slate-400">…</span>';
+        }
         $out .= $btn($p, $p, $p == $page);
         $prev = $p;
     }
+
     return $out . $btn(min($pages, $page + 1), '&rsaquo;', false, $page == $pages);
 }
 
 /* ==========================================================
    AJAX HANDLER
    ========================================================== */
-$act = $_GET['act'] ?? '';
+$act = isset($_GET['act']) ? $_GET['act'] : '';
+
 if ($act !== '') {
 
     // POST action gulor jonno CSRF check
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $tok = $_SERVER['HTTP_X_CSRF'] ?? '';
-        if (!hash_equals($_SESSION['csrf'], $tok)) { vol_json(['ok' => false, 'msg' => 'Invalid session. Page reload korun.']); }
+        $tok = isset($_SERVER['HTTP_X_CSRF']) ? $_SERVER['HTTP_X_CSRF'] : '';
+        if (!hash_equals($_SESSION['csrf'], $tok)) {
+            vol_json(array('ok' => false, 'msg' => 'Invalid session. Page reload korun.'));
+        }
     }
 
-    /* ----- LIST (search + filter + pagination, session a save) ----- */
+    /* ----- LIST (search + filter + pagination, session-e save) ----- */
     if ($act === 'list') {
-        $q      = trim($_GET['vs'] ?? '');
-        $type   = trim($_GET['vt'] ?? '');
-        $status = trim($_GET['vst'] ?? '');
-        $per    = (int)($_GET['per'] ?? 10);
-        if (!in_array($per, [10, 20, 50, 100])) { $per = 10; }
-        $page   = max(1, (int)($_GET['pg'] ?? 1));
+        $q      = trim(isset($_GET['vs']) ? $_GET['vs'] : '');
+        $type   = trim(isset($_GET['vt']) ? $_GET['vt'] : '');
+        $status = trim(isset($_GET['vst']) ? $_GET['vst'] : '');
+        $per    = isset($_GET['per']) ? (int) $_GET['per'] : 10;
+        if (!in_array($per, array(10, 20, 50, 100))) {
+            $per = 10;
+        }
+        $page = max(1, isset($_GET['pg']) ? (int) $_GET['pg'] : 1);
 
-        $where = vol_where($q, $type, $status, $types, $params);
+        $types  = '';
+        $params = array();
+        $where  = vol_where($q, $type, $status, $types, $params);
 
-        $st = mysqli_prepare($db, "SELECT COUNT(*) FROM users $where");
-        if ($types) { mysqli_stmt_bind_param($st, $types, ...$params); }
-        mysqli_stmt_execute($st); mysqli_stmt_bind_result($st, $total); mysqli_stmt_fetch($st); mysqli_stmt_close($st);
+        // Total koyta row
+        $cRow  = db_select_one($db, "SELECT COUNT(*) AS c FROM users $where", $types, $params);
+        $total = $cRow ? (int) $cRow['c'] : 0;
 
-        $pages = max(1, (int)ceil($total / $per));
-        if ($page > $pages) { $page = $pages; }
+        $pages = max(1, (int) ceil($total / $per));
+        if ($page > $pages) {
+            $page = $pages;
+        }
         $offset = ($page - 1) * $per;
 
-        // session a filter rakha (clear na kora porjonto thakbe)
-        $_SESSION['vol_filter'] = ['q' => $q, 'type' => $type, 'status' => $status, 'per' => $per, 'page' => $page];
+        // session-e filter rakha (clear na kora porjonto thakbe)
+        $_SESSION['vol_filter'] = array('q' => $q, 'type' => $type, 'status' => $status, 'per' => $per, 'page' => $page);
 
-        $st = mysqli_prepare($db, "SELECT id, photo, member_name, email, mobile_no, user_type, status FROM users $where ORDER BY id DESC LIMIT ? OFFSET ?");
-        mysqli_stmt_bind_param($st, $types . 'ii', ...array_merge($params, [$per, $offset]));
-        mysqli_stmt_execute($st);
-        $res = mysqli_stmt_get_result($st);
+        // Row-gulo ana
+        $listParams   = $params;
+        $listParams[] = $per;
+        $listParams[] = $offset;
+        $rows = db_select(
+            $db,
+            "SELECT id, photo, member_name, email, mobile_no, user_type, status
+             FROM users $where ORDER BY id DESC LIMIT ? OFFSET ?",
+            $types . 'ii',
+            $listParams
+        );
+
         $html = '';
-        while ($r = mysqli_fetch_assoc($res)) { $html .= vol_row($r, $upload_dir, $profile_page); }
-        if ($html === '') { $html = '<tr><td colspan="5" class="p-6 text-center text-slate-400">কোনো ডাটা পাওয়া যায়নি।</td></tr>'; }
+        foreach ($rows as $r) {
+            $html .= vol_row($r, $upload_dir, $profile_page);
+        }
+        if ($html === '') {
+            $html = '<tr><td colspan="5" class="p-6 text-center text-slate-400">কোনো ডাটা পাওয়া যায়নি।</td></tr>';
+        }
 
-        vol_json([
-            'ok' => true, 'rows' => $html, 'pager' => vol_pager($page, $pages), 'page' => $page,
-            'total' => (int)$total, 'from' => $total ? $offset + 1 : 0, 'to' => min($offset + $per, $total),
-            'stats' => vol_stats($db, $q, $type, $status, $user_types),
+        vol_json(array(
+            'ok'       => true,
+            'rows'     => $html,
+            'pager'    => vol_pager($page, $pages),
+            'page'     => $page,
+            'total'    => $total,
+            'from'     => $total ? $offset + 1 : 0,
+            'to'       => min($offset + $per, $total),
+            'stats'    => vol_stats($db, $q, $type, $status, $user_types),
             'filtered' => ($q !== '' || $type !== '' || $status !== ''),
-        ]);
+        ));
     }
 
     /* ----- CLEAR FILTER ----- */
     if ($act === 'clear') {
         unset($_SESSION['vol_filter']);
-        vol_json(['ok' => true]);
+        vol_json(array('ok' => true));
     }
 
     /* ----- GET one (edit modal) ----- */
     if ($act === 'get') {
-        $id = (int)($_GET['id'] ?? 0);
-        $st = mysqli_prepare($db, "SELECT * FROM users WHERE id = ? LIMIT 1");
-        mysqli_stmt_bind_param($st, 'i', $id);
-        mysqli_stmt_execute($st);
-        $row = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
-        if (!$row) { vol_json(['ok' => false, 'msg' => 'User পাওয়া যায়নি।']); }
+        $id  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $row = db_select_one($db, 'SELECT * FROM users WHERE id = ? LIMIT 1', 'i', array($id));
+        if (!$row) {
+            vol_json(array('ok' => false, 'msg' => 'User পাওয়া যায়নি।'));
+        }
         unset($row['password']);
-        $row['photo_url'] = ($row['photo'] != '' && is_file($upload_dir . basename($row['photo']))) ? $upload_dir . $row['photo'] : '';
-        vol_json(['ok' => true, 'data' => $row]);
+        $row['photo_url'] = ($row['photo'] != '' && is_file($upload_dir . basename($row['photo'])))
+            ? $upload_dir . $row['photo'] : '';
+        vol_json(array('ok' => true, 'data' => $row));
     }
 
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { vol_json(['ok' => false, 'msg' => 'Invalid request.']); }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        vol_json(array('ok' => false, 'msg' => 'Invalid request.'));
+    }
 
     /* ----- APPROVE ----- */
     if ($act === 'approve') {
-        $id = (int)($_POST['id'] ?? 0);
-        $st = mysqli_prepare($db, "UPDATE users SET status = 'Active' WHERE id = ?");
-        mysqli_stmt_bind_param($st, 'i', $id);
-        mysqli_stmt_execute($st);
-        vol_json(['ok' => true, 'msg' => 'Approve করা হয়েছে।']);
+        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        db_execute($db, "UPDATE users SET status = 'Active' WHERE id = ?", 'i', array($id));
+        vol_json(array('ok' => true, 'msg' => 'Approve করা হয়েছে।'));
     }
 
     /* ----- DELETE (photo soho) ----- */
     if ($act === 'delete') {
-        $id = (int)($_POST['id'] ?? 0);
-        $st = mysqli_prepare($db, "SELECT photo FROM users WHERE id = ? LIMIT 1");
-        mysqli_stmt_bind_param($st, 'i', $id);
-        mysqli_stmt_execute($st);
-        $old = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
-        if (!$old) { vol_json(['ok' => false, 'msg' => 'User পাওয়া যায়নি।']); }
-        $st = mysqli_prepare($db, "DELETE FROM users WHERE id = ?");
-        mysqli_stmt_bind_param($st, 'i', $id);
-        if (mysqli_stmt_execute($st)) {
-            vol_unlink($upload_dir, $old['photo']);
-            vol_json(['ok' => true, 'msg' => 'ডিলিট করা হয়েছে।']);
+        $id  = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        $old = db_select_one($db, 'SELECT photo FROM users WHERE id = ? LIMIT 1', 'i', array($id));
+        if (!$old) {
+            vol_json(array('ok' => false, 'msg' => 'User পাওয়া যায়নি।'));
         }
-        vol_json(['ok' => false, 'msg' => 'ডিলিট করা যায়নি।']);
+        if (db_execute($db, 'DELETE FROM users WHERE id = ?', 'i', array($id))) {
+            vol_unlink($upload_dir, $old['photo']);
+            vol_json(array('ok' => true, 'msg' => 'ডিলিট করা হয়েছে।'));
+        }
+        vol_json(array('ok' => false, 'msg' => 'ডিলিট করা যায়নি।'));
     }
 
     /* ----- SAVE (add + edit) ----- */
     if ($act === 'save') {
-        $id = (int)($_POST['id'] ?? 0);
-        $keys = ['member_name', 'mother_name', 'father_husband_name', 'dob', 'gender', 'id_type', 'id_number',
-                 'qualification', 'mobile_no', 'email', 'present_address', 'permanent_address', 'other_info', 'user_type'];
-        $f = [];
-        foreach ($keys as $k) { $f[$k] = trim($_POST[$k] ?? ''); }
+        $id   = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        $keys = array('member_name', 'mother_name', 'father_husband_name', 'dob', 'gender', 'id_type', 'id_number',
+                      'qualification', 'mobile_no', 'email', 'present_address', 'permanent_address', 'other_info', 'user_type');
 
-        foreach (['member_name', 'mother_name', 'father_husband_name', 'dob', 'gender', 'id_type', 'id_number', 'mobile_no', 'present_address', 'permanent_address', 'user_type'] as $k) {
-            if ($f[$k] === '') { vol_json(['ok' => false, 'msg' => 'সব প্রয়োজনীয় (*) তথ্য পূরণ করুন।']); }
+        $f = array();
+        foreach ($keys as $k) {
+            $f[$k] = trim(isset($_POST[$k]) ? $_POST[$k] : '');
         }
-        if (!preg_match('/^[0-9]{11}$/', $f['mobile_no'])) { vol_json(['ok' => false, 'msg' => 'মোবাইল নম্বর ১১ ডিজিটের হতে হবে।']); }
-        if ($f['email'] !== '' && !filter_var($f['email'], FILTER_VALIDATE_EMAIL)) { vol_json(['ok' => false, 'msg' => 'সঠিক ইমেইল দিন।']); }
 
-        if (!in_array($f['user_type'], $user_types)) { vol_json(['ok' => false, 'msg' => 'সঠিক Category নির্বাচন করুন।']); }
+        $required = array('member_name', 'mother_name', 'father_husband_name', 'dob', 'gender', 'id_type',
+                          'id_number', 'mobile_no', 'present_address', 'permanent_address', 'user_type');
+        foreach ($required as $k) {
+            if ($f[$k] === '') {
+                vol_json(array('ok' => false, 'msg' => 'সব প্রয়োজনীয় (*) তথ্য পূরণ করুন।'));
+            }
+        }
+        if (!preg_match('/^[0-9]{11}$/', $f['mobile_no'])) {
+            vol_json(array('ok' => false, 'msg' => 'মোবাইল নম্বর ১১ ডিজিটের হতে হবে।'));
+        }
+        if ($f['email'] !== '' && !filter_var($f['email'], FILTER_VALIDATE_EMAIL)) {
+            vol_json(array('ok' => false, 'msg' => 'সঠিক ইমেইল দিন।'));
+        }
+        if (!in_array($f['user_type'], $user_types)) {
+            vol_json(array('ok' => false, 'msg' => 'সঠিক Category নির্বাচন করুন।'));
+        }
 
-        // duplicate mobile
-        $st = mysqli_prepare($db, "SELECT id FROM users WHERE mobile_no = ? AND id <> ? LIMIT 1");
-        mysqli_stmt_bind_param($st, 'si', $f['mobile_no'], $id);
-        mysqli_stmt_execute($st); mysqli_stmt_store_result($st);
-        if (mysqli_stmt_num_rows($st) > 0) { vol_json(['ok' => false, 'msg' => 'এই মোবাইল নম্বর আগেই ব্যবহার করা হয়েছে।']); }
-        mysqli_stmt_close($st);
+        // duplicate mobile check
+        $dup = db_select_one($db, 'SELECT id FROM users WHERE mobile_no = ? AND id <> ? LIMIT 1', 'si', array($f['mobile_no'], $id));
+        if ($dup) {
+            vol_json(array('ok' => false, 'msg' => 'এই মোবাইল নম্বর আগেই ব্যবহার করা হয়েছে।'));
+        }
 
+        // photo upload
         $err = '';
-        $new = vol_upload($_FILES['photo'] ?? null, $upload_dir, $err);
-        if ($new === false) { vol_json(['ok' => false, 'msg' => $err]); }
+        $new = vol_upload(isset($_FILES['photo']) ? $_FILES['photo'] : null, $upload_dir, $err);
+        if ($new === false) {
+            vol_json(array('ok' => false, 'msg' => $err));
+        }
 
+        // ---- EDIT ----
         if ($id > 0) {
-            $st = mysqli_prepare($db, "SELECT photo FROM users WHERE id = ? LIMIT 1");
-            mysqli_stmt_bind_param($st, 'i', $id);
-            mysqli_stmt_execute($st);
-            $old = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
-            if (!$old) { vol_unlink($upload_dir, $new); vol_json(['ok' => false, 'msg' => 'User পাওয়া যায়নি।']); }
+            $old = db_select_one($db, 'SELECT photo FROM users WHERE id = ? LIMIT 1', 'i', array($id));
+            if (!$old) {
+                vol_unlink($upload_dir, $new);
+                vol_json(array('ok' => false, 'msg' => 'User পাওয়া যায়নি।'));
+            }
 
             $photo = ($new !== '') ? $new : $old['photo'];
-            $st = mysqli_prepare($db, "UPDATE users SET photo=?, member_name=?, mother_name=?, father_husband_name=?, dob=?, gender=?, id_type=?, id_number=?,
-                qualification=?, mobile_no=?, email=?, present_address=?, permanent_address=?, other_info=?, user_type=? WHERE id=?");
-            $vals = array_merge([$photo], array_values($f), [$id]);
-            mysqli_stmt_bind_param($st, str_repeat('s', 15) . 'i', ...$vals);
-            if (mysqli_stmt_execute($st)) {
-                if ($new !== '') { vol_unlink($upload_dir, $old['photo']); }   // old image delete
-                vol_json(['ok' => true, 'msg' => 'আপডেট করা হয়েছে।']);
+            $vals  = array_merge(array($photo), array_values($f), array($id));
+
+            $ok = db_execute(
+                $db,
+                "UPDATE users SET photo=?, member_name=?, mother_name=?, father_husband_name=?, dob=?, gender=?, id_type=?, id_number=?,
+                    qualification=?, mobile_no=?, email=?, present_address=?, permanent_address=?, other_info=?, user_type=? WHERE id=?",
+                str_repeat('s', 15) . 'i',
+                $vals
+            );
+
+            if ($ok) {
+                if ($new !== '') {
+                    vol_unlink($upload_dir, $old['photo']);   // purono chhobi delete
+                }
+                vol_json(array('ok' => true, 'msg' => 'আপডেট করা হয়েছে।'));
             }
             vol_unlink($upload_dir, $new);
-            vol_json(['ok' => false, 'msg' => 'আপডেট করা যায়নি।']);
+            vol_json(array('ok' => false, 'msg' => 'আপডেট করা যায়নি।'));
         }
 
-        // INSERT
-        $st = mysqli_prepare($db, "INSERT INTO users (photo, member_name, mother_name, father_husband_name, dob, gender, id_type, id_number,
-            qualification, mobile_no, email, present_address, permanent_address, other_info, user_type, status, password)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        $vals = array_merge([$new], array_values($f), ['Active', md5('12345')]);
-        mysqli_stmt_bind_param($st, str_repeat('s', 17), ...$vals);
-        if (mysqli_stmt_execute($st)) { vol_json(['ok' => true, 'msg' => 'নতুন এন্ট্রি সেভ হয়েছে।']); }
+        // ---- INSERT ----
+        $vals = array_merge(array($new), array_values($f), array('Active', md5('12345')));
+
+        $ok = db_execute(
+            $db,
+            "INSERT INTO users (photo, member_name, mother_name, father_husband_name, dob, gender, id_type, id_number,
+                qualification, mobile_no, email, present_address, permanent_address, other_info, user_type, status, password)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            str_repeat('s', 17),
+            $vals
+        );
+
+        if ($ok) {
+            vol_json(array('ok' => true, 'msg' => 'নতুন এন্ট্রি সেভ হয়েছে।'));
+        }
         vol_unlink($upload_dir, $new);
-        vol_json(['ok' => false, 'msg' => 'ডাটাবেসে সেভ করতে সমস্যা হয়েছে।']);
+        vol_json(array('ok' => false, 'msg' => 'ডাটাবেসে সেভ করতে সমস্যা হয়েছে।'));
     }
 
-    vol_json(['ok' => false, 'msg' => 'Unknown action.']);
+    vol_json(array('ok' => false, 'msg' => 'Unknown action.'));
 }
 
 /* ---------- Page load: session theke filter ---------- */
-$saved = $_SESSION['vol_filter'] ?? ['q' => '', 'type' => '', 'status' => '', 'per' => 10, 'page' => 1];
-if (!in_array($saved['type'], $user_types)) { $saved['type'] = ''; }
-if (!in_array($saved['status'], ['', 'Active', 'Pending'])) { $saved['status'] = ''; }
+$saved = isset($_SESSION['vol_filter'])
+    ? $_SESSION['vol_filter']
+    : array('q' => '', 'type' => '', 'status' => '', 'per' => 10, 'page' => 1);
+
+if (!in_array($saved['type'], $user_types)) {
+    $saved['type'] = '';
+}
+if (!in_array($saved['status'], array('', 'Active', 'Pending'))) {
+    $saved['status'] = '';
+}
+
 $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500';
 $lbl = 'block text-xs font-bold uppercase text-slate-500 mb-1';
 ?>
 
 <section class="page-content space-y-6">
-
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Members & Volunteers</h2>
