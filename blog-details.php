@@ -76,16 +76,22 @@ include 'include/header.php';
                     </div>
 
                     <!-- Short Description / Highlight -->
-                    <?php if (!empty($blog['short_description'])): ?>
-                        <div class="p-4 bg-emerald-50/60 border-l-4 border-emerald-600 text-slate-700 font-medium text-sm md:text-base rounded-r-xl mb-6 leading-relaxed">
-                            <?= htmlspecialchars($blog['short_description']) ?>
+                    <?php
+                        $desc = $blog['short_description'];
+
+                        // literal "\r\n" text ke asol newline e convert kora
+                        $desc = str_replace(['\r\n', '\n', '\r'], "\n", $desc);
+
+                        // ekdom beshi faka line komiye dewa (3+ newline -> 2)
+                        $desc = preg_replace("/\n{3,}/", "\n\n", trim($desc));
+                        ?>
+                        
+                        <div class="p-4 bg-emerald-50/60 border-l-4 border-emerald-600 text-slate-700 font-medium text-sm md:text-base rounded-r-xl mb-6 leading-relaxed whitespace-pre-line">
+                            <?= htmlspecialchars($desc) ?>
                         </div>
-                    <?php endif; ?>
 
                     <!-- Detailed Content -->
-                    <div class="prose prose-emerald max-w-none text-slate-700 text-sm md:text-base leading-relaxed space-y-4">
-                        <?= nl2br($blog['long_description'] ?? $blog['description'] ?? ''); ?>
-                    </div>
+                    
                 </div>
 
                 <!-- Footer/Share Options -->
