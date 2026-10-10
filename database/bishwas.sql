@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Oct 07, 2026 at 12:21 PM
+-- Generation Time: Oct 10, 2026 at 08:35 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -69,9 +69,9 @@ CREATE TABLE `activities` (
 --
 
 INSERT INTO `activities` (`id`, `title`, `badge_text`, `image`, `status`, `description`, `created_at`) VALUES
-(2, 'New Project', 'নিয়মিত কার্যক্রম', 'public/project_img/1788005496_6a92cc7814f62.png', 'active', 'Reguler Project', '2026-08-29 12:11:36'),
-(3, 'fsdfsffsdfs', 'নিয়মিত কার্যক্রম', 'public/project_img/1788071744_6a93cf4059143.png', 'active', 'fsdfsdfsffsdffffffffffffffffff', '2026-08-30 06:35:44'),
-(5, 'নিয়মিত কার্যক্রম', 'নিয়মিত কার্যক্রম', 'public/project_img/1788335182_6a97d44eba423.png', 'active', 'নিয়মিত কার্যক্রম', '2026-09-02 07:46:22');
+(2, 'আল-কুরআন শিক্ষা কেন্দ্র ও গবেষণাগার', 'নিয়মিত কার্যক্রম', 'public/project_img/1791580270_6ac9586e7168b.jpeg', 'active', 'আমাদের ফাউন্ডেশনের এই চলমান প্রকল্পে শিশু-কিশোরদের কুরআন শিক্ষা, হিফজ এবং নৈতিক শিক্ষার মাধ্যমে আদর্শবান মানুষ হিসেবে গড়ে তোলার জন্য', '2026-08-29 12:11:36'),
+(3, 'সুবিধাবঞ্চিত শিশুদের শিক্ষা', 'নিয়মিত কার্যক্রম', 'public/project_img/1791580257_6ac95861f356a.jpeg', 'active', 'অসহায় ও সুবিধাবঞ্চিত মানুষের পাশে থেকে তাদের খাদ্য ও বস্ত্রের মৌলিক চাহিদা পূরণে নিরলসভাবে কাজ করাই আমাদের অঙ্গীকার। মানবিক সহায়তার মাধ্যমে প্রতিটি', '2026-08-30 06:35:44'),
+(5, 'বৃক্ষরোপণ', 'নিয়মিত কার্যক্রম', 'public/project_img/1791578064_6ac94fd0bed42.avif', 'active', 'অসহায় ও সুবিধাবঞ্চিত মানুষের পাশে থেকে তাদের খাদ্য ও বস্ত্রের মৌলিক চাহিদা পূরণে নিরলসভাবে কাজ করাই আমাদের অঙ্গীকার। মানবিক সহায়তার মাধ্যমে প্রতিটি', '2026-09-02 07:46:22');
 
 -- --------------------------------------------------------
 
@@ -96,7 +96,9 @@ CREATE TABLE `blogs` (
 --
 
 INSERT INTO `blogs` (`id`, `blog_title`, `category`, `publish_date`, `blog_image`, `short_description`, `full_content`, `status`, `created_at`) VALUES
-(3, 'আমাদের ব্লগসমূহ ও ডায়েরি', 'ব্লগ', '৩ সেপ্টেম্বর, ২০২৬', 'public/blogs_img/1788435909_6a995dc5d8b64.jpg', 'আমাদের মাঠপর্যায়ের কাজের আপডেট, ডকুমেন্টারি এবং সচেতনতামূলক বিভিন্ন ভিডিও ও নিবন্ধগুলো নিচে দেখে নিন।', '', 'active', '2026-09-03 10:59:06');
+(3, 'শীতের উষ্ণতা পৌঁছে যাক সবার জীবনে', 'ব্লগ', '৩ সেপ্টেম্বর, ২০২৬', 'public/blogs_img/1791611201_6ac9d141eb581.jpg', 'শীতের তীব্রতায় যখন জনজীবন বিপর্যস্ত হয়ে পড়ে, তখন সমাজের দুঃস্থ, অসহায় ও সুবিধাবঞ্চিত মানুষের কষ্ট বহুগুণ বেড়ে যায়। পর্যাপ্ত শীতবস্ত্রের অভাবে শিশু, প্রবীণ, ছিন্নমূল মানুষ ও অসহায় পরিবারগুলোকে প্রতিনিয়ত সংগ্রাম করতে হয়। তাদের এই দুর্ভোগ লাঘব করতে মানবতা, ভালোবাসা ও সহমর্মিতার বার্তা নিয়ে শীতার্ত মানুষের পাশে দাঁড়ানোর প্রত্যয় নিয়ে কাজ করে Bishwas Education Foundation।\\r\\n\\r\\nআমরা বিশ্বাস করি, মানুষের প্রতি মানুষের ভালোবাসা, সহযোগিতা ও সহমর্মিতাই পারে একটি সুন্দর, মানবিক ও বৈষম্যহীন সমাজ গড়ে তুলতে। সেই বিশ্বাস থেকেই দুঃস্থ, অসহায় ও সুবিধাবঞ্চিত মানুষের মাঝে শীতবস্ত্র ও প্রয়োজনীয় সহায়তা পৌঁছে দেওয়ার মাধ্যমে মানবতার সেবা করাই আমাদের অন্যতম অনুপ্রেরণা।\\r\\n\\r\\nশীতার্ত মানুষের মুখে হাসি ফোটানোই আমাদের প্রত্যয়\\r\\nশীতকাল অনেকের কাছে আনন্দের ঋতু হলেও অসংখ্য অসহায় মানুষের কাছে এটি বেঁচে থাকার কঠিন সংগ্রাম। একটি গরম পোশাক কিংবা একটি কম্বলের অভাবে অনেক মানুষকে প্রচণ্ড শীতের রাত কাটাতে হয় চরম কষ্টে। বিশেষ করে সুবিধাবঞ্চিত শিশু, অসহায় প্রবীণ এবং নিম্ন আয়ের পরিবারগুলোর জন্য শীতকালীন সহায়তা অত্যন্ত গুরুত্বপূর্ণ।\\r\\n\\r\\nBishwas Education Foundation বিশ্বাস করে, সমাজের প্রতিটি মানুষের জীবনই মূল্যবান এবং সবারই সম্মান ও মর্যাদার সঙ্গে বেঁচে থাকার অধিকার রয়েছে। তাই মানুষের কষ্ট লাঘব করতে এবং তাদের জীবনে স্বস্তি ও আশার আলো পৌঁছে দিতে মানবিক উদ্যোগ গ্রহণের গুরুত্ব অপরিসীম।\\r\\n\\r\\nআমাদের কাছে একটি কম্বল হয়তো সামান্য উপহার, কিন্তু একজন শীতার্ত মানুষের কাছে তা হতে পারে নিরাপদ ও উষ্ণ রাতের আশ্রয়।\\r\\n\\r\\nমানবসেবা ও সামাজিক দায়বদ্ধতায় Bishwas Education Foundation\\r\\nমানবতার সেবা কেবল একটি উদ্যোগ নয়, এটি মানুষের প্রতি দায়িত্ববোধ ও ভালোবাসার বহিঃপ্রকাশ। Bishwas Education Foundation এমন একটি সমাজ গঠনের স্বপ্ন ধারণ করে, যেখানে মানুষ মানুষের পাশে দাঁড়াবে এবং কেউ অসহায়ত্বের কারণে অবহেলিত থাকবে না।\\r\\n\\r\\nদুঃস্থ ও সুবিধাবঞ্চিত মানুষের পাশে দাঁড়ানো, তাদের প্রয়োজন উপলব্ধি করা এবং সামর্থ্য অনুযায়ী সহযোগিতার হাত বাড়িয়ে দেওয়ার মধ্য দিয়েই মানবিক মূল্যবোধের প্রকৃত প্রতিফলন ঘটে।\\r\\n\\r\\nআমরা বিশ্বাস করি, সমাজের বিত্তবান ব্যক্তি, শুভাকাঙ্ক্ষী, স্বেচ্ছাসেবক এবং সচেতন নাগরিকদের সম্মিলিত প্রচেষ্টা অসহায় মানুষের জীবনে ইতিবাচক পরিবর্তন আনতে পারে। সবার আন্তরিক অংশগ্রহণে মানবিক সহায়তার পরিধি আরও বিস্তৃত হোক—এটাই আমাদের প্রত্যাশা।\\r\\n\\r\\nআপনার সহযোগিতায় পৌঁছে যাক ভালোবাসা ও উষ্ণতা\\r\\nমানবিক উদ্যোগকে আরও অর্থবহ করে তুলতে প্রয়োজন সম্মিলিত প্রচেষ্টা। আপনার সামর্থ্য অনুযায়ী আর্থিক অনুদান, নতুন শীতবস্ত্র কিংবা ব্যবহারযোগ্য গরম পোশাকের মাধ্যমে শীতার্ত মানুষের পাশে দাঁড়াতে পারেন আপনিও।\\r\\n\\r\\nআপনার সামান্য সহযোগিতা কোনো অসহায় শিশুর মুখে হাসি ফোটাতে পারে, কোনো প্রবীণ মানুষের কষ্ট কিছুটা লাঘব করতে পারে কিংবা একটি অসহায় পরিবারের মনে নতুন আশার সঞ্চার করতে পারে।\\r\\n\\r\\nBishwas Education Foundation সকল মানবিক হৃদয়ের মানুষ, শুভাকাঙ্ক্ষী, দাতা ও স্বেচ্ছাসেবীদের মানুষের কল্যাণে এগিয়ে আসার আহ্বান জানায়। আসুন, আমরা প্রত্যেকে নিজেদের অবস্থান থেকে মানবতার সেবায় অবদান রাখি এবং শীতার্ত মানুষের জীবনে পৌঁছে দিই ভালোবাসার উষ্ণতা।\\r\\n\\r\\nআমাদের অঙ্গীকার: শিক্ষা, মানবতা ও মানুষের কল্যাণ\\r\\nএকটি উন্নত সমাজ গড়ে তুলতে শিক্ষা ও মানবসেবার ভূমিকা অত্যন্ত গুরুত্বপূর্ণ। শিক্ষার মাধ্যমে মানুষ আলোকিত হয়, আর মানবিক মূল্যবোধের মাধ্যমে সেই আলো ছড়িয়ে পড়ে সমাজের প্রতিটি স্তরে।\\r\\n\\r\\nBishwas Education Foundation মানুষের কল্যাণ, মানবিক মূল্যবোধ এবং সামাজিক দায়বদ্ধতার চেতনাকে ধারণ করে একটি সুন্দর ও সম্ভাবনাময় সমাজ গঠনের প্রত্যাশা রাখে।\\r\\n\\r\\nআমরা বিশ্বাস করি, মানুষের পাশে দাঁড়ানোর জন্য সব সময় বড় কোনো সামর্থ্যের প্রয়োজন হয় না; প্রয়োজন একটি উদার মন, আন্তরিক ইচ্ছা এবং অন্যের কষ্ট অনুভব করার ক্ষমতা।\\r\\n\\r\\nআসুন, শীতার্ত মানুষের পাশে দাঁড়াই, অসহায় মানুষের মুখে হাসি ফোটাই এবং পারস্পরিক ভালোবাসা ও সহমর্মিতার মাধ্যমে গড়ে তুলি একটি মানবিক সমাজ।\\r\\n\\r\\nBishwas Education Foundation — শিক্ষার আলো, মানবতার শক্তি, মানুষের কল্যাণে অঙ্গীকার।\\r\\n\\r\\nআপনার সহযোগিতা হোক কারও শীতের রাতের উষ্ণ আশ্রয়, আপনার ভালোবাসা হোক কারও জীবনে নতুন আশার আলো।', '', 'active', '2026-09-03 10:59:06'),
+(4, 'একটি শিশুর ভবিষ্যৎ গড়ার আনন্দ: এতিমখানা প্রজেক্টের গল্প', 'ব্লগ', '১০ অক্টোবর, ২০২৬', 'public/blogs_img/1791613119_6ac9d8bf79e30.jpg', 'দ্বীনি ও আধুনিক শিক্ষার সমন্বয়ে আলোকিত প্রজন্ম গড়ার প্রত্যয়\\r\\nসমাজের অবহেলিত, সুবিধাবঞ্চিত ও অসহায় শিশুদের জন্য একটি সুন্দর, নিরাপদ ও সম্ভাবনাময় ভবিষ্যৎ গড়ে তোলার অঙ্গীকার নিয়ে কাজ করতে চায় Bishwas Education Foundation। আমাদের লক্ষ্য হলো—প্রতিটি শিশুর কাছে শিক্ষার আলো পৌঁছে দেওয়া এবং তাদের দ্বীনি মূল্যবোধ, নৈতিকতা, মানবিকতা ও আধুনিক জ্ঞান-বিজ্ঞানে সমৃদ্ধ করে আদর্শ মানুষ হিসেবে গড়ে তোলা।\\r\\n\\r\\nআমরা বিশ্বাস করি, প্রতিটি শিশুর মধ্যেই রয়েছে অপার সম্ভাবনা। সঠিক শিক্ষা, পরিচর্যা, ভালোবাসা ও দিকনির্দেশনা পেলে তারাই একদিন পরিবার, সমাজ ও দেশের কল্যাণে গুরুত্বপূর্ণ ভূমিকা রাখতে পারবে। তাই আমাদের দীর্ঘমেয়াদি পরিকল্পনায় রয়েছে মানসম্মত দ্বীনি ও আধুনিক শিক্ষার সুযোগ সৃষ্টি, দরিদ্র ও অসহায় শিশুদের শিক্ষা সহায়তা, নৈতিক চরিত্র গঠন, দক্ষতা উন্নয়ন এবং ভবিষ্যতে আত্মনির্ভরশীল নাগরিক হিসেবে গড়ে তোলার উদ্যোগ।\\r\\n\\r\\nআমাদের স্বপ্ন এমন একটি শিক্ষাবান্ধব সমাজ প্রতিষ্ঠা করা, যেখানে অর্থনৈতিক অসচ্ছলতা কোনো শিশুর শিক্ষার পথে বাধা হয়ে দাঁড়াবে না; যেখানে প্রতিটি শিশু পাবে স্বপ্ন দেখার, শেখার এবং নিজের যোগ্যতায় এগিয়ে যাওয়ার সুযোগ।\\r\\n\\r\\nআমাদের দীর্ঘমেয়াদি পরিকল্পনা\\r\\nদ্বীনি শিক্ষা: পবিত্র কুরআন, সুন্নাহ, ইসলামী আদর্শ, নৈতিকতা ও উত্তম চরিত্র গঠনে গুরুত্ব প্রদান।\\r\\nআধুনিক শিক্ষা: বাংলা, ইংরেজি, গণিত, বিজ্ঞান, তথ্যপ্রযুক্তি ও সমসাময়িক জ্ঞান অর্জনের সুযোগ সৃষ্টি।\\r\\nসুবিধাবঞ্চিত শিশুদের সহায়তা: শিক্ষা উপকরণ, বৃত্তি, পুষ্টি, স্বাস্থ্যসেবা ও প্রয়োজনীয় সহযোগিতা প্রদানের উদ্যোগ।\\r\\nদক্ষতা ও কর্মমুখী প্রশিক্ষণ: শিশু-কিশোরদের প্রতিভা বিকাশ, প্রযুক্তিগত দক্ষতা এবং ভবিষ্যৎ কর্মজীবনের প্রস্তুতি নিশ্চিত করা।\\r\\nটেকসই শিক্ষাব্যবস্থা গড়ে তোলা: ধাপে ধাপে শিক্ষা কার্যক্রম সম্প্রসারণ, মানসম্মত শিক্ষাপ্রতিষ্ঠান গড়ে তোলা এবং স্বচ্ছ ও জবাবদিহিমূলক ব্যবস্থাপনা প্রতিষ্ঠা করা।\\r\\nআপনার দায়িত্ব ও অংশগ্রহণ\\r\\nএই মহৎ উদ্যোগ বাস্তবায়নে আপনার সহযোগিতা, পরামর্শ, সময়, দক্ষতা ও আন্তরিক অংশগ্রহণ অত্যন্ত গুরুত্বপূর্ণ। আপনার সামর্থ্য অনুযায়ী আর্থিক অনুদান, শিক্ষা উপকরণ প্রদান, স্বেচ্ছাসেবামূলক কাজ কিংবা অন্যদের এই উদ্যোগ সম্পর্কে অবহিত করার মাধ্যমে একটি শিশুর জীবনে ইতিবাচক পরিবর্তন আনতে পারেন।', '', 'active', '2026-10-10 06:18:39'),
+(5, 'মানবতার সেবায় খাদ্য ও বিশুদ্ধ পানির সহায়তা', 'ব্লগ', '১০ অক্টোবর, ২০২৬', 'public/blogs_img/1791613179_6ac9d8fb97b49.jpg', 'খাদ্য ও বিশুদ্ধ পানি সহায়তা কর্মসূচি\\r\\n\\r\\nসমাজের অসহায়, দুঃস্থ ও অবহেলিত মানুষের মৌলিক চাহিদা পূরণে খাদ্য ও বিশুদ্ধ পানির সহজলভ্যতা নিশ্চিত করতে কাজ করাই Bishwas Education Foundation-এর অন্যতম মানবিক অঙ্গীকার। আমরা বিশ্বাস করি, ক্ষুধামুক্ত জীবন, নিরাপদ পানীয় জল এবং মানবিক সহায়তা প্রতিটি মানুষের মৌলিক অধিকার।\\r\\n\\r\\nআমাদের লক্ষ্য হলো সুবিধাবঞ্চিত পরিবার, অসহায় মানুষ ও সংকটাপন্ন জনগোষ্ঠীর কাছে প্রয়োজনীয় খাদ্যসামগ্রী ও বিশুদ্ধ পানীয় জল পৌঁছে দিয়ে তাদের দৈনন্দিন কষ্ট লাঘব করা এবং সুস্থ, নিরাপদ ও মর্যাদাপূর্ণ জীবনযাপনে সহায়তা করা।\\r\\n\\r\\nআসুন, মানবতার সেবায় ঐক্যবদ্ধ হই। আপনার সহযোগিতা ও আন্তরিক অংশগ্রহণে একজন ক্ষুধার্ত মানুষের মুখে হাসি ফুটুক, একটি পরিবার ফিরে পাক স্বস্তি, আর বিশুদ্ধ পানির নিশ্চয়তায় নিরাপদ হোক মানুষের জীবন।\\r\\n\\r\\nBishwas Education Foundation — মানবতার সেবায়, মানুষের পাশে।', '', 'active', '2026-10-10 06:19:39');
 
 -- --------------------------------------------------------
 
@@ -174,7 +176,8 @@ INSERT INTO `contact_messages` (`id`, `name`, `email`, `phone`, `subject`, `mess
 (4, 'Gokul', 'gokul@gmail.com', '0173425783', 'other', 'I am related this name of success', '2026-09-06 09:55:53'),
 (5, 'Gokul', 'gokul@gmail.com', '0173425783', 'other', 'I am related this name of success', '2026-09-06 09:58:18'),
 (6, 'referf', 'fef@gmail.com', '3455345', 'donation', 'rr33r3', '2026-09-08 06:30:22'),
-(7, 'fsdfsf', 'fsfsfs@gmail.com', '4324234234', 'other', 'rwerwer', '2026-09-09 05:07:54');
+(7, 'fsdfsf', 'fsfsfs@gmail.com', '4324234234', 'other', 'rwerwer', '2026-09-09 05:07:54'),
+(8, 'Timothy Roberson', 'zumakof@mailinator.com', '+1 (659) 653-7154', 'zakat', 'Eos incidunt ut cum', '2026-10-10 06:21:44');
 
 -- --------------------------------------------------------
 
@@ -239,7 +242,9 @@ INSERT INTO `donations` (`id`, `donor_id`, `type`, `name`, `email`, `phone`, `am
 (11, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 80, 'General', 'General Fund', 'Cash', 'Itaque occaecat nisi', 'Paid', '2026-05-24', 'Fuga Provident ani', '', '2026-10-03 11:20:32', '2026-10-06 06:35:52'),
 (12, 3, 'Member', 'Christen Davenport', 'tafu@mailinator.com', '01689786567', 66, 'General', 'নিয়মিত অনুদান তহবিল', 'SureCash', 'Id nemo unde ullamco', 'Pending', '2026-10-04', 'Aut cupidatat cupida', '', '2026-10-03 11:20:50', '2026-10-04 06:57:02'),
 (13, 2, 'Member', 'Unity Buchanan', 'picyvyzo@mailinator.com', '01786588675', 91, 'Monthly', 'সাধারণ তহবিল', 'Upay', 'ggggggggggggggggg', 'Pending', '2026-01-03', 'Alias modi suscipit', '1791026947_9584.png', '2026-10-03 11:29:07', '2026-10-06 06:34:12'),
-(21, 9, 'Member', 'Reece Cotton', 'xenimiw@mailinator.com', '01784675345', 5000, 'Monthly', 'সাধারণ তহবিল', 'Bank', 'Nam repudiandae vita', 'Pending', '2015-09-24', 'Sint sint quis vel d', '', '2026-10-04 10:17:36', '2026-10-04 10:18:48');
+(21, 9, 'Member', 'Reece Cotton', 'xenimiw@mailinator.com', '01784675345', 5000, 'Monthly', 'সাধারণ তহবিল', 'Bank', 'Nam repudiandae vita', 'Pending', '2015-09-24', 'Sint sint quis vel d', '', '2026-10-04 10:17:36', '2026-10-04 10:18:48'),
+(24, 19, 'Member', 'Ezra Garrison', 'qefa@mailinator.com', '01677865434', 5000, 'General', 'নিয়মিত অনুদান তহবিল', 'Cash', '', 'Rejected', '2026-10-09', '', '', '2026-10-09 19:56:34', '2026-10-09 20:04:52'),
+(25, 15, 'Member', 'Duncan Moody', 'noxek@mailinator.com', '01787678767', 2000, 'General', 'সাধারণ অনুদান', 'Cash', '', 'Pending', '2026-10-09', '', '', '2026-10-09 20:03:05', '2026-10-09 20:03:05');
 
 -- --------------------------------------------------------
 
@@ -266,7 +271,7 @@ INSERT INTO `donation_sectors` (`id`, `title`, `icon_class`, `description`, `but
 (1, 'জরুরি ত্রাণ তহবিল', 'fa-solid fa-kit-medical', 'বন্যা, ঝড় কিংবা যেকোনো প্রাকৃতিক দুর্যোগে ক্ষতিগ্রস্ত অসহায় মানুষের পাশে...', 'অনুদানে শরীক হোন', '/donate-relief', 'active', '2026-08-31 06:36:13'),
 (2, 'যাকাত তহবিল', 'fa-solid fa-coins', 'সম্পূর্ণ শরীয়াহ সম্মত উপায়ে আপনার যাকাত সংগ্রহ করে তা দরিদ্র পরিবারের...', 'যাকাত দিন', '/zakat', 'active', '2026-08-31 06:36:13'),
 (3, 'নিয়মিত অনুদান তহবিল', 'fa-solid fa-calendar-check', 'প্রতি মাসে বা সপ্তাহে নির্দিষ্ট অংকের টাকা স্বয়ংক্রিয়ভাবে দেওয়ার সুবিধা...', 'নিয়মিত দাত হন', '', 'active', '2026-08-31 06:36:13'),
-(4, 'সাধারণ তহবিল', 'fa-solid fa-box-archive', 'ফাউন্ডেশনের প্রশাসনিক খরচ, জনকল্যাণমূলক বহুমুখী প্রজেক্ট পরিচালনায়...', 'সাধারণ অনুদান', '/general-donate', 'active', '2026-08-31 06:36:13');
+(4, 'সাধারণ অনুদান', 'fa-solid fa-box-archive', 'ফাউন্ডেশনের প্রশাসনিক খরচ, জনকল্যাণমূলক বহুমুখী প্রজেক্ট পরিচালনায়...', 'সাধারণ অনুদান', '/general-donate', 'active', '2026-08-31 06:36:13');
 
 -- --------------------------------------------------------
 
@@ -349,7 +354,7 @@ CREATE TABLE `expenses` (
 
 INSERT INTO `expenses` (`id`, `voucher_no`, `title`, `category`, `amount`, `expense_date`, `activity_id`, `recipient_id`, `payment_method`, `transaction_id`, `paid_to`, `description`, `receipt`, `status`, `created_at`, `updated_at`) VALUES
 (2, 'EXP-000002', 'Molestias totam sint', 'Shelter', 38.00, '2026-09-27', 5, NULL, 'Upay', 'Illum sint dolor al', 'Ullam et quo et cons', 'Dolorum autem ut exe', '', 'Pending', '2026-10-05 10:55:17', '2026-10-06 08:46:09'),
-(4, 'EXP-000004', 'Sed ex asperiores an', 'Education', 30.00, '2026-09-30', 3, NULL, 'Cash', 'Repudiandae dicta ac', 'Sed Nam in in numqua', 'Consequuntur dolores', '', 'Complete', '2026-10-06 06:38:34', '2026-10-06 06:38:54');
+(4, 'EXP-000004', 'Sed ex asperiores an', 'Education', 30.00, '2026-09-30', 3, NULL, 'Cash', 'Repudiandae dicta ac', 'Sed Nam in in numqua', 'Consequuntur dolores', '', 'Pending', '2026-10-06 06:38:34', '2026-10-08 05:21:21');
 
 -- --------------------------------------------------------
 
@@ -371,8 +376,22 @@ CREATE TABLE `galleries` (
 --
 
 INSERT INTO `galleries` (`id`, `image`, `caption`, `category`, `status`, `created_at`) VALUES
-(1, 'public/gallery/1788351691_6a9814cb2101c.jpg', 'sdfasfsdfa', 'শিক্ষা তহবিল', 'active', '2026-09-02 12:21:31'),
-(2, 'public/gallery/1788351832_6a981558d903d.JPG', 'sdfasfsdfa', 'জরুরি ত্রাণ তহবিল', 'active', '2026-09-02 12:23:52');
+(3, 'public/gallery/1791610745_6ac9cf79616eb.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:39:05'),
+(4, 'public/gallery/1791610765_6ac9cf8dd3da3.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:39:25'),
+(5, 'public/gallery/1791610777_6ac9cf9957f51.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:39:37'),
+(6, 'public/gallery/1791610787_6ac9cfa30774a.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:39:47'),
+(7, 'public/gallery/1791610795_6ac9cfabc627c.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:39:55'),
+(8, 'public/gallery/1791610822_6ac9cfc6bbbca.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:40:22'),
+(9, 'public/gallery/1791610846_6ac9cfde1f195.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:40:46'),
+(10, 'public/gallery/1791610859_6ac9cfeb4a04d.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:40:59'),
+(11, 'public/gallery/1791610873_6ac9cff9dc5a8.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:41:13'),
+(12, 'public/gallery/1791610885_6ac9d0053fa22.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:41:25'),
+(13, 'public/gallery/1791610892_6ac9d00cb1cb2.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:41:32'),
+(14, 'public/gallery/1791610901_6ac9d015933ca.jpeg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:41:41'),
+(15, 'public/gallery/1791610908_6ac9d01cc91ea.jpeg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:41:48'),
+(16, 'public/gallery/1791610919_6ac9d02720c37.jpeg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:41:59'),
+(17, 'public/gallery/1791610925_6ac9d02d456ff.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:42:05'),
+(18, 'public/gallery/1791610938_6ac9d03a95337.jpg', '', 'সাধারণ তহবিল', 'active', '2026-10-10 05:42:18');
 
 -- --------------------------------------------------------
 
@@ -700,7 +719,7 @@ CREATE TABLE `tasks` (
 --
 
 INSERT INTO `tasks` (`id`, `title`, `description`, `project_id`, `priority`, `status`, `progress`, `start_date`, `due_date`, `created_by`, `completed_at`, `created_at`, `updated_at`) VALUES
-(1, 'most', 'descrpiont', 5, 'Medium', 'In Progress', 30, '2026-10-06', '2026-10-31', 6, NULL, '2026-10-06 11:44:01', '2026-10-06 11:53:34');
+(1, 'most', 'descrpiont', 5, 'Medium', 'In Review', 45, '2026-10-06', '2026-10-31', 6, NULL, '2026-10-06 11:44:01', '2026-10-08 05:34:07');
 
 -- --------------------------------------------------------
 
@@ -745,7 +764,8 @@ CREATE TABLE `task_updates` (
 INSERT INTO `task_updates` (`id`, `task_id`, `user_id`, `status`, `progress`, `note`, `created_at`) VALUES
 (1, 1, 6, 'To Do', 0, 'Task created', '2026-10-06 11:44:01'),
 (3, 1, 15, 'To Do', 30, 'first step done', '2026-10-06 11:52:37'),
-(4, 1, 6, 'In Progress', 30, '', '2026-10-06 11:53:35');
+(4, 1, 6, 'In Progress', 30, '', '2026-10-06 11:53:35'),
+(5, 1, 15, 'In Review', 45, '', '2026-10-08 05:34:07');
 
 -- --------------------------------------------------------
 
@@ -805,14 +825,15 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `photo`, `member_name`, `mother_name`, `father_husband_name`, `dob`, `gender`, `id_type`, `id_number`, `qualification`, `mobile_no`, `email`, `present_address`, `permanent_address`, `other_info`, `user_type`, `status`, `password`, `created_at`) VALUES
 (6, '', 'Admin User', 'Brenna Hewitt', 'Wylie Caldwell', '2018-09-28', 'Female', 'Birth Certificate', '798', 'Aliquam sapiente cor', '01787675644', 'admin@gmail.com', 'Ut perspiciatis con', 'Reprehenderit qui a', 'Sed dolore quae vero', 'Admin', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:44:33'),
-(8, '', 'Kenneth Pierce', 'Amanda Savage', 'Dale Rodriquez', '1979-04-03', 'Female', 'NID', '940', 'Molestiae voluptate', '01787665645', 'fukuc@mailinator.com', 'Cupiditate itaque om', 'Repellendus Sunt re', 'Est et ipsam ea quo', 'Associate Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:08'),
-(9, '', 'Reece Cotton', 'Macaulay Sampson', 'Hector Sellers', '2025-06-22', 'Other', 'Birth Certificate', '195', 'Cumque laudantium a', '01784675345', 'xenimiw@mailinator.com', 'Tempore id atque a', 'Sit culpa ut volupta', 'Facere magna placeat', 'Life Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:27'),
+(8, '', 'Kenneth Pierce', 'Amanda Savage', 'Dale Rodriquez', '1979-04-03', 'Female', 'NID', '940', 'Molestiae voluptate', '01787665645', 'fukuc@mailinator.com', 'Cupiditate itaque om', 'Repellendus Sunt re', 'Est et ipsam ea quo', 'Associate Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:08'),
+(9, '', 'Reece Cotton', 'Macaulay Sampson', 'Hector Sellers', '2025-06-22', 'Other', 'Birth Certificate', '195', 'Cumque laudantium a', '01784675345', 'xenimiw@mailinator.com', 'Tempore id atque a', 'Sit culpa ut volupta', 'Facere magna placeat', 'Life Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:27'),
 (10, '', 'Isaac Guy', 'Sasha Slater', 'Keane Tanner', '1997-12-28', 'Male', 'NID', '169', 'Fugiat molestiae sa', '01784675365', 'qybazome@mailinator.com', 'Animi fugiat mollit', 'Soluta ea asperiores', 'Rerum aliquid aute b', 'Volunteer Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 07:49:43'),
-(13, '', 'Ira Lindsey', 'Nasim Wheeler', 'Henry Zamora', '1989-01-08', 'Male', 'NID', '495', 'Voluptas reprehender', '01785575345', 'wanor@mailinator.com', 'Atque est deserunt v', 'Cum ea in dolores in', 'Explicabo Deleniti', 'General Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 09:56:56'),
-(15, '', 'Duncan Moody', 'Noble Bernard', 'Destiny Whitehead', '2011-11-03', 'Female', 'Passport', '841', 'Voluptas hic totam i', '01787678767', 'noxek@mailinator.com', 'Ea enim et placeat', 'Doloribus dolor mole', 'Voluptates autem eos', 'Volunteer Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 12:00:17'),
-(16, '', 'Stone Mitchell', 'Germaine Dickerson', 'Erasmus Wright', '1994-10-24', 'Other', 'Passport', '865', 'Recusandae Voluptat', '01786787656', 'byhy@mailinator.com', 'Voluptas et voluptas', 'In odio obcaecati ac', 'Officiis suscipit en', 'Life Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 09:53:35'),
-(17, '', 'Rhea Hutchinson', 'Colt Riggs', 'Molly Allen', '1988-10-18', 'Female', 'NID', '327', 'Nam aut ad veritatis', '01789786754', 'zexutesu@mailinator.com', 'Quod sed nostrud quo', 'Aut voluptatibus dol', 'Ullamco minim rerum', 'General Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 09:57:48'),
-(18, '', 'Alisa Hawkins', 'Naomi Webb', 'Hope Bass', '1977-05-13', 'Female', 'Passport', '630', 'Nesciunt quis sunt', '01786787644', 'suvigygexy@mailinator.com', 'Nihil doloremque exp', 'Sapiente sint harum', 'Nihil quia libero ex', 'Life Member', 'Pending', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 10:18:35');
+(13, '', 'Ira Lindsey', 'Nasim Wheeler', 'Henry Zamora', '1989-01-08', 'Male', 'NID', '495', 'Voluptas reprehender', '01785575345', 'wanor@mailinator.com', 'Atque est deserunt v', 'Cum ea in dolores in', 'Explicabo Deleniti', 'General Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 09:56:56'),
+(15, '', 'Duncan Moody', 'Noble Bernard', 'Destiny Whitehead', '2011-11-03', 'Female', 'Passport', '841', 'Voluptas hic totam i', '01787678767', 'noxek@mailinator.com', 'Ea enim et placeat', 'Doloribus dolor ggggggggggggg', 'Voluptates autem eos', 'Volunteer Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-04 12:00:17'),
+(16, '', 'Stone Mitchell', 'Germaine Dickerson', 'Erasmus Wright', '1994-10-24', 'Other', 'Passport', '865', 'Recusandae Voluptat', '01786787656', 'byhy@mailinator.com', 'Voluptas et voluptas', 'In odio obcaecati ac', 'Officiis suscipit en', 'Life Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 09:53:35'),
+(17, '', 'Rhea Hutchinson', 'Colt Riggs', 'Molly Allen', '1988-10-18', 'Female', 'NID', '327', 'Nam aut ad veritatis', '01789786754', 'zexutesu@mailinator.com', 'Quod sed nostrud quo', 'Aut voluptatibus dol', 'Ullamco minim rerum', 'General Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 09:57:48'),
+(18, 'mem_1791459160_5151.png', 'Alisa Hawkins', 'Naomi Webb', 'Hope Bass', '1977-05-13', 'Female', 'Passport', '630', 'Nesciunt quis sunt', '01786787644', 'suvigygexy@mailinator.com', 'Nihil doloremque exp', 'Sapiente sint harum', 'Nihil quia libero ex', 'Life Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-07 10:18:35'),
+(19, '', 'Ezra Garrison', 'Justin Ruiz', 'Xavier Gomez', '1977-02-25', 'Female', 'Passport', '92', 'Cillum vel facere ex', '01677865434', 'qefa@mailinator.com', 'Sunt nulla sint aliq', 'Consequatur quibusda', 'Sunt aut ea vel exce', 'Associate Member', 'Active', '827ccb0eea8a706c4c34a16891f84e7b', '2026-10-08 07:01:55');
 
 -- --------------------------------------------------------
 
@@ -1074,7 +1095,7 @@ ALTER TABLE `activities`
 -- AUTO_INCREMENT for table `blogs`
 --
 ALTER TABLE `blogs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `certificates`
@@ -1086,7 +1107,7 @@ ALTER TABLE `certificates`
 -- AUTO_INCREMENT for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `contact_settings`
@@ -1098,7 +1119,7 @@ ALTER TABLE `contact_settings`
 -- AUTO_INCREMENT for table `donations`
 --
 ALTER TABLE `donations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `donation_sectors`
@@ -1128,7 +1149,7 @@ ALTER TABLE `expenses`
 -- AUTO_INCREMENT for table `galleries`
 --
 ALTER TABLE `galleries`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `hero_settings`
@@ -1200,7 +1221,7 @@ ALTER TABLE `task_assignees`
 -- AUTO_INCREMENT for table `task_updates`
 --
 ALTER TABLE `task_updates`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `terms_conditions`
@@ -1212,7 +1233,7 @@ ALTER TABLE `terms_conditions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `volunteer_cta_settings`
