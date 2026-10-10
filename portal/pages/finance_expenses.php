@@ -1,199 +1,385 @@
 <?php
-// only admin and volunters can visite 
-if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'Volunteer Member'])) {
-    header('Location: index.php?page=dashboard');
-    exit;
+/*
+ * EXPENSES PAGE - PHP 7.2 compatible, beginner friendly version
+ *
+ * Live server-e ja problem hochhilo (ebong fix):
+ * 1. mysqli_stmt_get_result()  -> mysqlnd na thakle kaj kore na (list/stats/view khali ashto).
+ *                                 Ekhon exp_rows() nijei bind_result diye data ane.
+ * 2. session_start()           -> $_SESSION check er AGE session start korte hobe. Ekhon sobar upore.
+ * 3. const EXP_FROM            -> file duibar load hole "already defined" warning dey. Ekhon define() + defined() check.
+ * 4. global $CATS / $statuses  -> include kora file-er bhitor theke global kaj kore na.
+ *                                 Ekhon exp_cats() / exp_statuses() function theke ane.
+ * 5. Query fail hole silent    -> ager code error dhorto na. Ekhon exp_exec() error hole Exception dey,
+ *                                 tai transaction rollback hoy ebong error message dekha jay.
+ * 6. $db                       -> include file-er bhitor 'global $db' lage.
+ * 7. exp_row()                 -> $is_admin ager code-e kokhono true hoto na (list theke pass hoto na).
+ *                                 Ekhon session theke ana hoy, ebong toggle/delete server-e-o Admin chhara block kora hoyeche.
+ *
+ * IMPORTANT: File ta "UTF-8 (without BOM)" encoding-e save korben.
+ */
+
+// ---------- 0. Output buffer & Session (sobar upore) ----------
+if (!headers_sent()) {
+    ob_start();
+}
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
 }
 
-if (session_status() === PHP_SESSION_NONE) { @session_start(); }
+/* ==========================================================
+   CONFIG (category, status, form fields)
+   ========================================================== */
 
-$exp_dir  = 'uploads/expenses/';      // receipt (index.php folder er bhetor)
-$rec_dir  = 'uploads/recipients/';    // recipient photo
-$act_prefix = '';                      // activities.image er path prefix (admin folder theke)
+// category => [badge, icon-box, ring, fontawesome]
+function exp_cats()
+{
+    return array(
+        'Medical' => array('bg-rose-50 text-rose-700', 'bg-rose-50 text-rose-600', 'ring-rose-500', 'fa-briefcase-medical'),
+        'Education' => array('bg-sky-50 text-sky-700', 'bg-sky-50 text-sky-600', 'ring-sky-500', 'fa-graduation-cap'),
+        'Food' => array('bg-amber-50 text-amber-700', 'bg-amber-50 text-amber-600', 'ring-amber-500', 'fa-utensils'),
+        'Clothing' => array('bg-violet-50 text-violet-700', 'bg-violet-50 text-violet-600', 'ring-violet-500', 'fa-shirt'),
+        'Shelter' => array('bg-orange-50 text-orange-700', 'bg-orange-50 text-orange-600', 'ring-orange-500', 'fa-house'),
+        'Transport' => array('bg-teal-50 text-teal-700', 'bg-teal-50 text-teal-600', 'ring-teal-500', 'fa-bus'),
+        'Emergency Relief' => array('bg-red-50 text-red-700', 'bg-red-50 text-red-600', 'ring-red-500', 'fa-triangle-exclamation'),
+        'Event' => array('bg-fuchsia-50 text-fuchsia-700', 'bg-fuchsia-50 text-fuchsia-600', 'ring-fuchsia-500', 'fa-calendar-days'),
+        'Administrative' => array('bg-slate-100 text-slate-700', 'bg-slate-100 text-slate-600', 'ring-slate-500', 'fa-building'),
+        'Other' => array('bg-emerald-50 text-emerald-700', 'bg-emerald-50 text-emerald-600', 'ring-emerald-500', 'fa-ellipsis'),
+    );
+}
 
-$statuses = ['Pending', 'Complete'];
-$methods  = ['Cash', 'bKash', 'Nagad', 'Rocket', 'Upay', 'Bank', 'Cheque', 'Other'];
-$CATS = [   // category => [badge, icon-box, ring, fontawesome]
-    'Medical'          => ['bg-rose-50 text-rose-700',       'bg-rose-50 text-rose-600',       'ring-rose-500',    'fa-briefcase-medical'],
-    'Education'        => ['bg-sky-50 text-sky-700',         'bg-sky-50 text-sky-600',         'ring-sky-500',     'fa-graduation-cap'],
-    'Food'             => ['bg-amber-50 text-amber-700',     'bg-amber-50 text-amber-600',     'ring-amber-500',   'fa-utensils'],
-    'Clothing'         => ['bg-violet-50 text-violet-700',   'bg-violet-50 text-violet-600',   'ring-violet-500',  'fa-shirt'],
-    'Shelter'          => ['bg-orange-50 text-orange-700',   'bg-orange-50 text-orange-600',   'ring-orange-500',  'fa-house'],
-    'Transport'        => ['bg-teal-50 text-teal-700',       'bg-teal-50 text-teal-600',       'ring-teal-500',    'fa-bus'],
-    'Emergency Relief' => ['bg-red-50 text-red-700',         'bg-red-50 text-red-600',         'ring-red-500',     'fa-triangle-exclamation'],
-    'Event'            => ['bg-fuchsia-50 text-fuchsia-700', 'bg-fuchsia-50 text-fuchsia-600', 'ring-fuchsia-500', 'fa-calendar-days'],
-    'Administrative'   => ['bg-slate-100 text-slate-700',    'bg-slate-100 text-slate-600',    'ring-slate-500',   'fa-building'],
-    'Other'            => ['bg-emerald-50 text-emerald-700', 'bg-emerald-50 text-emerald-600', 'ring-emerald-500', 'fa-ellipsis'],
-];
-$per_opts = [10, 20, 50, 100];
+function exp_statuses()
+{
+    return array('Pending', 'Complete');
+}
+
+$exp_dir = 'uploads/expenses/';      // receipt (index.php folder er bhetor)
+$rec_dir = 'uploads/recipients/';    // recipient photo
+$act_prefix = '';                       // activities.image er path prefix (admin folder theke)
+
+$statuses = exp_statuses();
+$methods = array('Cash', 'bKash', 'Nagad', 'Rocket', 'Upay', 'Bank', 'Cheque', 'Other');
+$CATS = exp_cats();
+$per_opts = array(10, 20, 50, 100);
 
 // Recipient (সেবা গ্রহণকারীর আবেদন পত্র) fields: key => [label, type, span]
-$RF = [
-    'member_name'         => ["Member's Name <i>/ সদস্যের নাম</i> *", 'text', 'sm:col-span-2'],
-    'mother_name'         => ["Mother's Name <i>/ মাতার নাম</i>", 'text', ''],
-    'father_husband_name' => ["Father/Husband's Name <i>/ পিতা/স্বামীর নাম</i>", 'text', ''],
-    'dob'                 => ['Date of Birth <i>/ জন্ম তারিখ</i>', 'date', ''],
-    'gender'              => ['Gender <i>/ লিঙ্গ</i>', 'select:Male,Female,Other', ''],
-    'nid_no'              => ['National ID No <i>/ জাতীয় পরিচয়পত্র নম্বর</i>', 'text', ''],
-    'birth_cert_no'       => ['Birth Certificate No <i>/ জন্ম নিবন্ধন নম্বর</i>', 'text', ''],
-    'present_address'     => ['Present Address <i>/ বর্তমান ঠিকানা</i>', 'textarea', 'sm:col-span-2'],
-    'permanent_address'   => ['Permanent Address <i>/ স্থায়ী ঠিকানা</i>', 'textarea', 'sm:col-span-2'],
-    'blood_group'         => ['Blood Group <i>/ রক্তের গ্রুপ</i>', 'select:A+,A-,B+,B-,AB+,AB-,O+,O-', ''],
-    'height'              => ['Height <i>/ উচ্চতা</i>', 'text', ''],
-    'disability_type'     => ['Type of Disabled <i>/ প্রতিবন্ধকতার ধরন</i>', 'list:dl_dis', ''],
-    'financial_status'    => ['Financial Status <i>/ আর্থিক অবস্থা</i>', 'list:dl_fin', ''],
-    'social_status'       => ['Social Status <i>/ সামাজিক অবস্থা</i>', 'list:dl_soc', ''],
-    'mobile_no'           => ['Mobile No <i>/ মোবাইল</i>', 'text', ''],
-    'email'               => ['E-mail <i>/ ই-মেইল</i>', 'email', ''],
-    'other_info'          => ["Other's Information <i>/ অন্যান্য তথ্য</i>", 'textarea', 'sm:col-span-2'],
+$RF = array(
+    'member_name' => array("Member's Name <i>/ সদস্যের নাম</i> *", 'text', 'sm:col-span-2'),
+    'mother_name' => array("Mother's Name <i>/ মাতার নাম</i>", 'text', ''),
+    'father_husband_name' => array("Father/Husband's Name <i>/ পিতা/স্বামীর নাম</i>", 'text', ''),
+    'dob' => array('Date of Birth <i>/ জন্ম তারিখ</i>', 'date', ''),
+    'gender' => array('Gender <i>/ লিঙ্গ</i>', 'select:Male,Female,Other', ''),
+    'nid_no' => array('National ID No <i>/ জাতীয় পরিচয়পত্র নম্বর</i>', 'text', ''),
+    'birth_cert_no' => array('Birth Certificate No <i>/ জন্ম নিবন্ধন নম্বর</i>', 'text', ''),
+    'present_address' => array('Present Address <i>/ বর্তমান ঠিকানা</i>', 'textarea', 'sm:col-span-2'),
+    'permanent_address' => array('Permanent Address <i>/ স্থায়ী ঠিকানা</i>', 'textarea', 'sm:col-span-2'),
+    'blood_group' => array('Blood Group <i>/ রক্তের গ্রুপ</i>', 'select:A+,A-,B+,B-,AB+,AB-,O+,O-', ''),
+    'height' => array('Height <i>/ উচ্চতা</i>', 'text', ''),
+    'disability_type' => array('Type of Disabled <i>/ প্রতিবন্ধকতার ধরন</i>', 'list:dl_dis', ''),
+    'financial_status' => array('Financial Status <i>/ আর্থিক অবস্থা</i>', 'list:dl_fin', ''),
+    'social_status' => array('Social Status <i>/ সামাজিক অবস্থা</i>', 'list:dl_soc', ''),
+    'mobile_no' => array('Mobile No <i>/ মোবাইল</i>', 'text', ''),
+    'email' => array('E-mail <i>/ ই-মেইল</i>', 'email', ''),
+    'other_info' => array("Other's Information <i>/ অন্যান্য তথ্য</i>", 'textarea', 'sm:col-span-2'),
     // Office use only
-    'application_date'    => ['Application Date', 'date', ''],
-    'membership_no'       => ['Membership No', 'text', ''],
-    'registration_no'     => ['Registration No', 'text', ''],
-    'remarks'             => ['Remarks', 'textarea', 'sm:col-span-2'],
-];
-$RF_KEYS    = array_keys($RF);
-$RF_OFFICE  = ['application_date', 'membership_no', 'registration_no', 'remarks'];
-$RF_NULLABLE = ['dob', 'application_date'];
+    'application_date' => array('Application Date', 'date', ''),
+    'membership_no' => array('Membership No', 'text', ''),
+    'registration_no' => array('Registration No', 'text', ''),
+    'remarks' => array('Remarks', 'textarea', 'sm:col-span-2'),
+);
+$RF_KEYS = array_keys($RF);
+$RF_OFFICE = array('application_date', 'membership_no', 'registration_no', 'remarks');
+$RF_NULLABLE = array('dob', 'application_date');
 
-const EXP_FROM = "FROM expenses e LEFT JOIN service_recipients r ON r.id = e.recipient_id LEFT JOIN activities a ON a.id = e.activity_id";
+if (!defined('EXP_FROM')) {
+    define('EXP_FROM', 'FROM expenses e LEFT JOIN service_recipients r ON r.id = e.recipient_id LEFT JOIN activities a ON a.id = e.activity_id');
+}
 
-if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+}
 
-/* ---------- helpers ---------- */
-if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
-function exp_json($arr) {
-    while (ob_get_level()) { ob_end_clean(); }
+/* ==========================================================
+   HELPER FUNCTIONS
+   ========================================================== */
+
+if (!function_exists('h')) {
+    // Safe output (XSS theke bachay)
+    function h($s)
+    {
+        return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('go_to')) {
+    // Safe redirect: header kaj na korle JavaScript diye redirect hobe
+    function go_to($url)
+    {
+        if (!headers_sent()) {
+            header('Location: ' . $url);
+        } else {
+            echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+        }
+        exit;
+    }
+}
+
+// JSON response pathay (AJAX er jonno)
+function exp_json($arr)
+{
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($arr, JSON_UNESCAPED_UNICODE);
     exit;
 }
-function exp_money($n) { return '৳' . number_format((float)$n, 2); }
-function exp_cat($c) { global $CATS; return $CATS[$c] ?? $CATS['Other']; }
 
-function exp_q($db, $sql, $types = '', $params = []) {
-    $st = mysqli_prepare($db, $sql);
-    if ($types !== '') { mysqli_stmt_bind_param($st, $types, ...$params); }
-    mysqli_stmt_execute($st);
-    return $st;
+function exp_money($n)
+{
+    return '৳' . number_format((float) $n, 2);
 }
-function exp_rows($db, $sql, $t = '', $p = []) {
-    $st = exp_q($db, $sql, $t, $p);
-    $res = mysqli_stmt_get_result($st);
-    $o = [];
-    while ($r = mysqli_fetch_assoc($res)) { $o[] = $r; }
-    mysqli_stmt_close($st);
-    return $o;
-}
-function exp_one($db, $sql, $t = '', $p = []) { $r = exp_rows($db, $sql, $t, $p); return $r[0] ?? null; }
 
-function exp_where($f, &$types, &$params, $skip = '') {
-    $w = 'WHERE 1=1'; $types = ''; $params = [];
-    if ($f['q'] !== '' && $skip !== 'q') {
-        $w .= " AND (e.voucher_no LIKE ? OR e.title LIKE ? OR e.paid_to LIKE ? OR r.member_name LIKE ? OR r.mobile_no LIKE ? OR a.title LIKE ?)";
-        $l = '%' . addcslashes($f['q'], '%_\\') . '%';
-        $types .= 'ssssss'; for ($i = 0; $i < 6; $i++) { $params[] = $l; }
+function exp_cat($c)
+{
+    $cats = exp_cats();
+    return isset($cats[$c]) ? $cats[$c] : $cats['Other'];
+}
+
+// bind_param er jonno values-ke reference-e convert kore
+function exp_bind($stmt, $types, &$params)
+{
+    if ($types !== '' && count($params) > 0) {
+        $args = array($stmt, $types);
+        foreach ($params as $k => $v) {
+            $args[] = &$params[$k];
+        }
+        call_user_func_array('mysqli_stmt_bind_param', $args);
     }
-    if ($f['cat'] !== ''    && $skip !== 'cat')    { $w .= " AND e.category = ?";     $types .= 's'; $params[] = $f['cat']; }
-    if ($f['status'] !== '' && $skip !== 'status') { $w .= " AND e.status = ?";       $types .= 's'; $params[] = $f['status']; }
-    if ($f['act'] !== '')   { $w .= " AND e.activity_id = ?";  $types .= 's'; $params[] = $f['act']; }
-    if ($f['df'] !== '')    { $w .= " AND e.expense_date >= ?"; $types .= 's'; $params[] = $f['df']; }
-    if ($f['dt'] !== '')    { $w .= " AND e.expense_date <= ?"; $types .= 's'; $params[] = $f['dt']; }
+}
+
+/*
+ * SELECT query chalay, sob row array hishebe ferot dey. (mysqlnd lage na)
+ * $t = types ('i','s'...), $p = values array
+ */
+function exp_rows($db, $sql, $t = '', $p = array())
+{
+    $stmt = mysqli_prepare($db, $sql);
+    if (!$stmt) {
+        throw new Exception('Query error: ' . mysqli_error($db));
+    }
+    exp_bind($stmt, $t, $p);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_store_result($stmt);
+
+    $out = array();
+    $meta = mysqli_stmt_result_metadata($stmt);
+    if ($meta) {
+        $row = array();
+        $bind = array($stmt);
+        while ($field = mysqli_fetch_field($meta)) {
+            $row[$field->name] = null;
+            $bind[] = &$row[$field->name];
+        }
+        call_user_func_array('mysqli_stmt_bind_result', $bind);
+
+        while (mysqli_stmt_fetch($stmt)) {
+            $copy = array();
+            foreach ($row as $key => $val) {
+                $copy[$key] = $val;
+            }
+            $out[] = $copy;
+        }
+        mysqli_free_result($meta);
+    }
+    mysqli_stmt_close($stmt);
+    return $out;
+}
+
+// Prothom row ferot dey (na thakle null)
+function exp_one($db, $sql, $t = '', $p = array())
+{
+    $r = exp_rows($db, $sql, $t, $p);
+    return isset($r[0]) ? $r[0] : null;
+}
+
+/*
+ * INSERT / UPDATE / DELETE chalay. Fail hole Exception dey.
+ * Return: affected rows. Insert id pete: $GLOBALS['exp_insert_id']
+ */
+function exp_exec($db, $sql, $t = '', $p = array())
+{
+    $stmt = mysqli_prepare($db, $sql);
+    if (!$stmt) {
+        throw new Exception('Query error: ' . mysqli_error($db));
+    }
+    exp_bind($stmt, $t, $p);
+    if (!mysqli_stmt_execute($stmt)) {
+        $m = mysqli_stmt_error($stmt);
+        mysqli_stmt_close($stmt);
+        throw new Exception($m);
+    }
+    $GLOBALS['exp_insert_id'] = mysqli_stmt_insert_id($stmt);
+    $aff = mysqli_stmt_affected_rows($stmt);
+    mysqli_stmt_close($stmt);
+    return $aff;
+}
+
+// Search / filter er WHERE condition banay
+function exp_where($f, &$types, &$params, $skip = '')
+{
+    $w = 'WHERE 1=1';
+    $types = '';
+    $params = array();
+
+    if ($f['q'] !== '' && $skip !== 'q') {
+        $w .= ' AND (e.voucher_no LIKE ? OR e.title LIKE ? OR e.paid_to LIKE ? OR r.member_name LIKE ? OR r.mobile_no LIKE ? OR a.title LIKE ?)';
+        $l = '%' . addcslashes($f['q'], '%_\\') . '%';
+        $types .= 'ssssss';
+        for ($i = 0; $i < 6; $i++) {
+            $params[] = $l;
+        }
+    }
+    if ($f['cat'] !== '' && $skip !== 'cat') {
+        $w .= ' AND e.category = ?';
+        $types .= 's';
+        $params[] = $f['cat'];
+    }
+    if ($f['status'] !== '' && $skip !== 'status') {
+        $w .= ' AND e.status = ?';
+        $types .= 's';
+        $params[] = $f['status'];
+    }
+    if ($f['act'] !== '') {
+        $w .= ' AND e.activity_id = ?';
+        $types .= 's';
+        $params[] = $f['act'];
+    }
+    if ($f['df'] !== '') {
+        $w .= ' AND e.expense_date >= ?';
+        $types .= 's';
+        $params[] = $f['df'];
+    }
+    if ($f['dt'] !== '') {
+        $w .= ' AND e.expense_date <= ?';
+        $types .= 's';
+        $params[] = $f['dt'];
+    }
     return $w;
 }
 
-function exp_stats($db, $f) {
-    global $CATS, $statuses;
-    $cats = []; foreach ($CATS as $k => $_) { $cats[$k] = ['a' => exp_money(0), 'c' => 0]; }
+// Upore-r card gulor stats
+function exp_stats($db, $f)
+{
+    $CATS = exp_cats();
+    $statuses = exp_statuses();
+    $t = '';
+    $p = array();
+
+    $cats = array();
+    foreach ($CATS as $k => $_) {
+        $cats[$k] = array('a' => exp_money(0), 'c' => 0);
+    }
     $w = exp_where($f, $t, $p, 'cat');
-    foreach (exp_rows($db, "SELECT e.category k, COUNT(*) c, COALESCE(SUM(e.amount),0) s " . EXP_FROM . " $w GROUP BY e.category", $t, $p) as $r) {
-        $cats[isset($CATS[$r['k']]) ? $r['k'] : 'Other'] = ['a' => exp_money($r['s']), 'c' => (int)$r['c']];
+    foreach (exp_rows($db, 'SELECT e.category k, COUNT(*) c, COALESCE(SUM(e.amount),0) s ' . EXP_FROM . " $w GROUP BY e.category", $t, $p) as $r) {
+        $key = isset($CATS[$r['k']]) ? $r['k'] : 'Other';
+        $cats[$key] = array('a' => exp_money($r['s']), 'c' => (int) $r['c']);
     }
-    $st = []; foreach ($statuses as $s) { $st[$s] = ['a' => exp_money(0), 'c' => 0]; }
+
+    $st = array();
+    foreach ($statuses as $s) {
+        $st[$s] = array('a' => exp_money(0), 'c' => 0);
+    }
     $w = exp_where($f, $t, $p, 'status');
-    foreach (exp_rows($db, "SELECT e.status k, COUNT(*) c, COALESCE(SUM(e.amount),0) s " . EXP_FROM . " $w GROUP BY e.status", $t, $p) as $r) {
-        $st[$r['k']] = ['a' => exp_money($r['s']), 'c' => (int)$r['c']];
+    foreach (exp_rows($db, 'SELECT e.status k, COUNT(*) c, COALESCE(SUM(e.amount),0) s ' . EXP_FROM . " $w GROUP BY e.status", $t, $p) as $r) {
+        $st[$r['k']] = array('a' => exp_money($r['s']), 'c' => (int) $r['c']);
     }
+
     $w = exp_where($f, $t, $p);
-    $tot = exp_one($db, "SELECT COUNT(*) c, COALESCE(SUM(e.amount),0) s " . EXP_FROM . " $w", $t, $p);
-    return ['cats' => $cats, 'status' => $st, 'total_amount' => exp_money($tot['s']), 'total_count' => (int)$tot['c']];
+    $tot = exp_one($db, 'SELECT COUNT(*) c, COALESCE(SUM(e.amount),0) s ' . EXP_FROM . " $w", $t, $p);
+
+    return array(
+        'cats' => $cats,
+        'status' => $st,
+        'total_amount' => exp_money($tot['s']),
+        'total_count' => (int) $tot['c'],
+    );
 }
 
-function exp_upload($file, $dir, &$err, $prefix) {
-    if (!is_array($file) || $file['error'] === UPLOAD_ERR_NO_FILE) { return ''; }
-    if ($file['error'] !== UPLOAD_ERR_OK) { $err = 'ছবি আপলোডে সমস্যা হয়েছে।'; return false; }
+// Chhobi upload. Return: file name / '' (file dey nai) / false (error, $err te message)
+function exp_upload($file, $dir, &$err, $prefix)
+{
+    if (!is_array($file) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $err = 'ছবি আপলোডে সমস্যা হয়েছে।';
+        return false;
+    }
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp']) || !@getimagesize($file['tmp_name'])) { $err = 'ছবি শুধু JPG, PNG বা WEBP হতে হবে।'; return false; }
-    if ($file['size'] > 3 * 1024 * 1024) { $err = 'ছবির সাইজ সর্বোচ্চ 3MB।'; return false; }
-    if (!is_dir($dir)) { mkdir($dir, 0755, true); }
+    if (!in_array($ext, array('jpg', 'jpeg', 'png', 'webp')) || !@getimagesize($file['tmp_name'])) {
+        $err = 'ছবি শুধু JPG, PNG বা WEBP হতে হবে।';
+        return false;
+    }
+    if ($file['size'] > 3 * 1024 * 1024) {
+        $err = 'ছবির সাইজ সর্বোচ্চ 3MB।';
+        return false;
+    }
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
     $name = $prefix . '_' . time() . '_' . random_int(1000, 9999) . '.' . $ext;
-    if (!move_uploaded_file($file['tmp_name'], $dir . $name)) { $err = 'ছবি সেভ করা যায়নি। ফোল্ডার পারমিশন চেক করুন।'; return false; }
+    if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
+        $err = 'ছবি সেভ করা যায়নি। ফোল্ডার পারমিশন চেক করুন।';
+        return false;
+    }
     return $name;
 }
-function exp_unlink($dir, $f) { if ($f != '' && is_file($dir . basename($f))) { @unlink($dir . basename($f)); } }
-function exp_url($dir, $f) { return ($f != '' && is_file($dir . basename($f))) ? $dir . $f : ''; }
 
-// 111111111111
-// function exp_row($r, $rd) {
-//     $cs = exp_cat($r['category']);
-//     $done = $r['status'] === 'Complete';
-//     $for = '';
-//     if ($r['rec_name'] !== null) {
-//         $ph = exp_url($rd, $r['rec_photo']);
-//         $av = $ph ? '<img src="' . h($ph) . '" class="w-4 h-4 rounded-full object-cover">' : '<i class="fa-solid fa-user text-sky-500"></i>';
-//         $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">' . $av . h($r['rec_name']) . ' <span class="text-slate-400">' . h($r['rec_serial']) . '</span></span>';
-//     }
-//     if ($r['act_title'] !== null) {
-//         $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600"><i class="fa-solid fa-diagram-project text-emerald-600"></i>' . h($r['act_title']) . '</span>';
-//     }
-//     $id = (int)$r['id'];
-//     return '
-//     <tr class="hover:bg-slate-50/80 align-top">
-//       <td class="p-4"><button type="button" data-act="view" data-id="' . $id . '" class="font-semibold text-left text-slate-800 hover:text-emerald-600 hover:underline">' . h($r['title']) . '</button>
-//         <span class="block text-[10px] text-slate-400 mt-0.5">' . h($r['voucher_no']) . ' • ' . h(date('d M Y', strtotime($r['expense_date']))) . '</span>
-//         <span class="sm:hidden inline-block mt-1 px-2 py-0.5 rounded-md font-bold text-[10px] ' . $cs[0] . '">' . h($r['category']) . '</span>
-//         <div class="mt-1.5 flex flex-col gap-1">' . $for . '</div></td>
-//       <td class="p-4 hidden sm:table-cell"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] whitespace-nowrap ' . $cs[0] . '"><i class="fa-solid ' . $cs[3] . ' mr-1"></i>' . h($r['category']) . '</span></td>
-//       <td class="p-4 font-bold text-slate-800 whitespace-nowrap">' . exp_money($r['amount']) . '</td>
-//       <td class="p-4"><span class="px-2.5 py-1 rounded-md font-bold text-[10px] ' . ($done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700') . '">' . h($r['status']) . '</span></td>
-//       <td class="p-4 text-right whitespace-nowrap">
-//         <button type="button" data-act="view" data-id="' . $id . '" title="View" class="p-1.5 text-slate-400 hover:text-sky-600"><i class="fa-solid fa-eye"></i></button>
-//         <button type="button" data-act="toggle" data-id="' . $id . '" title="' . ($done ? 'Mark Pending' : 'Mark Complete') . '" class="p-1.5 ' . ($done ? 'text-emerald-500 hover:text-amber-600' : 'text-slate-400 hover:text-emerald-600') . '"><i class="fa-solid ' . ($done ? 'fa-circle-check' : 'fa-hourglass-half') . '"></i></button>
-//         <button type="button" data-act="edit" data-id="' . $id . '" title="Edit" class="p-1.5 text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-pen"></i></button>
-//         <button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
-//       </td>
-//     </tr>';
-// }
+function exp_unlink($dir, $f)
+{
+    if ($f != '' && is_file($dir . basename($f))) {
+        @unlink($dir . basename($f));
+    }
+}
 
-   
-// 222222222222
-function exp_row($r, $rd, $user_type = 'user') { // ba $is_admin boolean pass korte paren
-    $is_admin = ($user_type === 'admin');
-    
+function exp_url($dir, $f)
+{
+    return ($f != '' && is_file($dir . basename($f))) ? $dir . $f : '';
+}
+
+// Table-er ekta row-er HTML. $is_admin = true hole toggle + delete button dekhabe
+function exp_row($r, $rd, $is_admin = false)
+{
     $cs = exp_cat($r['category']);
-    $done = $r['status'] === 'Complete';
+    $done = ($r['status'] === 'Complete');
     $for = '';
-    
+
     if ($r['rec_name'] !== null) {
         $ph = exp_url($rd, $r['rec_photo']);
-        $av = $ph ? '<img src="' . h($ph) . '" class="w-4 h-4 rounded-full object-cover">' : '<i class="fa-solid fa-user text-sky-500"></i>';
-        $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">' . $av . h($r['rec_name']) . ' <span class="text-slate-400">' . h($r['rec_serial']) . '</span></span>';
+        $av = $ph
+            ? '<img src="' . h($ph) . '" class="w-4 h-4 rounded-full object-cover">'
+            : '<i class="fa-solid fa-user text-sky-500"></i>';
+        $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600">' . $av . h($r['rec_name'])
+            . ' <span class="text-slate-400">' . h($r['rec_serial']) . '</span></span>';
     }
-    
-    if ($r['act_title'] !== null) {
-        $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600"><i class="fa-solid fa-diagram-project text-emerald-600"></i>' . h($r['act_title']) . '</span>';
-    }
-    
-    $id = (int)$r['id'];
 
-    // Admin Action Buttons Setup
+    if ($r['act_title'] !== null) {
+        $for .= '<span class="inline-flex items-center gap-1.5 text-[11px] text-slate-600"><i class="fa-solid fa-diagram-project text-emerald-600"></i>'
+            . h($r['act_title']) . '</span>';
+    }
+
+    $id = (int) $r['id'];
+
+    // Shudhu Admin-er jonno button
     $toggle_btn = '';
     $delete_btn = '';
-
     if ($is_admin) {
-        $toggle_btn = '<button type="button" data-act="toggle" data-id="' . $id . '" title="' . ($done ? 'Mark Pending' : 'Mark Complete') . '" class="p-1.5 ' . ($done ? 'text-emerald-500 hover:text-amber-600' : 'text-slate-400 hover:text-emerald-600') . '"><i class="fa-solid ' . ($done ? 'fa-circle-check' : 'fa-hourglass-half') . '"></i></button>';
-        
-        $delete_btn = '<button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title']) . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>';
+        $toggle_btn = '<button type="button" data-act="toggle" data-id="' . $id . '" title="' . ($done ? 'Mark Pending' : 'Mark Complete')
+            . '" class="p-1.5 ' . ($done ? 'text-emerald-500 hover:text-amber-600' : 'text-slate-400 hover:text-emerald-600')
+            . '"><i class="fa-solid ' . ($done ? 'fa-circle-check' : 'fa-hourglass-half') . '"></i></button>';
+
+        $delete_btn = '<button type="button" data-act="delete" data-id="' . $id . '" data-name="' . h($r['title'])
+            . '" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>';
     }
 
     return '
@@ -214,240 +400,513 @@ function exp_row($r, $rd, $user_type = 'user') { // ba $is_admin boolean pass ko
     </tr>';
 }
 
-function exp_pager($page, $pages) {
-    if ($pages <= 1) { return ''; }
+// Pagination button-er HTML
+function exp_pager($page, $pages)
+{
+    if ($pages <= 1) {
+        return '';
+    }
     $btn = function ($p, $label, $active = false, $dis = false) {
-        $c = $active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
-        if ($dis) { $c = 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'; }
-        return '<button type="button" ' . ($dis ? 'disabled' : 'data-page="' . $p . '"') . ' class="min-w-8 h-8 px-2 rounded-lg border text-xs font-semibold ' . $c . '">' . $label . '</button>';
+        $c = $active
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+        if ($dis) {
+            $c = 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed';
+        }
+        return '<button type="button" ' . ($dis ? 'disabled' : 'data-page="' . $p . '"')
+            . ' class="min-w-8 h-8 px-2 rounded-lg border text-xs font-semibold ' . $c . '">' . $label . '</button>';
     };
+
     $out = $btn(max(1, $page - 1), '&lsaquo;', false, $page == 1);
-    $set = [1, $pages];
-    for ($i = $page - 1; $i <= $page + 1; $i++) { if ($i > 0 && $i <= $pages) { $set[] = $i; } }
-    $set = array_unique($set); sort($set);
+    $set = array(1, $pages);
+    for ($i = $page - 1; $i <= $page + 1; $i++) {
+        if ($i > 0 && $i <= $pages) {
+            $set[] = $i;
+        }
+    }
+    $set = array_unique($set);
+    sort($set);
+
     $prev = 0;
     foreach ($set as $p) {
-        if ($p - $prev > 1) { $out .= '<span class="px-1 text-slate-400">…</span>'; }
+        if ($p - $prev > 1) {
+            $out .= '<span class="px-1 text-slate-400">…</span>';
+        }
         $out .= $btn($p, $p, $p == $page);
         $prev = $p;
     }
     return $out . $btn(min($pages, $page + 1), '&rsaquo;', false, $page == $pages);
 }
 
-function exp_rec_out($r, $rd) {
-    if (!$r) { return null; }
+// Recipient-er photo URL jog kore
+function exp_rec_out($r, $rd)
+{
+    if (!$r) {
+        return null;
+    }
     $r['photo_url'] = exp_url($rd, $r['photo']);
     $r['guardian_url'] = exp_url($rd, $r['guardian_photo']);
     return $r;
 }
 
+// Recipient form-er ekta field-er HTML
+function exp_field($k, $d, $inp, $lbl)
+{
+    $id = 'r_' . $k;
+    $type = $d[1];
+    $o = '<div class="' . $d[2] . '"><label class="' . $lbl . ' normal-case">' . $d[0] . '</label>';
+
+    if ($type === 'textarea') {
+        $o .= '<textarea name="' . $id . '" id="' . $id . '" rows="2" class="' . $inp . '"></textarea>';
+    } elseif (strpos($type, 'select:') === 0) {
+        $o .= '<select name="' . $id . '" id="' . $id . '" class="' . $inp . '"><option value="">—</option>';
+        foreach (explode(',', substr($type, 7)) as $x) {
+            $o .= '<option>' . h($x) . '</option>';
+        }
+        $o .= '</select>';
+    } elseif (strpos($type, 'list:') === 0) {
+        $o .= '<input type="text" name="' . $id . '" id="' . $id . '" list="' . substr($type, 5) . '" class="' . $inp . '">';
+    } else {
+        $o .= '<input type="' . $type . '" name="' . $id . '" id="' . $id . '" class="' . $inp . '">';
+    }
+    return $o . '</div>';
+}
+
+/* ==========================================================
+   ACCESS CHECK + DATABASE
+   ========================================================== */
+$user_type = isset($_SESSION['user_type']) ? $_SESSION['user_type'] : '';
+$is_admin = ($user_type === 'Admin');
+$act = isset($_GET['act']) ? $_GET['act'] : '';
+
+// only admin and volunteers can visit
+if (!in_array($user_type, array('Admin', 'Volunteer Member'))) {
+    if ($act !== '') {
+        exp_json(array('ok' => false, 'msg' => 'Access denied.'));
+    }
+    go_to('index.php?page=dashboard');
+}
+
+global $db;
+if (!isset($db) || !$db) {
+    die('Database connection not found.');
+}
+mysqli_set_charset($db, 'utf8mb4');
+
 /* ==========================================================
    AJAX HANDLER
    ========================================================== */
-$act = $_GET['act'] ?? '';
-$newf = [];
+$newf = array();   // notun upload hoya file-er list (error hole muche felar jonno)
+
 if ($act !== '') {
-  try {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals($_SESSION['csrf'], $_SERVER['HTTP_X_CSRF'] ?? '')) {
-        exp_json(['ok' => false, 'msg' => 'Invalid session. Page reload korun.']);
-    }
-
-    /* ----- LIST ----- */
-    if ($act === 'list') {
-        $ea = (int)($_GET['ea'] ?? 0);
-        $f = ['q' => trim($_GET['es'] ?? ''), 'cat' => trim($_GET['ec'] ?? ''), 'status' => trim($_GET['est'] ?? ''),
-              'act' => $ea > 0 ? (string)$ea : '', 'df' => trim($_GET['df'] ?? ''), 'dt' => trim($_GET['dt'] ?? '')];
-        $per = (int)($_GET['per'] ?? 10); if (!in_array($per, $per_opts)) { $per = 10; }
-        $page = max(1, (int)($_GET['pg'] ?? 1));
-
-        $w = exp_where($f, $t, $p);
-        $tot = exp_one($db, "SELECT COUNT(*) c " . EXP_FROM . " $w", $t, $p);
-        $total = (int)$tot['c'];
-        $pages = max(1, (int)ceil($total / $per));
-        if ($page > $pages) { $page = $pages; }
-        $offset = ($page - 1) * $per;
-        $_SESSION['exp_filter'] = $f + ['per' => $per, 'page' => $page];
-
-        $rows = exp_rows($db, "SELECT e.*, r.member_name rec_name, r.serial_no rec_serial, r.photo rec_photo, a.title act_title " . EXP_FROM . " $w ORDER BY e.expense_date DESC, e.id DESC LIMIT ? OFFSET ?",
-            $t . 'ii', array_merge($p, [$per, $offset]));
-        $html = '';
-        foreach ($rows as $r) { $html .= exp_row($r, $rec_dir); }
-        if ($html === '') { $html = '<tr><td colspan="5" class="p-10 text-center text-slate-400"><i class="fa-solid fa-receipt text-3xl mb-2"></i><p>কোনো খরচের রেকর্ড পাওয়া যায়নি।</p></td></tr>'; }
-
-        exp_json(['ok' => true, 'rows' => $html, 'pager' => exp_pager($page, $pages), 'page' => $page, 'total' => $total,
-                  'from' => $total ? $offset + 1 : 0, 'to' => min($offset + $per, $total), 'stats' => exp_stats($db, $f),
-                  'filtered' => ($f['q'] !== '' || $f['cat'] !== '' || $f['status'] !== '' || $f['act'] !== '' || $f['df'] !== '' || $f['dt'] !== '')]);
-    }
-
-    if ($act === 'clear') { unset($_SESSION['exp_filter']); exp_json(['ok' => true]); }
-
-    if ($act === 'recs') {
-        exp_json(['ok' => true, 'recs' => exp_rows($db, "SELECT id, member_name, serial_no, mobile_no FROM service_recipients ORDER BY id DESC")]);
-    }
-
-    if ($act === 'rget') {
-        $r = exp_rec_out(exp_one($db, "SELECT * FROM service_recipients WHERE id = ?", 'i', [(int)($_GET['id'] ?? 0)]), $rec_dir);
-        exp_json($r ? ['ok' => true, 'data' => $r] : ['ok' => false, 'msg' => 'Recipient পাওয়া যায়নি।']);
-    }
-
-    if ($act === 'get') {
-        $e = exp_one($db, "SELECT * FROM expenses WHERE id = ?", 'i', [(int)($_GET['id'] ?? 0)]);
-        if (!$e) { exp_json(['ok' => false, 'msg' => 'খরচ পাওয়া যায়নি।']); }
-        $e['receipt_url'] = exp_url($exp_dir, $e['receipt']);
-        $rec = $e['recipient_id'] ? exp_rec_out(exp_one($db, "SELECT * FROM service_recipients WHERE id = ?", 'i', [(int)$e['recipient_id']]), $rec_dir) : null;
-        $ac = $e['activity_id'] ? exp_one($db, "SELECT id, title, status FROM activities WHERE id = ?", 'i', [(int)$e['activity_id']]) : null;
-        exp_json(['ok' => true, 'data' => $e, 'rec' => $rec, 'act' => $ac]);
-    }
-
-    /* ----- VIEW (voucher modal er data) ----- */
-    if ($act === 'view') {
-        $e = exp_one($db, "SELECT e.*, a.title act_title, a.badge_text act_badge, a.description act_desc, a.image act_image
-                           FROM expenses e LEFT JOIN activities a ON a.id = e.activity_id WHERE e.id = ?", 'i', [(int)($_GET['id'] ?? 0)]);
-        if (!$e) { exp_json(['ok' => false, 'msg' => 'খরচ পাওয়া যায়নি।']); }
-        $e['receipt_url'] = exp_url($exp_dir, $e['receipt']);
-        $e['act_image_url'] = (($e['act_image'] ?? '') !== '' && is_file($act_prefix . $e['act_image'])) ? $act_prefix . $e['act_image'] : '';
-        $rec = $e['recipient_id'] ? exp_rec_out(exp_one($db, "SELECT * FROM service_recipients WHERE id = ?", 'i', [(int)$e['recipient_id']]), $rec_dir) : null;
-        $recT = $rec ? exp_one($db, "SELECT COUNT(*) c, COALESCE(SUM(amount),0) s FROM expenses WHERE recipient_id = ?", 'i', [(int)$rec['id']]) : null;
-        $actT = $e['activity_id'] ? exp_one($db, "SELECT COUNT(*) c, COALESCE(SUM(amount),0) s FROM expenses WHERE activity_id = ?", 'i', [(int)$e['activity_id']]) : null;
-        exp_json(['ok' => true, 'e' => $e, 'rec' => $rec, 'recT' => $recT, 'actT' => $actT]);
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { exp_json(['ok' => false, 'msg' => 'Invalid request.']); }
-
-    /* ----- TOGGLE STATUS ----- */
-    if ($act === 'toggle') {
-        exp_q($db, "UPDATE expenses SET status = IF(status = 'Pending', 'Complete', 'Pending') WHERE id = ?", 'i', [(int)($_POST['id'] ?? 0)]);
-        exp_json(['ok' => true, 'msg' => 'Status পরিবর্তন করা হয়েছে।']);
-    }
-
-    /* ----- DELETE ----- */
-    if ($act === 'delete') {
-        $id = (int)($_POST['id'] ?? 0);
-        $o = exp_one($db, "SELECT receipt FROM expenses WHERE id = ?", 'i', [$id]);
-        if (!$o) { exp_json(['ok' => false, 'msg' => 'খরচ পাওয়া যায়নি।']); }
-        $st = exp_q($db, "DELETE FROM expenses WHERE id = ?", 'i', [$id]);
-        if (mysqli_stmt_affected_rows($st) > 0) { exp_unlink($exp_dir, $o['receipt']); exp_json(['ok' => true, 'msg' => 'খরচ ডিলিট করা হয়েছে।']); }
-        exp_json(['ok' => false, 'msg' => 'ডিলিট করা যায়নি।']);
-    }
-
-    /* ----- SAVE (add + edit, recipient soho) ----- */
-    if ($act === 'save') {
-        $id = (int)($_POST['id'] ?? 0);
-        $e = [];
-        foreach (['title', 'category', 'amount', 'expense_date', 'payment_method', 'transaction_id', 'paid_to', 'description', 'status'] as $k) { $e[$k] = trim($_POST[$k] ?? ''); }
-        $activity_id = (int)($_POST['activity_id'] ?? 0);
-        $mode = $_POST['recipient_mode'] ?? 'none';
-        if (!in_array($mode, ['none', 'existing', 'new'])) { $mode = 'none'; }
-        $rid = (int)($_POST['recipient_id'] ?? 0);
-        $amount = (float)$e['amount'];
-
-        if ($e['title'] === '' || $e['expense_date'] === '' || $amount <= 0) { exp_json(['ok' => false, 'msg' => 'শিরোনাম, তারিখ ও সঠিক Amount দিন।']); }
-        if (!isset($CATS[$e['category']])) { $e['category'] = 'Other'; }
-        if (!in_array($e['status'], $statuses)) { $e['status'] = 'Pending'; }
-        if ($activity_id <= 0 && $mode === 'none') { exp_json(['ok' => false, 'msg' => 'কোনো কার্যক্রম অথবা সেবা গ্রহণকারী নির্বাচন করুন।']); }
-        if ($activity_id > 0 && !exp_one($db, "SELECT id FROM activities WHERE id = ?", 'i', [$activity_id])) { exp_json(['ok' => false, 'msg' => 'কার্যক্রম পাওয়া যায়নি।']); }
-
-        $r = [];
-        foreach ($RF_KEYS as $k) { $v = trim($_POST['r_' . $k] ?? ''); $r[$k] = ($v === '' && in_array($k, $RF_NULLABLE)) ? null : $v; }
-        if ($mode !== 'none') {
-            if ($r['member_name'] === '') { exp_json(['ok' => false, 'msg' => 'সেবা গ্রহণকারীর নাম দিন।']); }
-            if ($r['mobile_no'] !== '' && !preg_match('/^[0-9]{11}$/', $r['mobile_no'])) { exp_json(['ok' => false, 'msg' => 'মোবাইল নম্বর ১১ ডিজিটের হতে হবে।']); }
-            if ($r['email'] !== '' && !filter_var($r['email'], FILTER_VALIDATE_EMAIL)) { exp_json(['ok' => false, 'msg' => 'সঠিক ইমেইল দিন।']); }
-            if ($mode === 'existing' && $rid <= 0) { exp_json(['ok' => false, 'msg' => 'সেবা গ্রহণকারী সিলেক্ট করুন।']); }
+    try {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $tok = isset($_SERVER['HTTP_X_CSRF']) ? $_SERVER['HTTP_X_CSRF'] : '';
+            if (!hash_equals($_SESSION['csrf'], $tok)) {
+                exp_json(array('ok' => false, 'msg' => 'Invalid session. Page reload korun.'));
+            }
         }
 
-        // uploads
-        $err = ''; $ph = $gp = '';
-        $receipt = exp_upload($_FILES['receipt'] ?? null, $exp_dir, $err, 'exp');
-        if ($receipt === false) { exp_json(['ok' => false, 'msg' => $err]); }
-        if ($receipt !== '') { $newf[] = [$exp_dir, $receipt]; }
-        if ($mode !== 'none') {
-            $ph = exp_upload($_FILES['r_photo'] ?? null, $rec_dir, $err, 'rec');
-            if ($ph === false) { foreach ($newf as $n) { exp_unlink($n[0], $n[1]); } exp_json(['ok' => false, 'msg' => $err]); }
-            if ($ph !== '') { $newf[] = [$rec_dir, $ph]; }
-            $gp = exp_upload($_FILES['r_guardian_photo'] ?? null, $rec_dir, $err, 'grd');
-            if ($gp === false) { foreach ($newf as $n) { exp_unlink($n[0], $n[1]); } exp_json(['ok' => false, 'msg' => $err]); }
-            if ($gp !== '') { $newf[] = [$rec_dir, $gp]; }
+        /* ----- LIST ----- */
+        if ($act === 'list') {
+            $ea = isset($_GET['ea']) ? (int) $_GET['ea'] : 0;
+            $f = array(
+                'q' => trim(isset($_GET['es']) ? $_GET['es'] : ''),
+                'cat' => trim(isset($_GET['ec']) ? $_GET['ec'] : ''),
+                'status' => trim(isset($_GET['est']) ? $_GET['est'] : ''),
+                'act' => $ea > 0 ? (string) $ea : '',
+                'df' => trim(isset($_GET['df']) ? $_GET['df'] : ''),
+                'dt' => trim(isset($_GET['dt']) ? $_GET['dt'] : ''),
+            );
+            $per = isset($_GET['per']) ? (int) $_GET['per'] : 10;
+            if (!in_array($per, $per_opts)) {
+                $per = 10;
+            }
+            $page = max(1, isset($_GET['pg']) ? (int) $_GET['pg'] : 1);
+
+            $t = '';
+            $p = array();
+            $w = exp_where($f, $t, $p);
+            $tot = exp_one($db, 'SELECT COUNT(*) c ' . EXP_FROM . " $w", $t, $p);
+            $total = (int) $tot['c'];
+            $pages = max(1, (int) ceil($total / $per));
+            if ($page > $pages) {
+                $page = $pages;
+            }
+            $offset = ($page - 1) * $per;
+
+            $_SESSION['exp_filter'] = $f + array('per' => $per, 'page' => $page);
+
+            $listP = $p;
+            $listP[] = $per;
+            $listP[] = $offset;
+            $rows = exp_rows(
+                $db,
+                'SELECT e.*, r.member_name rec_name, r.serial_no rec_serial, r.photo rec_photo, a.title act_title '
+                . EXP_FROM . " $w ORDER BY e.expense_date DESC, e.id DESC LIMIT ? OFFSET ?",
+                $t . 'ii',
+                $listP
+            );
+
+            $html = '';
+            foreach ($rows as $r) {
+                $html .= exp_row($r, $rec_dir, $is_admin);
+            }
+            if ($html === '') {
+                $html = '<tr><td colspan="5" class="p-10 text-center text-slate-400"><i class="fa-solid fa-receipt text-3xl mb-2"></i><p>কোনো খরচের রেকর্ড পাওয়া যায়নি।</p></td></tr>';
+            }
+
+            exp_json(array(
+                'ok' => true,
+                'rows' => $html,
+                'pager' => exp_pager($page, $pages),
+                'page' => $page,
+                'total' => $total,
+                'from' => $total ? $offset + 1 : 0,
+                'to' => min($offset + $per, $total),
+                'stats' => exp_stats($db, $f),
+                'filtered' => ($f['q'] !== '' || $f['cat'] !== '' || $f['status'] !== '' || $f['act'] !== '' || $f['df'] !== '' || $f['dt'] !== ''),
+            ));
         }
 
-        mysqli_begin_transaction($db);
-        $old_files = [];
-
-        // --- recipient ---
-        if ($mode === 'new') {
-            $cols = array_merge(['photo', 'guardian_photo'], $RF_KEYS);
-            $vals = array_merge([$ph, $gp], array_values($r));
-            exp_q($db, "INSERT INTO service_recipients (" . implode(',', $cols) . ") VALUES (" . implode(',', array_fill(0, count($cols), '?')) . ")", str_repeat('s', count($vals)), $vals);
-            $rid = mysqli_insert_id($db);
-            exp_q($db, "UPDATE service_recipients SET serial_no = CONCAT('SR-', LPAD(id, 6, '0')) WHERE id = ?", 'i', [$rid]);
-        } elseif ($mode === 'existing') {
-            $o = exp_one($db, "SELECT photo, guardian_photo FROM service_recipients WHERE id = ?", 'i', [$rid]);
-            if (!$o) { throw new Exception('Recipient পাওয়া যায়নি।'); }
-            $nph = $ph !== '' ? $ph : $o['photo'];
-            $ngp = $gp !== '' ? $gp : $o['guardian_photo'];
-            if ($ph !== '' && $o['photo'] !== '') { $old_files[] = [$rec_dir, $o['photo']]; }
-            if ($gp !== '' && $o['guardian_photo'] !== '') { $old_files[] = [$rec_dir, $o['guardian_photo']]; }
-            $cols = array_merge(['photo', 'guardian_photo'], $RF_KEYS);
-            $vals = array_merge([$nph, $ngp], array_values($r), [$rid]);
-            exp_q($db, "UPDATE service_recipients SET " . implode('=?, ', $cols) . "=? WHERE id = ?", str_repeat('s', count($cols)) . 'i', $vals);
-        } else { $rid = 0; }
-
-        // --- expense ---
-        $final = $receipt;
-        if ($id > 0) {
-            $o = exp_one($db, "SELECT receipt FROM expenses WHERE id = ?", 'i', [$id]);
-            if (!$o) { throw new Exception('খরচ পাওয়া যায়নি।'); }
-            $final = $receipt !== '' ? $receipt : (!empty($_POST['remove_receipt']) ? '' : $o['receipt']);
-            if ($final !== $o['receipt'] && $o['receipt'] !== '') { $old_files[] = [$exp_dir, $o['receipt']]; }
+        if ($act === 'clear') {
+            unset($_SESSION['exp_filter']);
+            exp_json(array('ok' => true));
         }
-        $cols = ['title', 'category', 'amount', 'expense_date', 'activity_id', 'recipient_id', 'payment_method', 'transaction_id', 'paid_to', 'description', 'receipt', 'status'];
-        $vals = [$e['title'], $e['category'], $amount, $e['expense_date'], $activity_id ?: null, $rid ?: null,
-                 $e['payment_method'], $e['transaction_id'], $e['paid_to'], $e['description'], $final, $e['status']];
-        if ($id > 0) {
-            exp_q($db, "UPDATE expenses SET " . implode('=?, ', $cols) . "=? WHERE id = ?", str_repeat('s', count($cols)) . 'i', array_merge($vals, [$id]));
-            $msg = 'খরচ আপডেট হয়েছে।';
-        } else {
-            exp_q($db, "INSERT INTO expenses (" . implode(',', $cols) . ") VALUES (" . implode(',', array_fill(0, count($cols), '?')) . ")", str_repeat('s', count($cols)), $vals);
-            $nid = mysqli_insert_id($db);
-            exp_q($db, "UPDATE expenses SET voucher_no = CONCAT('EXP-', LPAD(id, 6, '0')) WHERE id = ?", 'i', [$nid]);
-            $msg = 'নতুন খরচ যোগ হয়েছে।';
+
+        if ($act === 'recs') {
+            exp_json(array('ok' => true, 'recs' => exp_rows($db, 'SELECT id, member_name, serial_no, mobile_no FROM service_recipients ORDER BY id DESC')));
         }
-        mysqli_commit($db);
-        foreach ($old_files as $o) { exp_unlink($o[0], $o[1]); }   // purono image delete
-        exp_json(['ok' => true, 'msg' => $msg]);
+
+        if ($act === 'rget') {
+            $rid0 = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+            $r = exp_rec_out(exp_one($db, 'SELECT * FROM service_recipients WHERE id = ?', 'i', array($rid0)), $rec_dir);
+            exp_json($r ? array('ok' => true, 'data' => $r) : array('ok' => false, 'msg' => 'Recipient পাওয়া যায়নি।'));
+        }
+
+        if ($act === 'get') {
+            $gid = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+            $e = exp_one($db, 'SELECT * FROM expenses WHERE id = ?', 'i', array($gid));
+            if (!$e) {
+                exp_json(array('ok' => false, 'msg' => 'খরচ পাওয়া যায়নি।'));
+            }
+            $e['receipt_url'] = exp_url($exp_dir, $e['receipt']);
+            $rec = $e['recipient_id']
+                ? exp_rec_out(exp_one($db, 'SELECT * FROM service_recipients WHERE id = ?', 'i', array((int) $e['recipient_id'])), $rec_dir)
+                : null;
+            $ac = $e['activity_id']
+                ? exp_one($db, 'SELECT id, title, status FROM activities WHERE id = ?', 'i', array((int) $e['activity_id']))
+                : null;
+            exp_json(array('ok' => true, 'data' => $e, 'rec' => $rec, 'act' => $ac));
+        }
+
+        /* ----- VIEW (voucher modal er data) ----- */
+        if ($act === 'view') {
+            $vid = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+            $e = exp_one(
+                $db,
+                'SELECT e.*, a.title act_title, a.badge_text act_badge, a.description act_desc, a.image act_image
+                 FROM expenses e LEFT JOIN activities a ON a.id = e.activity_id WHERE e.id = ?',
+                'i',
+                array($vid)
+            );
+            if (!$e) {
+                exp_json(array('ok' => false, 'msg' => 'খরচ পাওয়া যায়নি।'));
+            }
+            $e['receipt_url'] = exp_url($exp_dir, $e['receipt']);
+            $actImg = isset($e['act_image']) ? (string) $e['act_image'] : '';
+            $e['act_image_url'] = ($actImg !== '' && is_file($act_prefix . $actImg)) ? $act_prefix . $actImg : '';
+
+            $rec = $e['recipient_id']
+                ? exp_rec_out(exp_one($db, 'SELECT * FROM service_recipients WHERE id = ?', 'i', array((int) $e['recipient_id'])), $rec_dir)
+                : null;
+            $recT = $rec
+                ? exp_one($db, 'SELECT COUNT(*) c, COALESCE(SUM(amount),0) s FROM expenses WHERE recipient_id = ?', 'i', array((int) $rec['id']))
+                : null;
+            $actT = $e['activity_id']
+                ? exp_one($db, 'SELECT COUNT(*) c, COALESCE(SUM(amount),0) s FROM expenses WHERE activity_id = ?', 'i', array((int) $e['activity_id']))
+                : null;
+
+            exp_json(array('ok' => true, 'e' => $e, 'rec' => $rec, 'recT' => $recT, 'actT' => $actT));
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            exp_json(array('ok' => false, 'msg' => 'Invalid request.'));
+        }
+
+        /* ----- TOGGLE STATUS (shudhu Admin) ----- */
+        if ($act === 'toggle') {
+            if (!$is_admin) {
+                exp_json(array('ok' => false, 'msg' => 'শুধু Admin এই কাজ করতে পারবে।'));
+            }
+            $tid = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+            exp_exec($db, "UPDATE expenses SET status = IF(status = 'Pending', 'Complete', 'Pending') WHERE id = ?", 'i', array($tid));
+            exp_json(array('ok' => true, 'msg' => 'Status পরিবর্তন করা হয়েছে।'));
+        }
+
+        /* ----- DELETE (shudhu Admin) ----- */
+        if ($act === 'delete') {
+            if (!$is_admin) {
+                exp_json(array('ok' => false, 'msg' => 'শুধু Admin এই কাজ করতে পারবে।'));
+            }
+            $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+            $o = exp_one($db, 'SELECT receipt FROM expenses WHERE id = ?', 'i', array($id));
+            if (!$o) {
+                exp_json(array('ok' => false, 'msg' => 'খরচ পাওয়া যায়নি।'));
+            }
+            $aff = exp_exec($db, 'DELETE FROM expenses WHERE id = ?', 'i', array($id));
+            if ($aff > 0) {
+                exp_unlink($exp_dir, $o['receipt']);
+                exp_json(array('ok' => true, 'msg' => 'খরচ ডিলিট করা হয়েছে।'));
+            }
+            exp_json(array('ok' => false, 'msg' => 'ডিলিট করা যায়নি।'));
+        }
+
+        /* ----- SAVE (add + edit, recipient soho) ----- */
+        if ($act === 'save') {
+            $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+
+            $e = array();
+            foreach (array('title', 'category', 'amount', 'expense_date', 'payment_method', 'transaction_id', 'paid_to', 'description', 'status') as $k) {
+                $e[$k] = trim(isset($_POST[$k]) ? $_POST[$k] : '');
+            }
+            $activity_id = isset($_POST['activity_id']) ? (int) $_POST['activity_id'] : 0;
+            $mode = isset($_POST['recipient_mode']) ? $_POST['recipient_mode'] : 'none';
+            if (!in_array($mode, array('none', 'existing', 'new'))) {
+                $mode = 'none';
+            }
+            $rid = isset($_POST['recipient_id']) ? (int) $_POST['recipient_id'] : 0;
+            $amount = (float) $e['amount'];
+
+            if ($e['title'] === '' || $e['expense_date'] === '' || $amount <= 0) {
+                exp_json(array('ok' => false, 'msg' => 'শিরোনাম, তারিখ ও সঠিক Amount দিন।'));
+            }
+            if (!isset($CATS[$e['category']])) {
+                $e['category'] = 'Other';
+            }
+            if (!in_array($e['status'], $statuses)) {
+                $e['status'] = 'Pending';
+            }
+            if ($activity_id <= 0 && $mode === 'none') {
+                exp_json(array('ok' => false, 'msg' => 'কোনো কার্যক্রম অথবা সেবা গ্রহণকারী নির্বাচন করুন।'));
+            }
+            if ($activity_id > 0 && !exp_one($db, 'SELECT id FROM activities WHERE id = ?', 'i', array($activity_id))) {
+                exp_json(array('ok' => false, 'msg' => 'কার্যক্রম পাওয়া যায়নি।'));
+            }
+
+            // Recipient-er data
+            $r = array();
+            foreach ($RF_KEYS as $k) {
+                $v = trim(isset($_POST['r_' . $k]) ? $_POST['r_' . $k] : '');
+                $r[$k] = ($v === '' && in_array($k, $RF_NULLABLE)) ? null : $v;
+            }
+            if ($mode !== 'none') {
+                if ($r['member_name'] === '') {
+                    exp_json(array('ok' => false, 'msg' => 'সেবা গ্রহণকারীর নাম দিন।'));
+                }
+                if ($r['mobile_no'] !== '' && !preg_match('/^[0-9]{11}$/', $r['mobile_no'])) {
+                    exp_json(array('ok' => false, 'msg' => 'মোবাইল নম্বর ১১ ডিজিটের হতে হবে।'));
+                }
+                if ($r['email'] !== '' && !filter_var($r['email'], FILTER_VALIDATE_EMAIL)) {
+                    exp_json(array('ok' => false, 'msg' => 'সঠিক ইমেইল দিন।'));
+                }
+                if ($mode === 'existing' && $rid <= 0) {
+                    exp_json(array('ok' => false, 'msg' => 'সেবা গ্রহণকারী সিলেক্ট করুন।'));
+                }
+            }
+
+            // ---- uploads ----
+            $err = '';
+            $ph = '';
+            $gp = '';
+
+            $receipt = exp_upload(isset($_FILES['receipt']) ? $_FILES['receipt'] : null, $exp_dir, $err, 'exp');
+            if ($receipt === false) {
+                exp_json(array('ok' => false, 'msg' => $err));
+            }
+            if ($receipt !== '') {
+                $newf[] = array($exp_dir, $receipt);
+            }
+
+            if ($mode !== 'none') {
+                $ph = exp_upload(isset($_FILES['r_photo']) ? $_FILES['r_photo'] : null, $rec_dir, $err, 'rec');
+                if ($ph === false) {
+                    foreach ($newf as $n) {
+                        exp_unlink($n[0], $n[1]);
+                    }
+                    exp_json(array('ok' => false, 'msg' => $err));
+                }
+                if ($ph !== '') {
+                    $newf[] = array($rec_dir, $ph);
+                }
+
+                $gp = exp_upload(isset($_FILES['r_guardian_photo']) ? $_FILES['r_guardian_photo'] : null, $rec_dir, $err, 'grd');
+                if ($gp === false) {
+                    foreach ($newf as $n) {
+                        exp_unlink($n[0], $n[1]);
+                    }
+                    exp_json(array('ok' => false, 'msg' => $err));
+                }
+                if ($gp !== '') {
+                    $newf[] = array($rec_dir, $gp);
+                }
+            }
+
+            mysqli_begin_transaction($db);
+            $old_files = array();
+
+            // --- recipient ---
+            if ($mode === 'new') {
+                $cols = array_merge(array('photo', 'guardian_photo'), $RF_KEYS);
+                $vals = array_merge(array($ph, $gp), array_values($r));
+                exp_exec(
+                    $db,
+                    'INSERT INTO service_recipients (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')',
+                    str_repeat('s', count($vals)),
+                    $vals
+                );
+                $rid = (int) $GLOBALS['exp_insert_id'];
+                exp_exec($db, "UPDATE service_recipients SET serial_no = CONCAT('SR-', LPAD(id, 6, '0')) WHERE id = ?", 'i', array($rid));
+
+            } elseif ($mode === 'existing') {
+                $o = exp_one($db, 'SELECT photo, guardian_photo FROM service_recipients WHERE id = ?', 'i', array($rid));
+                if (!$o) {
+                    throw new Exception('Recipient পাওয়া যায়নি।');
+                }
+                $nph = ($ph !== '') ? $ph : $o['photo'];
+                $ngp = ($gp !== '') ? $gp : $o['guardian_photo'];
+                if ($ph !== '' && $o['photo'] !== '') {
+                    $old_files[] = array($rec_dir, $o['photo']);
+                }
+                if ($gp !== '' && $o['guardian_photo'] !== '') {
+                    $old_files[] = array($rec_dir, $o['guardian_photo']);
+                }
+                $cols = array_merge(array('photo', 'guardian_photo'), $RF_KEYS);
+                $vals = array_merge(array($nph, $ngp), array_values($r), array($rid));
+                exp_exec(
+                    $db,
+                    'UPDATE service_recipients SET ' . implode('=?, ', $cols) . '=? WHERE id = ?',
+                    str_repeat('s', count($cols)) . 'i',
+                    $vals
+                );
+            } else {
+                $rid = 0;
+            }
+
+            // --- expense ---
+            $final = $receipt;
+            if ($id > 0) {
+                $o = exp_one($db, 'SELECT receipt FROM expenses WHERE id = ?', 'i', array($id));
+                if (!$o) {
+                    throw new Exception('খরচ পাওয়া যায়নি।');
+                }
+                if ($receipt !== '') {
+                    $final = $receipt;
+                } elseif (!empty($_POST['remove_receipt'])) {
+                    $final = '';
+                } else {
+                    $final = $o['receipt'];
+                }
+                if ($final !== $o['receipt'] && $o['receipt'] !== '') {
+                    $old_files[] = array($exp_dir, $o['receipt']);
+                }
+            }
+
+            $cols = array(
+                'title',
+                'category',
+                'amount',
+                'expense_date',
+                'activity_id',
+                'recipient_id',
+                'payment_method',
+                'transaction_id',
+                'paid_to',
+                'description',
+                'receipt',
+                'status'
+            );
+            $vals = array(
+                $e['title'],
+                $e['category'],
+                $amount,
+                $e['expense_date'],
+                $activity_id ? $activity_id : null,
+                $rid ? $rid : null,
+                $e['payment_method'],
+                $e['transaction_id'],
+                $e['paid_to'],
+                $e['description'],
+                $final,
+                $e['status']
+            );
+
+            if ($id > 0) {
+                exp_exec(
+                    $db,
+                    'UPDATE expenses SET ' . implode('=?, ', $cols) . '=? WHERE id = ?',
+                    str_repeat('s', count($cols)) . 'i',
+                    array_merge($vals, array($id))
+                );
+                $msg = 'খরচ আপডেট হয়েছে।';
+            } else {
+                exp_exec(
+                    $db,
+                    'INSERT INTO expenses (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')',
+                    str_repeat('s', count($cols)),
+                    $vals
+                );
+                $nid = (int) $GLOBALS['exp_insert_id'];
+                exp_exec($db, "UPDATE expenses SET voucher_no = CONCAT('EXP-', LPAD(id, 6, '0')) WHERE id = ?", 'i', array($nid));
+                $msg = 'নতুন খরচ যোগ হয়েছে।';
+            }
+
+            mysqli_commit($db);
+            foreach ($old_files as $of) {
+                exp_unlink($of[0], $of[1]);   // purono image delete
+            }
+            exp_json(array('ok' => true, 'msg' => $msg));
+        }
+
+        exp_json(array('ok' => false, 'msg' => 'Unknown action.'));
+
+    } catch (Throwable $ex) {
+        @mysqli_rollback($db);
+        foreach ($newf as $n) {
+            exp_unlink($n[0], $n[1]);
+        }
+        exp_json(array('ok' => false, 'msg' => 'Server error: ' . $ex->getMessage()));
     }
-    exp_json(['ok' => false, 'msg' => 'Unknown action.']);
-
-  } catch (Throwable $ex) {
-    @mysqli_rollback($db);
-    foreach ($newf as $n) { exp_unlink($n[0], $n[1]); }
-    exp_json(['ok' => false, 'msg' => 'Server error: ' . $ex->getMessage()]);
-  }
 }
 
 /* ---------- Page load data ---------- */
-$saved = $_SESSION['exp_filter'] ?? ['q' => '', 'cat' => '', 'status' => '', 'act' => '', 'df' => '', 'dt' => '', 'per' => 10, 'page' => 1];
-if ($saved['cat'] !== '' && !isset($CATS[$saved['cat']])) { $saved['cat'] = ''; }
-if ($saved['status'] !== '' && !in_array($saved['status'], $statuses)) { $saved['status'] = ''; }
-$ACTS = exp_rows($db, "SELECT id, title, status FROM activities ORDER BY id DESC");
-$RECS = exp_rows($db, "SELECT id, member_name, serial_no, mobile_no FROM service_recipients ORDER BY id DESC");
-$CAT_BADGES = []; foreach ($CATS as $k => $v) { $CAT_BADGES[$k] = $v[0]; }
+$saved = isset($_SESSION['exp_filter'])
+    ? $_SESSION['exp_filter']
+    : array('q' => '', 'cat' => '', 'status' => '', 'act' => '', 'df' => '', 'dt' => '', 'per' => 10, 'page' => 1);
+
+if ($saved['cat'] !== '' && !isset($CATS[$saved['cat']])) {
+    $saved['cat'] = '';
+}
+if ($saved['status'] !== '' && !in_array($saved['status'], $statuses)) {
+    $saved['status'] = '';
+}
+
+$ACTS = array();
+$RECS = array();
+try {
+    $ACTS = exp_rows($db, 'SELECT id, title, status FROM activities ORDER BY id DESC');
+    $RECS = exp_rows($db, 'SELECT id, member_name, serial_no, mobile_no FROM service_recipients ORDER BY id DESC');
+} catch (Exception $ex) {
+    // table na thakle page crash korbe na
+}
+
+$CAT_BADGES = array();
+foreach ($CATS as $k => $v) {
+    $CAT_BADGES[$k] = $v[0];
+}
 
 $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
-
-function exp_field($k, $d, $inp, $lbl) {
-    $id = 'r_' . $k; $type = $d[1];
-    $o = '<div class="' . $d[2] . '"><label class="' . $lbl . ' normal-case">' . $d[0] . '</label>';
-    if ($type === 'textarea') { $o .= '<textarea name="' . $id . '" id="' . $id . '" rows="2" class="' . $inp . '"></textarea>'; }
-    elseif (strpos($type, 'select:') === 0) {
-        $o .= '<select name="' . $id . '" id="' . $id . '" class="' . $inp . '"><option value="">—</option>';
-        foreach (explode(',', substr($type, 7)) as $x) { $o .= '<option>' . h($x) . '</option>'; }
-        $o .= '</select>';
-    } elseif (strpos($type, 'list:') === 0) { $o .= '<input type="text" name="' . $id . '" id="' . $id . '" list="' . substr($type, 5) . '" class="' . $inp . '">'; }
-    else { $o .= '<input type="' . $type . '" name="' . $id . '" id="' . $id . '" class="' . $inp . '">'; }
-    return $o . '</div>';
-}
 ?>
 
 <section class="page-content space-y-5">
@@ -473,11 +932,11 @@ function exp_field($k, $d, $inp, $lbl) {
             <div><p class="text-[10px] font-bold text-slate-400 uppercase">Records</p><h3 class="text-xl font-bold text-slate-800" data-stat="total_count">0</h3></div>
         </div>
         <?php foreach ([['Complete', 'emerald', 'fa-circle-check', 'ring-emerald-500'], ['Pending', 'amber', 'fa-hourglass-half', 'ring-amber-500']] as $s) { ?>
-        <div data-fstatus="<?php echo $s[0]; ?>" data-ring="<?php echo $s[3]; ?>" class="p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-200/80 flex items-center gap-3 cursor-pointer hover:shadow-md transition">
-            <div class="w-10 h-10 rounded-xl bg-<?php echo $s[1]; ?>-50 text-<?php echo $s[1]; ?>-600 flex items-center justify-center shrink-0"><i class="fa-solid <?php echo $s[2]; ?>"></i></div>
-            <div class="min-w-0"><p class="text-[10px] font-bold text-slate-400 uppercase"><?php echo $s[0]; ?> <span class="normal-case" data-stat="st_c:<?php echo $s[0]; ?>"></span></p>
-                <h3 class="text-base sm:text-lg font-bold text-slate-800 truncate" data-stat="st_a:<?php echo $s[0]; ?>">৳0.00</h3></div>
-        </div>
+            <div data-fstatus="<?php echo $s[0]; ?>" data-ring="<?php echo $s[3]; ?>" class="p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-200/80 flex items-center gap-3 cursor-pointer hover:shadow-md transition">
+                <div class="w-10 h-10 rounded-xl bg-<?php echo $s[1]; ?>-50 text-<?php echo $s[1]; ?>-600 flex items-center justify-center shrink-0"><i class="fa-solid <?php echo $s[2]; ?>"></i></div>
+                <div class="min-w-0"><p class="text-[10px] font-bold text-slate-400 uppercase"><?php echo $s[0]; ?> <span class="normal-case" data-stat="st_c:<?php echo $s[0]; ?>"></span></p>
+                    <h3 class="text-base sm:text-lg font-bold text-slate-800 truncate" data-stat="st_a:<?php echo $s[0]; ?>">৳0.00</h3></div>
+            </div>
         <?php } ?>
     </div>
 
@@ -486,13 +945,13 @@ function exp_field($k, $d, $inp, $lbl) {
         <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Category wise total</h3>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <?php foreach ($CATS as $name => $cs) { ?>
-            <div data-fcat="<?php echo h($name); ?>" data-ring="<?php echo $cs[2]; ?>" class="p-3 bg-white rounded-2xl ring-1 ring-slate-200/80 flex items-center gap-2.5 cursor-pointer hover:shadow-md transition">
-                <div class="w-9 h-9 rounded-xl <?php echo $cs[1]; ?> flex items-center justify-center text-sm shrink-0"><i class="fa-solid <?php echo $cs[3]; ?>"></i></div>
-                <div class="min-w-0">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase truncate"><?php echo h($name); ?> <span class="normal-case font-semibold" data-stat="cat_c:<?php echo h($name); ?>"></span></p>
-                    <p class="text-xs font-bold text-slate-800 truncate" data-stat="cat_a:<?php echo h($name); ?>">৳0.00</p>
+                <div data-fcat="<?php echo h($name); ?>" data-ring="<?php echo $cs[2]; ?>" class="p-3 bg-white rounded-2xl ring-1 ring-slate-200/80 flex items-center gap-2.5 cursor-pointer hover:shadow-md transition">
+                    <div class="w-9 h-9 rounded-xl <?php echo $cs[1]; ?> flex items-center justify-center text-sm shrink-0"><i class="fa-solid <?php echo $cs[3]; ?>"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase truncate"><?php echo h($name); ?> <span class="normal-case font-semibold" data-stat="cat_c:<?php echo h($name); ?>"></span></p>
+                        <p class="text-xs font-bold text-slate-800 truncate" data-stat="cat_a:<?php echo h($name); ?>">৳0.00</p>
+                    </div>
                 </div>
-            </div>
             <?php } ?>
         </div>
     </div>
@@ -507,20 +966,28 @@ function exp_field($k, $d, $inp, $lbl) {
             </div>
             <select id="fCat" class="md:col-span-2 <?php echo $inp; ?>">
                 <option value="">All Categories</option>
-                <?php foreach ($CATS as $n => $_) { echo '<option' . ($saved['cat'] === $n ? ' selected' : '') . '>' . h($n) . '</option>'; } ?>
+                <?php foreach ($CATS as $n => $_) {
+                    echo '<option' . ($saved['cat'] === $n ? ' selected' : '') . '>' . h($n) . '</option>';
+                } ?>
             </select>
             <select id="fStatus" class="md:col-span-2 <?php echo $inp; ?>">
                 <option value="">All Status</option>
-                <?php foreach ($statuses as $n) { echo '<option' . ($saved['status'] === $n ? ' selected' : '') . '>' . $n . '</option>'; } ?>
+                <?php foreach ($statuses as $n) {
+                    echo '<option' . ($saved['status'] === $n ? ' selected' : '') . '>' . $n . '</option>';
+                } ?>
             </select>
             <select id="fAct" class="col-span-2 md:col-span-4 <?php echo $inp; ?>">
                 <option value="">All Activities</option>
-                <?php foreach ($ACTS as $a) { echo '<option value="' . (int)$a['id'] . '"' . ((string)$saved['act'] === (string)$a['id'] ? ' selected' : '') . '>' . h($a['title']) . '</option>'; } ?>
+                <?php foreach ($ACTS as $a) {
+                    echo '<option value="' . (int) $a['id'] . '"' . ((string) $saved['act'] === (string) $a['id'] ? ' selected' : '') . '>' . h($a['title']) . '</option>';
+                } ?>
             </select>
             <div class="md:col-span-3"><label class="<?php echo $lbl; ?>">From</label><input type="date" id="fDf" value="<?php echo h($saved['df']); ?>" class="<?php echo $inp; ?>"></div>
             <div class="md:col-span-3"><label class="<?php echo $lbl; ?>">To</label><input type="date" id="fDt" value="<?php echo h($saved['dt']); ?>" class="<?php echo $inp; ?>"></div>
             <div class="md:col-span-2"><label class="<?php echo $lbl; ?>">Per page</label>
-                <select id="fPer" class="<?php echo $inp; ?>"><?php foreach ($per_opts as $n) { echo '<option value="' . $n . '"' . ((int)$saved['per'] === $n ? ' selected' : '') . '>' . $n . '</option>'; } ?></select></div>
+                <select id="fPer" class="<?php echo $inp; ?>"><?php foreach ($per_opts as $n) {
+                       echo '<option value="' . $n . '"' . ((int) $saved['per'] === $n ? ' selected' : '') . '>' . $n . '</option>';
+                   } ?></select></div>
             <div class="col-span-2 md:col-span-4 flex items-end">
                 <button type="button" id="fClear" onclick="expClear()" class="hidden w-full md:w-auto px-4 py-2.5 border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-semibold items-center justify-center gap-1.5">
                     <i class="fa-solid fa-filter-circle-xmark"></i> Remove Filter
@@ -565,11 +1032,17 @@ function exp_field($k, $d, $inp, $lbl) {
                 <h4 class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2"><i class="fa-solid fa-circle-info text-emerald-600 mr-1.5"></i>Expense Details</h4>
                 <div><label class="<?php echo $lbl; ?>">Title / Purpose *</label><input type="text" name="title" id="x_title" class="<?php echo $inp; ?>" placeholder="e.g. Wheelchair purchase for ..."></div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="<?php echo $lbl; ?>">Category *</label><select name="category" id="x_category" class="<?php echo $inp; ?>"><?php foreach ($CATS as $n => $_) { echo '<option>' . h($n) . '</option>'; } ?></select></div>
+                    <div><label class="<?php echo $lbl; ?>">Category *</label><select name="category" id="x_category" class="<?php echo $inp; ?>"><?php foreach ($CATS as $n => $_) {
+                              echo '<option>' . h($n) . '</option>';
+                          } ?></select></div>
                     <div><label class="<?php echo $lbl; ?>">Amount (৳) *</label><input type="number" min="0" step="0.01" name="amount" id="x_amount" class="<?php echo $inp; ?>"></div>
                     <div><label class="<?php echo $lbl; ?>">Expense Date *</label><input type="date" name="expense_date" id="x_expense_date" class="<?php echo $inp; ?>"></div>
-                    <div><label class="<?php echo $lbl; ?>">Status *</label><select name="status" id="x_status" class="<?php echo $inp; ?>"><?php foreach ($statuses as $n) { echo '<option>' . $n . '</option>'; } ?></select></div>
-                    <div><label class="<?php echo $lbl; ?>">Payment Method</label><select name="payment_method" id="x_payment_method" class="<?php echo $inp; ?>"><option value="">—</option><?php foreach ($methods as $n) { echo '<option>' . $n . '</option>'; } ?></select></div>
+                    <div><label class="<?php echo $lbl; ?>">Status *</label><select name="status" id="x_status" class="<?php echo $inp; ?>"><?php foreach ($statuses as $n) {
+                              echo '<option>' . $n . '</option>';
+                          } ?></select></div>
+                    <div><label class="<?php echo $lbl; ?>">Payment Method</label><select name="payment_method" id="x_payment_method" class="<?php echo $inp; ?>"><option value="">—</option><?php foreach ($methods as $n) {
+                              echo '<option>' . $n . '</option>';
+                          } ?></select></div>
                     <div><label class="<?php echo $lbl; ?>">Transaction ID</label><input type="text" name="transaction_id" id="x_transaction_id" class="<?php echo $inp; ?>"></div>
                 </div>
                 <div><label class="<?php echo $lbl; ?>">Paid To (Vendor / Person)</label><input type="text" name="paid_to" id="x_paid_to" class="<?php echo $inp; ?>"></div>
@@ -592,9 +1065,9 @@ function exp_field($k, $d, $inp, $lbl) {
                     <label class="<?php echo $lbl; ?>">Service Recipient / সেবা গ্রহণকারী</label>
                     <div class="grid grid-cols-3 gap-2" id="x_modes">
                         <?php foreach ([['none', 'None', 'fa-ban'], ['existing', 'Existing', 'fa-user-check'], ['new', 'New', 'fa-user-plus']] as $m) { ?>
-                        <label class="flex items-center justify-center gap-1.5 p-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700">
-                            <input type="radio" name="recipient_mode" value="<?php echo $m[0]; ?>" class="sr-only" <?php echo $m[0] === 'none' ? 'checked' : ''; ?>><i class="fa-solid <?php echo $m[2]; ?>"></i><?php echo $m[1]; ?>
-                        </label>
+                            <label class="flex items-center justify-center gap-1.5 p-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700">
+                                <input type="radio" name="recipient_mode" value="<?php echo $m[0]; ?>" class="sr-only" <?php echo $m[0] === 'none' ? 'checked' : ''; ?>><i class="fa-solid <?php echo $m[2]; ?>"></i><?php echo $m[1]; ?>
+                            </label>
                         <?php } ?>
                     </div>
                 </div>
@@ -613,22 +1086,31 @@ function exp_field($k, $d, $inp, $lbl) {
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <?php foreach (['r_photo' => 'Photo / ছবি', 'r_guardian_photo' => 'Guardian Photo / অভিভাবকের ছবি'] as $fid => $fl) { ?>
-                            <div>
-                                <label class="<?php echo $lbl; ?> normal-case"><?php echo $fl; ?></label>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-14 h-16 rounded-lg border-2 border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden shrink-0"><i class="fa-solid fa-camera text-slate-300" id="<?php echo $fid; ?>_icon"></i><img id="<?php echo $fid; ?>_prev" class="hidden w-full h-full object-cover"></div>
-                                    <input type="file" name="<?php echo $fid; ?>" id="<?php echo $fid; ?>" accept="image/png,image/jpeg,image/webp" class="text-[10px] w-full min-w-0">
+                                <div>
+                                    <label class="<?php echo $lbl; ?> normal-case"><?php echo $fl; ?></label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-14 h-16 rounded-lg border-2 border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden shrink-0"><i class="fa-solid fa-camera text-slate-300" id="<?php echo $fid; ?>_icon"></i><img id="<?php echo $fid; ?>_prev" class="hidden w-full h-full object-cover"></div>
+                                        <input type="file" name="<?php echo $fid; ?>" id="<?php echo $fid; ?>" accept="image/png,image/jpeg,image/webp" class="text-[10px] w-full min-w-0">
+                                    </div>
                                 </div>
-                            </div>
                             <?php } ?>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <?php foreach ($RF as $k => $d) { if (!in_array($k, $RF_OFFICE)) { echo exp_field($k, $d, $inp, $lbl); if ($k === 'permanent_address') { echo '<label class="sm:col-span-2 -mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold cursor-pointer"><input type="checkbox" id="r_same" class="rounded"> Same as Present Address</label>'; } } } ?>
+                            <?php foreach ($RF as $k => $d) {
+                                if (!in_array($k, $RF_OFFICE)) {
+                                    echo exp_field($k, $d, $inp, $lbl);
+                                    if ($k === 'permanent_address') {
+                                        echo '<label class="sm:col-span-2 -mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold cursor-pointer"><input type="checkbox" id="r_same" class="rounded"> Same as Present Address</label>';
+                                    }
+                                }
+                            } ?>
                         </div>
                         <details class="rounded-xl bg-white border border-slate-200 p-3">
                             <summary class="text-xs font-bold text-slate-700 cursor-pointer"><i class="fa-solid fa-stamp mr-1.5 text-emerald-600"></i>For Official Use Only <span class="font-normal text-slate-400">(অফিস ব্যবহারের জন্য)</span></summary>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                                <?php foreach ($RF_OFFICE as $k) { echo exp_field($k, $RF[$k], $inp, $lbl); } ?>
+                                <?php foreach ($RF_OFFICE as $k) {
+                                    echo exp_field($k, $RF[$k], $inp, $lbl);
+                                } ?>
                             </div>
                         </details>
                     </div>
