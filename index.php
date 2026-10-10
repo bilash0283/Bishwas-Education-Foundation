@@ -401,8 +401,17 @@
                                     <h3 class="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition">
                                         <?= htmlspecialchars($blog['blog_title']) ?>
                                     </h3>
+                                    <?php 
+                                    $desc = $blog['short_description'];
+
+                                    // literal "\r\n" text ke asol newline e convert kora
+                                    $desc = str_replace(['\r\n', '\n', '\r'], "\n", $desc);
+
+                                    // ekdom beshi faka line komiye dewa (3+ newline -> 2)
+                                    $desc = preg_replace("/\n{3,}/", "\n\n", trim($desc));
+                                    ?>
                                     <p class="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                                        <?= htmlspecialchars($blog['short_description']) ?>
+                                        <?= htmlspecialchars($desc) ?>
                                     </p>
                                 </div>
                                 
