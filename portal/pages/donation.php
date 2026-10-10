@@ -1,183 +1,365 @@
 <?php
-// only admin and volunters can visite 
-if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin'])) {
-    header('Location: index.php?page=dashboard');
-    exit;
+/*
+ * DONATION PAGE - PHP 7.2 compatible, beginner friendly version
+ *
+ * Live server-e ja problem hochhilo (ebong fix):
+ * 1. mysqli_stmt_get_result()  -> mysqlnd na thakle kaj kore na (list + summary khali ashto).
+ *                                 Ekhon nijer helper db_select() use kora hoyeche.
+ * 2. session_start()           -> $_SESSION check er AGE session start korte hobe. Ekhon sobar upore.
+ * 3. header('Location')        -> age output hoye gele "headers already sent" error hoy.
+ *                                 Ekhon ob_start() + go_to() (JavaScript fallback soho).
+ * 4. finfo_open()              -> live server-e fileinfo extension na thakle fatal error hoy.
+ *                                 Ekhon thakle finfo, na thakle getimagesize() diye check kore.
+ * 5. function h()              -> shesh-e chhilo ebong duplicate hole fatal error. Ekhon upore, function_exists() soho.
+ * 6. $db                       -> include file-er bhitor 'global $db' lage.
+ *
+ * IMPORTANT: File ta "UTF-8 (without BOM)" encoding-e save korben.
+ */
+
+// ---------- 0. Output buffer & Session (sobar upore) ----------
+if (!headers_sent()) {
+    ob_start();
+}
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
 }
 
-$baseUrl = "index.php?page=donation";
+/* =====================================================================
+   HELPER FUNCTIONS
+===================================================================== */
+
+if (!function_exists('h')) {
+    // Safe output (XSS theke bachay)
+    function h($value)
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('go_to')) {
+    // Safe redirect: header kaj na korle JavaScript diye redirect hobe
+    function go_to($url)
+    {
+        if (!headers_sent()) {
+            header('Location: ' . $url);
+        } else {
+            echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+            echo '<noscript><meta http-equiv="refresh" content="0;url=' . h($url) . '"></noscript>';
+        }
+        exit;
+    }
+}
+
+/*
+ * SELECT query chalay, sob row array hishebe ferot dey. (mysqlnd lage na)
+ * $types  = 'i' (number), 's' (text), 'd' (decimal)   jemon: 'iss'
+ * $params = value-gulo array-te                        jemon: array(5, 'a', 'b')
+ */
+if (!function_exists('db_select')) {
+    function db_select($conn, $sql, $types = '', $params = array())
+    {
+        $rows = array();
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            return $rows;
+        }
+
+        if ($types !== '' && count($params) > 0) {
+            $args = array($stmt, $types);
+            foreach ($params as $k => $v) {
+                $args[] = &$params[$k];   // bind_param-e reference lage
+            }
+            call_user_func_array('mysqli_stmt_bind_param', $args);
+        }
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_store_result($stmt);
+
+        $meta = mysqli_stmt_result_metadata($stmt);
+        if ($meta) {
+            $row = array();
+            $bind = array($stmt);
+            while ($field = mysqli_fetch_field($meta)) {
+                $row[$field->name] = null;
+                $bind[] = &$row[$field->name];
+            }
+            call_user_func_array('mysqli_stmt_bind_result', $bind);
+
+            while (mysqli_stmt_fetch($stmt)) {
+                $copy = array();
+                foreach ($row as $key => $val) {
+                    $copy[$key] = $val;
+                }
+                $rows[] = $copy;
+            }
+            mysqli_free_result($meta);
+        }
+
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+// Shudhu prothom row ferot dey (na thakle null)
+if (!function_exists('db_select_one')) {
+    function db_select_one($conn, $sql, $types = '', $params = array())
+    {
+        $rows = db_select($conn, $sql, $types, $params);
+        return count($rows) > 0 ? $rows[0] : null;
+    }
+}
+
+/*
+ * INSERT / UPDATE / DELETE chalay. Success hole true.
+ * Error hole $GLOBALS['db_last_error'], affected row $GLOBALS['db_affected'] te thake.
+ */
+if (!function_exists('db_execute')) {
+    function db_execute($conn, $sql, $types = '', $params = array())
+    {
+        $GLOBALS['db_last_error'] = '';
+        $GLOBALS['db_affected'] = 0;
+
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            $GLOBALS['db_last_error'] = mysqli_error($conn);
+            return false;
+        }
+        if ($types !== '' && count($params) > 0) {
+            $args = array($stmt, $types);
+            foreach ($params as $k => $v) {
+                $args[] = &$params[$k];
+            }
+            call_user_func_array('mysqli_stmt_bind_param', $args);
+        }
+        $ok = mysqli_stmt_execute($stmt);
+        if ($ok) {
+            $GLOBALS['db_affected'] = mysqli_stmt_affected_rows($stmt);
+        } else {
+            $GLOBALS['db_last_error'] = mysqli_stmt_error($stmt);
+        }
+        mysqli_stmt_close($stmt);
+        return $ok;
+    }
+}
+
+// Receipt ekta asol chhobi kina check kore (fileinfo na thakleo kaj kore)
+if (!function_exists('don_is_valid_image')) {
+    function don_is_valid_image($tmp_name)
+    {
+        $allowed_mime = array('image/jpeg', 'image/png', 'image/webp');
+
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $tmp_name);
+            finfo_close($finfo);
+            return in_array($mime, $allowed_mime);
+        }
+
+        // fileinfo extension nei: getimagesize diye check
+        $info = @getimagesize($tmp_name);
+        return ($info !== false && isset($info['mime']) && in_array($info['mime'], $allowed_mime));
+    }
+}
+
+/*
+ * Receipt upload kore.
+ * Return: file name (success) / '' (kono file dey nai) / false (error, $err te message)
+ */
+if (!function_exists('don_upload_receipt')) {
+    function don_upload_receipt($upload_dir, &$err)
+    {
+        if (!isset($_FILES['receipt']) || $_FILES['receipt']['error'] === UPLOAD_ERR_NO_FILE) {
+            return '';
+        }
+        $file = $_FILES['receipt'];
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $err = 'Receipt আপলোডে সমস্যা হয়েছে (Error code: ' . $file['error'] . ')।';
+            return false;
+        }
+
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, array('jpg', 'jpeg', 'png', 'webp')) || !don_is_valid_image($file['tmp_name'])) {
+            $err = 'Receipt শুধু JPG, JPEG, PNG বা WEBP ছবি হতে হবে।';
+            return false;
+        }
+        if ($file['size'] > 5 * 1024 * 1024) {
+            $err = 'Receipt এর সাইজ ৫MB এর বেশি হতে পারবে না।';
+            return false;
+        }
+
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0755, true);
+        }
+
+        $new_name = time() . '_' . mt_rand(1000, 9999) . '.' . $ext;
+        if (!move_uploaded_file($file['tmp_name'], $upload_dir . $new_name)) {
+            $err = 'Receipt সেভ করা যায়নি। uploads/receipts ফোল্ডারের পারমিশন (755/775) চেক করুন।';
+            return false;
+        }
+        return $new_name;
+    }
+}
+
+/* =====================================================================
+   ACCESS CHECK + DATABASE
+===================================================================== */
+
+// only admin can visit
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], array('Admin'))) {
+    go_to('index.php?page=dashboard');
+}
+
+global $db;
+if (!isset($db) || !$db) {
+    die('Database connection not found.');
+}
+mysqli_set_charset($db, 'utf8mb4');
+
+$baseUrl = 'index.php?page=donation';
+$error_message = '';
+
+// Receipt folder (index.php je folder-e ache, sekhane uploads/receipts/)
+$receipt_dir = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/';
 
 /* =====================================================================
    1) HANDLE FORM SUBMISSIONS (ADD / EDIT / DELETE)
 ===================================================================== */
 
+$form_action = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) ? $_POST['form_action'] : '';
+
 // ---------- ADD DONATION ----------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'add') {
+if ($form_action === 'add') {
     // ফর্ম থেকে ডাটা নেওয়া
-    $donor_id = isset($_POST['donor_id']) && $_POST['donor_id'] !== '' ? (int) $_POST['donor_id'] : 0;
-    $amount = (float) ($_POST['amount'] ?? 0);
-    $donation_type = trim($_POST['donation_type'] ?? '');
-    $payment_method = trim($_POST['payment_method'] ?? '');
-    $transaction_id = trim($_POST['transaction_id'] ?? '');
-    $payment_status = trim($_POST['payment_status'] ?? 'pending');
+    $donor_id = (isset($_POST['donor_id']) && $_POST['donor_id'] !== '') ? (int) $_POST['donor_id'] : 0;
+    $amount = (float) (isset($_POST['amount']) ? $_POST['amount'] : 0);
+    $donation_type = trim(isset($_POST['donation_type']) ? $_POST['donation_type'] : '');
+    $payment_method = trim(isset($_POST['payment_method']) ? $_POST['payment_method'] : '');
+    $transaction_id = trim(isset($_POST['transaction_id']) ? $_POST['transaction_id'] : '');
+    $payment_status = trim(isset($_POST['payment_status']) ? $_POST['payment_status'] : 'pending');
     $donation_date = !empty($_POST['donation_date']) ? $_POST['donation_date'] : date('Y-m-d');
-    $admin_note = trim($_POST['admin_note'] ?? '');
-    $fund = trim($_POST['fund'] ?? '');
+    $admin_note = trim(isset($_POST['admin_note']) ? $_POST['admin_note'] : '');
+    $fund = trim(isset($_POST['fund']) ? $_POST['fund'] : '');
 
     // ফর্মে নেই, তাই ডিফল্ট ভ্যালু
-    $type = "Member";
+    $type = 'Member';
 
-    $errors = [];
+    $errors = array();
 
     // ---------- ধাপ ১: ভ্যালিডেশন ----------
-    $allowed_status = ['pending', 'paid', 'failed', 'rejected'];
+    $allowed_status = array('pending', 'paid', 'failed', 'rejected');
 
     if ($donor_id <= 0) {
-        $errors[] = "Donor select করুন।";
+        $errors[] = 'Donor select করুন।';
     }
     if ($amount <= 0) {
-        $errors[] = "Amount সঠিক নয়।";
+        $errors[] = 'Amount সঠিক নয়।';
     }
     if ($donation_type === '' || $payment_method === '') {
-        $errors[] = "Donation Type ও Payment Method দিন।";
+        $errors[] = 'Donation Type ও Payment Method দিন।';
     }
     if (!in_array($payment_status, $allowed_status)) {
         $payment_status = 'pending';
     }
 
     // ---------- ধাপ ২: Donor এর তথ্য users টেবিল থেকে আনা ----------
-    $name = $email = $phone = "";
+    $name = $email = $phone = '';
 
     if (empty($errors)) {
-        $u_stmt = mysqli_prepare($db, "SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1");
-        mysqli_stmt_bind_param($u_stmt, "i", $donor_id);
-        mysqli_stmt_execute($u_stmt);
-        mysqli_stmt_bind_result($u_stmt, $name, $email, $phone);
-
-        if (!mysqli_stmt_fetch($u_stmt)) {
-            $errors[] = "Donor খুঁজে পাওয়া যায়নি।";
+        $donor = db_select_one($db, 'SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1', 'i', array($donor_id));
+        if ($donor) {
+            $name = $donor['member_name'];
+            $email = $donor['email'];
+            $phone = $donor['mobile_no'];
+        } else {
+            $errors[] = 'Donor খুঁজে পাওয়া যায়নি।';
         }
-        mysqli_stmt_close($u_stmt);
     }
 
-    // ---------- ধাপ ৩: রিসিপ্ট আপলোড ----------
-    $receipt = "";
-
-    // ফাইল সিলেক্ট করা হয়েছে কি না (না করলেও সমস্যা নেই, receipt optional)
-    if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] !== UPLOAD_ERR_NO_FILE) {
-
-        if ($_FILES['receipt']['error'] !== UPLOAD_ERR_OK) {
-            // যেমন: php.ini এর upload_max_filesize এর চেয়ে বড় ফাইল
-            $errors[] = "Receipt আপলোডে সমস্যা হয়েছে (Error code: " . $_FILES['receipt']['error'] . ")।";
-        } else {
-
-            // অনুমোদিত এক্সটেনশন ও MIME type
-            $allowed_ext = ['jpg', 'jpeg', 'png', 'webp'];
-            $allowed_mime = ['image/jpeg', 'image/png', 'image/webp'];
-
-            $ext = strtolower(pathinfo($_FILES['receipt']['name'], PATHINFO_EXTENSION));
-
-            // ফাইলের আসল ধরন চেক (নাম বদলে ফাঁকি দিলেও ধরা পড়বে)
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime = finfo_file($finfo, $_FILES['receipt']['tmp_name']);
-            finfo_close($finfo);
-
-            if (!in_array($ext, $allowed_ext) || !in_array($mime, $allowed_mime)) {
-                $errors[] = "Receipt শুধু JPG, JPEG, PNG বা WEBP ছবি হতে হবে।";
-            } elseif ($_FILES['receipt']['size'] > 5 * 1024 * 1024) {
-                $errors[] = "Receipt এর সাইজ ৫MB এর বেশি হতে পারবে না।";
-            } elseif (empty($errors)) {
-
-                // index.php যে ফোল্ডারে আছে (portal), সেখানে uploads/receipts/
-                $upload_dir = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/';
-
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0755, true);
-                }
-
-                $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
-
-                if (move_uploaded_file($_FILES['receipt']['tmp_name'], $upload_dir . $new_name)) {
-                    $receipt = $new_name;
-                } else {
-                    $errors[] = "Receipt সেভ করা যায়নি। uploads/receipts ফোল্ডারের পারমিশন (755/775) চেক করুন।";
-                }
-            }
+    // ---------- ধাপ ৩: রিসিপ্ট আপলোড (optional) ----------
+    $receipt = '';
+    if (empty($errors)) {
+        $up_err = '';
+        $receipt = don_upload_receipt($receipt_dir, $up_err);
+        if ($receipt === false) {
+            $errors[] = $up_err;
+            $receipt = '';
         }
     }
 
     // ---------- ধাপ ৪: ডাটাবেজে ইনসার্ট ----------
     if (empty($errors)) {
-
         $sql = "INSERT INTO donations
                 (donor_id, type, name, email, phone, amount, donation_type, fund,
                  payment_method, transaction_id, payment_status,
                  donation_date, admin_note, receipt, created_at, updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
 
-        $stmt = mysqli_prepare($db, $sql);
-
         // i=donor_id, ssss=type,name,email,phone, d=amount, বাকি ৮টি s
-        mysqli_stmt_bind_param(
-            $stmt,
-            "issssdssssssss",
-            $donor_id,
-            $type,
-            $name,
-            $email,
-            $phone,
-            $amount,
-            $donation_type,
-            $fund,
-            $payment_method,
-            $transaction_id,
-            $payment_status,
-            $donation_date,
-            $admin_note,
-            $receipt
+        $ok = db_execute(
+            $db,
+            $sql,
+            'issssdssssssss',
+            array(
+                $donor_id,
+                $type,
+                $name,
+                $email,
+                $phone,
+                $amount,
+                $donation_type,
+                $fund,
+                $payment_method,
+                $transaction_id,
+                $payment_status,
+                $donation_date,
+                $admin_note,
+                $receipt
+            )
         );
 
-        if (mysqli_stmt_execute($stmt)) {
-            mysqli_stmt_close($stmt);
-            header("Location: $baseUrl");
-            exit;
+        if ($ok) {
+            go_to($baseUrl);
         } else {
-            $errors[] = "ডাটা সেভ হয়নি: " . mysqli_stmt_error($stmt);
-            mysqli_stmt_close($stmt);
+            $errors[] = 'ডাটা সেভ হয়নি: ' . $GLOBALS['db_last_error'];
+            // সেভ ব্যর্থ হলে আপলোড করা ছবি মুছে দেওয়া
+            if ($receipt !== '' && is_file($receipt_dir . $receipt)) {
+                @unlink($receipt_dir . $receipt);
+            }
         }
     }
 
     // এরর থাকলে পেজে দেখানো হবে
-    $error_message = implode("<br>", $errors);
+    $error_message = implode('<br>', $errors);
 }
 
 // ---------- EDIT DONATION ----------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'edit') {
+if ($form_action === 'edit') {
 
-    $id             = (int) ($_POST['id'] ?? 0);
-    $new_donor_id   = ($_POST['donor_id'] ?? '') !== '' ? (int) $_POST['donor_id'] : 0;
-    $amount         = (float) ($_POST['amount'] ?? 0);
-    $donation_type  = trim($_POST['donation_type'] ?? '');
-    $fund           = trim($_POST['fund'] ?? '');
-    $payment_method = trim($_POST['payment_method'] ?? '');
-    $transaction_id = trim($_POST['transaction_id'] ?? '');
-    $payment_status = trim($_POST['payment_status'] ?? 'pending');
-    $donation_date  = !empty($_POST['donation_date']) ? $_POST['donation_date'] : date('Y-m-d');
-    $admin_note     = trim($_POST['admin_note'] ?? '');
+    $id = (int) (isset($_POST['id']) ? $_POST['id'] : 0);
+    $new_donor_id = (isset($_POST['donor_id']) && $_POST['donor_id'] !== '') ? (int) $_POST['donor_id'] : 0;
+    $amount = (float) (isset($_POST['amount']) ? $_POST['amount'] : 0);
+    $donation_type = trim(isset($_POST['donation_type']) ? $_POST['donation_type'] : '');
+    $fund = trim(isset($_POST['fund']) ? $_POST['fund'] : '');
+    $payment_method = trim(isset($_POST['payment_method']) ? $_POST['payment_method'] : '');
+    $transaction_id = trim(isset($_POST['transaction_id']) ? $_POST['transaction_id'] : '');
+    $payment_status = trim(isset($_POST['payment_status']) ? $_POST['payment_status'] : 'pending');
+    $donation_date = !empty($_POST['donation_date']) ? $_POST['donation_date'] : date('Y-m-d');
+    $admin_note = trim(isset($_POST['admin_note']) ? $_POST['admin_note'] : '');
 
-    $errors = [];
+    $errors = array();
 
     // ---------- ধাপ ১: ভ্যালিডেশন ----------
-    $allowed_status = ['pending', 'paid', 'failed', 'rejected'];
+    $allowed_status = array('pending', 'paid', 'failed', 'rejected');
 
     if ($id <= 0) {
-        $errors[] = "Donation খুঁজে পাওয়া যায়নি।";
+        $errors[] = 'Donation খুঁজে পাওয়া যায়নি।';
     }
     if ($amount <= 0) {
-        $errors[] = "Amount সঠিক নয়।";
+        $errors[] = 'Amount সঠিক নয়।';
     }
     if ($donation_type === '' || $payment_method === '') {
-        $errors[] = "Donation Type ও Payment Method দিন।";
+        $errors[] = 'Donation Type ও Payment Method দিন।';
     }
     if (!in_array($payment_status, $allowed_status)) {
         $payment_status = 'pending';
@@ -185,79 +367,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
 
     // ---------- ধাপ ২: বর্তমান রেকর্ড ডাটাবেজ থেকে আনা ----------
     $donor_id = null;
-    $type = $name = $email = $phone = $old_receipt = "";
+    $type = $name = $email = $phone = $old_receipt = '';
 
     if (empty($errors)) {
-        $o_stmt = mysqli_prepare($db, "SELECT donor_id, type, name, email, phone, receipt FROM donations WHERE id = ? LIMIT 1");
-        mysqli_stmt_bind_param($o_stmt, "i", $id);
-        mysqli_stmt_execute($o_stmt);
-        mysqli_stmt_bind_result($o_stmt, $donor_id, $type, $name, $email, $phone, $old_receipt);
-
-        if (!mysqli_stmt_fetch($o_stmt)) {
-            $errors[] = "Donation রেকর্ড পাওয়া যায়নি।";
+        $old = db_select_one($db, 'SELECT donor_id, type, name, email, phone, receipt FROM donations WHERE id = ? LIMIT 1', 'i', array($id));
+        if ($old) {
+            $donor_id = $old['donor_id'];
+            $type = $old['type'];
+            $name = $old['name'];
+            $email = $old['email'];
+            $phone = $old['phone'];
+            $old_receipt = (string) $old['receipt'];
+        } else {
+            $errors[] = 'Donation রেকর্ড পাওয়া যায়নি।';
         }
-        mysqli_stmt_close($o_stmt);
     }
 
     // ---------- ধাপ ৩: Donor বদলানো হলে users টেবিল থেকে নতুন তথ্য আনা ----------
     if (empty($errors) && $new_donor_id > 0) {
-        $u_stmt = mysqli_prepare($db, "SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1");
-        mysqli_stmt_bind_param($u_stmt, "i", $new_donor_id);
-        mysqli_stmt_execute($u_stmt);
-        mysqli_stmt_bind_result($u_stmt, $u_name, $u_email, $u_phone);
-
-        if (mysqli_stmt_fetch($u_stmt)) {
+        $nu = db_select_one($db, 'SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1', 'i', array($new_donor_id));
+        if ($nu) {
             $donor_id = $new_donor_id;
-            $type     = "Member";
-            $name     = $u_name;
-            $email    = $u_email;
-            $phone    = $u_phone;
+            $type = 'Member';
+            $name = $nu['member_name'];
+            $email = $nu['email'];
+            $phone = $nu['mobile_no'];
         } else {
-            $errors[] = "Donor খুঁজে পাওয়া যায়নি।";
+            $errors[] = 'Donor খুঁজে পাওয়া যায়নি।';
         }
-        mysqli_stmt_close($u_stmt);
     }
     // $new_donor_id == 0 হলে আগের donor_id, type, name, email, phone অপরিবর্তিত থাকবে
 
     // ---------- ধাপ ৪: নতুন রিসিপ্ট আপলোড (দিলে) ----------
-    $receipt = $old_receipt;     // নতুন ফাইল না দিলে পুরনোটাই থাকবে
+    $receipt = $old_receipt;   // নতুন ফাইল না দিলে পুরনোটাই থাকবে
     $uploaded_new = false;
-    $upload_dir = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/';
 
-    if (empty($errors) && isset($_FILES['receipt']) && $_FILES['receipt']['error'] !== UPLOAD_ERR_NO_FILE) {
-
-        if ($_FILES['receipt']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = "Receipt আপলোডে সমস্যা হয়েছে (Error code: " . $_FILES['receipt']['error'] . ")।";
-        } else {
-
-            $allowed_ext  = ['jpg', 'jpeg', 'png', 'webp'];
-            $allowed_mime = ['image/jpeg', 'image/png', 'image/webp'];
-
-            $ext = strtolower(pathinfo($_FILES['receipt']['name'], PATHINFO_EXTENSION));
-
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime  = finfo_file($finfo, $_FILES['receipt']['tmp_name']);
-            finfo_close($finfo);
-
-            if (!in_array($ext, $allowed_ext) || !in_array($mime, $allowed_mime)) {
-                $errors[] = "Receipt শুধু JPG, JPEG, PNG বা WEBP ছবি হতে হবে।";
-            } elseif ($_FILES['receipt']['size'] > 5 * 1024 * 1024) {
-                $errors[] = "Receipt এর সাইজ ৫MB এর বেশি হতে পারবে না।";
-            } else {
-
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0755, true);
-                }
-
-                $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
-
-                if (move_uploaded_file($_FILES['receipt']['tmp_name'], $upload_dir . $new_name)) {
-                    $receipt = $new_name;
-                    $uploaded_new = true;
-                } else {
-                    $errors[] = "Receipt সেভ করা যায়নি। uploads/receipts ফোল্ডারের পারমিশন (755/775) চেক করুন।";
-                }
-            }
+    if (empty($errors)) {
+        $up_err = '';
+        $new_receipt = don_upload_receipt($receipt_dir, $up_err);
+        if ($new_receipt === false) {
+            $errors[] = $up_err;
+        } elseif ($new_receipt !== '') {
+            $receipt = $new_receipt;
+            $uploaded_new = true;
         }
     }
 
@@ -272,87 +424,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
                     admin_note = ?, receipt = ?, updated_at = NOW()
                 WHERE id = ?";
 
-        $stmt = mysqli_prepare($db, $sql);
-
         // i ssss d ssssssssss i = ১৫টি
-        mysqli_stmt_bind_param(
-            $stmt,
-            "issssdssssssssi",
-            $donor_id, $type, $name, $email, $phone, $amount, $donation_type, $fund,
-            $payment_method, $transaction_id, $payment_status,
-            $donation_date, $admin_note, $receipt, $id
+        $ok = db_execute(
+            $db,
+            $sql,
+            'issssdssssssssi',
+            array(
+                $donor_id,
+                $type,
+                $name,
+                $email,
+                $phone,
+                $amount,
+                $donation_type,
+                $fund,
+                $payment_method,
+                $transaction_id,
+                $payment_status,
+                $donation_date,
+                $admin_note,
+                $receipt,
+                $id
+            )
         );
 
-        if (mysqli_stmt_execute($stmt)) {
-            mysqli_stmt_close($stmt);
-
+        if ($ok) {
             // আপডেট সফল হলে, নতুন ছবি দিলে পুরনো ছবি মুছে ফেলা
-            if ($uploaded_new && !empty($old_receipt)) {
-                $old_path = $upload_dir . basename($old_receipt);
+            if ($uploaded_new && $old_receipt !== '') {
+                $old_path = $receipt_dir . basename($old_receipt);
                 if (is_file($old_path)) {
-                    unlink($old_path);
+                    @unlink($old_path);
                 }
             }
-
-            header("Location: $baseUrl");
-            exit;
+            go_to($baseUrl);
         } else {
-            $errors[] = "ডাটা আপডেট হয়নি: " . mysqli_stmt_error($stmt);
-            mysqli_stmt_close($stmt);
+            $errors[] = 'ডাটা আপডেট হয়নি: ' . $GLOBALS['db_last_error'];
 
             // আপডেট ব্যর্থ হলে এইমাত্র আপলোড করা নতুন ছবি মুছে দেওয়া
-            if ($uploaded_new && is_file($upload_dir . $receipt)) {
-                unlink($upload_dir . $receipt);
+            if ($uploaded_new && is_file($receipt_dir . $receipt)) {
+                @unlink($receipt_dir . $receipt);
             }
         }
     }
 
     // এরর থাকলে পেজে দেখানো হবে
-    $error_message = implode("<br>", $errors);
+    $error_message = implode('<br>', $errors);
 }
 
-
 // ---------- DELETE DONATION ----------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'delete') {
+if ($form_action === 'delete') {
 
-    $id = (int) ($_POST['id'] ?? 0);
+    $id = (int) (isset($_POST['id']) ? $_POST['id'] : 0);
 
     if ($id > 0) {
 
         // ধাপ ১: ডিলিটের আগে receipt এর ফাইলের নাম বের করা
-        $receipt_file = "";
-
-        $sel = mysqli_prepare($db, "SELECT receipt FROM donations WHERE id = ? LIMIT 1");
-        mysqli_stmt_bind_param($sel, "i", $id);
-        mysqli_stmt_execute($sel);
-        mysqli_stmt_bind_result($sel, $receipt_file);
-        mysqli_stmt_fetch($sel);
-        mysqli_stmt_close($sel);
+        $rrow = db_select_one($db, 'SELECT receipt FROM donations WHERE id = ? LIMIT 1', 'i', array($id));
+        $receipt_file = $rrow ? (string) $rrow['receipt'] : '';
 
         // ধাপ ২: ডাটাবেজ থেকে রেকর্ড ডিলিট
-        $del = mysqli_prepare($db, "DELETE FROM donations WHERE id = ?");
-        mysqli_stmt_bind_param($del, "i", $id);
-        $deleted = mysqli_stmt_execute($del);
-        $affected = mysqli_stmt_affected_rows($del);
-        mysqli_stmt_close($del);
+        $deleted = db_execute($db, 'DELETE FROM donations WHERE id = ?', 'i', array($id));
+        $affected = $GLOBALS['db_affected'];
 
         // ধাপ ৩: রেকর্ড সত্যিই ডিলিট হলে তবেই ছবি মুছবে
-        if ($deleted && $affected > 0 && !empty($receipt_file)) {
-
+        if ($deleted && $affected > 0 && $receipt_file !== '') {
             // basename() দিয়ে শুধু ফাইলের নাম নেওয়া (ফোল্ডারের বাইরের ফাইল মোছা আটকানোর জন্য)
-            $safe_name = basename($receipt_file);
-
-            // Add এর সময় যে ফোল্ডারে সেভ করা হয়েছে, এখানেও সেই একই ফোল্ডার
-            $file_path = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/' . $safe_name;
-
+            $file_path = $receipt_dir . basename($receipt_file);
             if (is_file($file_path)) {
-                unlink($file_path);
+                @unlink($file_path);
             }
         }
     }
 
-    header("Location: $baseUrl");
-    exit;
+    go_to($baseUrl);
 }
 
 /* =====================================================================
@@ -362,22 +506,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_P
 if (isset($_GET['clear_filter'])) {
     unset($_SESSION['donation_filter']);
 } elseif (isset($_GET['filter_apply'])) {
-    $_SESSION['donation_filter'] = [
-        'search' => trim($_GET['search'] ?? ''),
-        'payment_status' => trim($_GET['payment_status'] ?? ''),
-        'fund' => trim($_GET['fund'] ?? ''),
-        'date_from' => trim($_GET['date_from'] ?? ''),
-        'date_to' => trim($_GET['date_to'] ?? ''),
-    ];
+    $_SESSION['donation_filter'] = array(
+        'search' => trim(isset($_GET['search']) ? $_GET['search'] : ''),
+        'payment_status' => trim(isset($_GET['payment_status']) ? $_GET['payment_status'] : ''),
+        'fund' => trim(isset($_GET['fund']) ? $_GET['fund'] : ''),
+        'date_from' => trim(isset($_GET['date_from']) ? $_GET['date_from'] : ''),
+        'date_to' => trim(isset($_GET['date_to']) ? $_GET['date_to'] : ''),
+    );
 }
 
-$filter = $_SESSION['donation_filter'] ?? [
+$filter = isset($_SESSION['donation_filter']) ? $_SESSION['donation_filter'] : array(
     'search' => '',
     'payment_status' => '',
     'fund' => '',
     'date_from' => '',
     'date_to' => '',
-];
+);
 
 // Kono filter active ache kina (card e "Filtered" badge dekhate)
 $isFiltered = false;
@@ -392,47 +536,47 @@ foreach ($filter as $fv) {
    3) BUILD DYNAMIC WHERE CLAUSE (based on active filter)
 ===================================================================== */
 
-$whereParts = [];
-$params = [];
-$paramTypes = "";
+$whereParts = array();
+$params = array();
+$paramTypes = '';
 
 if ($filter['search'] !== '') {
-    $whereParts[] = "(name LIKE ? OR email LIKE ? OR phone LIKE ? OR transaction_id LIKE ?)";
-    $searchTerm = "%" . $filter['search'] . "%";
+    $whereParts[] = '(name LIKE ? OR email LIKE ? OR phone LIKE ? OR transaction_id LIKE ?)';
+    $searchTerm = '%' . $filter['search'] . '%';
     $params[] = $searchTerm;
     $params[] = $searchTerm;
     $params[] = $searchTerm;
     $params[] = $searchTerm;
-    $paramTypes .= "ssss";
+    $paramTypes .= 'ssss';
 }
 
 if ($filter['payment_status'] !== '') {
-    $whereParts[] = "payment_status = ?";
+    $whereParts[] = 'payment_status = ?';
     $params[] = $filter['payment_status'];
-    $paramTypes .= "s";
+    $paramTypes .= 's';
 }
 
 if ($filter['fund'] !== '') {
-    $whereParts[] = "fund = ?";
+    $whereParts[] = 'fund = ?';
     $params[] = $filter['fund'];
-    $paramTypes .= "s";
+    $paramTypes .= 's';
 }
 
 if ($filter['date_from'] !== '') {
-    $whereParts[] = "donation_date >= ?";
+    $whereParts[] = 'donation_date >= ?';
     $params[] = $filter['date_from'];
-    $paramTypes .= "s";
+    $paramTypes .= 's';
 }
 
 if ($filter['date_to'] !== '') {
-    $whereParts[] = "donation_date <= ?";
+    $whereParts[] = 'donation_date <= ?';
     $params[] = $filter['date_to'];
-    $paramTypes .= "s";
+    $paramTypes .= 's';
 }
 
-$whereSQL = "";
+$whereSQL = '';
 if (count($whereParts) > 0) {
-    $whereSQL = "WHERE " . implode(" AND ", $whereParts);
+    $whereSQL = 'WHERE ' . implode(' AND ', $whereParts);
 }
 
 /* =====================================================================
@@ -454,14 +598,11 @@ $summarySql = "SELECT
                     COALESCE(SUM(CASE WHEN payment_status = 'paid'    THEN amount ELSE 0 END), 0) AS paid_amount,
                     COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN amount ELSE 0 END), 0) AS pending_amount
                FROM donations $whereSQL";
-$summaryStmt = mysqli_prepare($db, $summarySql);
-if (count($params) > 0) {
-    mysqli_stmt_bind_param($summaryStmt, $paramTypes, ...$params);
+
+$summary = db_select_one($db, $summarySql, $paramTypes, $params);
+if (!$summary) {
+    $summary = array('total' => 0, 'total_amount' => 0, 'paid_amount' => 0, 'pending_amount' => 0);
 }
-mysqli_stmt_execute($summaryStmt);
-$summaryResult = mysqli_stmt_get_result($summaryStmt);
-$summary = mysqli_fetch_assoc($summaryResult);
-mysqli_stmt_close($summaryStmt);
 
 $totalRows = (int) $summary['total'];
 $totalAmount = (float) $summary['total_amount'];
@@ -486,30 +627,12 @@ $listSql = "SELECT id, donor_id, type, name, email, phone, amount, donation_type
             ORDER BY id DESC
             LIMIT ? OFFSET ?";
 
-$listStmt = mysqli_prepare($db, $listSql);
-
-$listParamTypes = $paramTypes . "ii";
 $listParams = $params;
 $listParams[] = $perPage;
 $listParams[] = $offset;
 
-mysqli_stmt_bind_param($listStmt, $listParamTypes, ...$listParams);
-mysqli_stmt_execute($listStmt);
-$result = mysqli_stmt_get_result($listStmt);
-
-$donations = [];
-while ($row = mysqli_fetch_assoc($result)) {
-    $donations[] = $row;
-}
-mysqli_stmt_close($listStmt);
-
-// Helper: safely print HTML (XSS protection)
-function h($value)
-{
-    return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
-}
+$donations = db_select($db, $listSql, $paramTypes . 'ii', $listParams);
 ?>
-
 
 <section class="page-content space-y-6 max-w-7xl mx-auto">
     <!-- Header -->
@@ -698,15 +821,16 @@ function h($value)
                                 $status = strtolower($d['payment_status'] ?? '');
 
                                 $status_colors = [
-                                    'paid'     => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                    'pending'  => 'bg-amber-50 text-amber-700 border-amber-200',
+                                    'paid' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'pending' => 'bg-amber-50 text-amber-700 border-amber-200',
                                     'failed' => 'bg-sky-50 text-sky-700 border-sky-200',
-                                    'rejected'   => 'bg-red-50 text-red-700 border-red-200',
+                                    'rejected' => 'bg-red-50 text-red-700 border-red-200',
                                 ];
 
                                 $badge_class = $status_colors[$status] ?? 'bg-slate-100 text-slate-600 border-slate-200';
                                 ?>
-                                <span class="inline-block px-2.5 py-1 rounded-md border font-bold text-[10px] <?= $badge_class ?>">
+                                <span
+                                    class="inline-block px-2.5 py-1 rounded-md border font-bold text-[10px] <?= $badge_class ?>">
                                     <?= h(ucfirst($d['payment_status'])) ?>
                                 </span>
                             </td>
@@ -714,17 +838,14 @@ function h($value)
                                 <?= h(date('d-m-y', strtotime($d['donation_date']))) ?>
                             </td>
                             <td class="p-4 text-right space-x-1 whitespace-nowrap">
-                                 <!-- Receipt দেখুন -->
-                                <button
-                                    onclick='openReceiptModal(<?= json_encode($d, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
-                                    title="View Receipt"
-                                    class="p-1.5 text-slate-400 hover:text-sky-600 transition-colors">
+                                <!-- Receipt দেখুন -->
+                                <button onclick='openReceiptModal(<?= json_encode($d, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                    title="View Receipt" class="p-1.5 text-slate-400 hover:text-sky-600 transition-colors">
                                     <i class="fa-solid fa-image"></i>
                                 </button>
 
                                 <!-- Pay Slip দেখুন -->
-                                <button
-                                    onclick='openPaySlipModal(<?= json_encode($d, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                <button onclick='openPaySlipModal(<?= json_encode($d, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                     title="View Pay Slip"
                                     class="p-1.5 text-slate-400 hover:text-amber-600 transition-colors">
                                     <i class="fa-solid fa-file-invoice"></i>
@@ -781,7 +902,8 @@ function h($value)
 <!-- ===================== VIEW RECEIPT MODAL ===================== -->
 <div id="receiptModal"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
+    <div
+        class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
         <div class="p-5 bg-slate-900 text-white flex justify-between items-center sticky top-0">
             <h3 class="font-bold text-sm flex items-center gap-2">
                 <i class="fa-solid fa-image text-sky-400"></i>
@@ -815,7 +937,8 @@ function h($value)
 <!-- ===================== VIEW PAY SLIP MODAL ===================== -->
 <div id="paySlipModal"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[92vh] overflow-y-auto">
+    <div
+        class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-100 max-h-[92vh] overflow-y-auto">
 
         <!-- মডালের হেডার (প্রিন্টে আসবে না) -->
         <div class="p-4 bg-slate-900 text-white flex justify-between items-center sticky top-0 z-10">
@@ -832,11 +955,11 @@ function h($value)
 
             <!-- ============ এই অংশটাই প্রিন্ট হবে ============ -->
             <div id="payslip_content">
-                <div class="relative bg-white border border-slate-200 rounded-xl overflow-hidden text-slate-800 font-sans [-webkit-print-color-adjust:exact] [print-color-adjust:exact]">
+                <div
+                    class="relative bg-white border border-slate-200 rounded-xl overflow-hidden text-slate-800 font-sans [-webkit-print-color-adjust:exact] [print-color-adjust:exact]">
 
                     <!-- ওয়াটারমার্ক -->
-                    <img id="ps_watermark" src="" alt=""
-                        onerror="this.style.display='none'"
+                    <img id="ps_watermark" src="" alt="" onerror="this.style.display='none'"
                         class="absolute top-1/2 left-1/2 w-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.07] pointer-events-none z-0">
 
                     <!-- উপরের রঙিন লাইন -->
@@ -845,13 +968,14 @@ function h($value)
                     <div class="relative z-10 px-5 sm:px-7 py-6">
 
                         <!-- হেডার: লোগো + সংস্থার নাম + Slip No -->
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 pb-4 border-b-2 border-emerald-700">
+                        <div
+                            class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 pb-4 border-b-2 border-emerald-700">
                             <div class="flex items-center gap-3">
-                                <img id="ps_logo" src="" alt="Logo"
-                                    onerror="this.style.display='none'"
+                                <img id="ps_logo" src="" alt="Logo" onerror="this.style.display='none'"
                                     class="w-16 h-16 object-contain">
                                 <div>
-                                    <div id="ps_org_name" class="text-lg font-bold text-emerald-800 leading-tight"></div>
+                                    <div id="ps_org_name" class="text-lg font-bold text-emerald-800 leading-tight">
+                                    </div>
                                     <div id="ps_org_address" class="text-[11px] text-slate-500 mt-0.5"></div>
                                     <div id="ps_org_contact" class="text-[11px] text-slate-500"></div>
                                 </div>
@@ -870,19 +994,22 @@ function h($value)
                         </div>
 
                         <!-- Amount বক্স -->
-                        <div class="flex justify-between items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3.5 mb-4">
+                        <div
+                            class="flex justify-between items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3.5 mb-4">
                             <div>
                                 <div class="text-[10px] uppercase tracking-widest text-emerald-700">Total Amount</div>
                                 <div id="ps_amount" class="text-2xl sm:text-3xl font-bold text-emerald-800"></div>
                             </div>
                             <div id="ps_status"
-                                class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border"></div>
+                                class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border">
+                            </div>
                         </div>
 
                         <!-- তথ্যের দুই কলাম -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                             <div class="border border-slate-200 rounded-lg p-3.5 bg-white/70">
-                                <div class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 border-b border-slate-200 pb-1.5 mb-2">
+                                <div
+                                    class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 border-b border-slate-200 pb-1.5 mb-2">
                                     Donor Information
                                 </div>
                                 <div class="flex justify-between gap-3 text-xs py-1">
@@ -900,7 +1027,8 @@ function h($value)
                             </div>
 
                             <div class="border border-slate-200 rounded-lg p-3.5 bg-white/70">
-                                <div class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 border-b border-slate-200 pb-1.5 mb-2">
+                                <div
+                                    class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 border-b border-slate-200 pb-1.5 mb-2">
                                     Payment Details
                                 </div>
                                 <div class="flex justify-between gap-3 text-xs py-1">
@@ -932,11 +1060,13 @@ function h($value)
                         <div class="flex justify-between items-end gap-4 mt-9">
                             <div class="text-[13px] font-bold text-emerald-800">
                                 <!-- জাযাকাল্লাহু খাইরান।<br> -->
-                                <small class="font-normal text-slate-500 text-[11px]">Thank you for your generous donation.</small>
+                                <small class="font-normal text-slate-500 text-[11px]">Thank you for your generous
+                                    donation.</small>
                             </div>
                             <div class="text-center w-40">
                                 <div class="border-t border-slate-700 mb-1"></div>
-                                <div class="text-[10px] uppercase tracking-widest text-slate-500">Authorized Signature</div>
+                                <div class="text-[10px] uppercase tracking-widest text-slate-500">Authorized Signature
+                                </div>
                             </div>
                         </div>
 
@@ -1281,7 +1411,7 @@ function h($value)
     // ---------- Receipt modal ----------
     function openReceiptModal(donation) {
         const wrapper = document.getElementById('receipt_wrapper');
-        const empty   = document.getElementById('receipt_empty');
+        const empty = document.getElementById('receipt_empty');
 
         if (donation.receipt) {
             // Add/Edit এ যেখানে সেভ করা হয়, সেই একই ফোল্ডার
@@ -1300,24 +1430,24 @@ function h($value)
 
     // ===== সংস্থার তথ্য (নিজের তথ্য দিন) =====
     const ORG = {
-        name:    '<?php echo $site_title; ?>',
+        name: '<?php echo $site_title; ?>',
         address: '<?php echo $office_address; ?>',
         contact: 'ফোন: <?php echo $phone_number; ?> | ইমেইল: <?php echo $email_address; ?>',
-        logo:    '../public/assets/<?php echo $favicon_icon; ?>'  // লোগো ফাইলের path (যেমন: uploads/logo.png)
+        logo: '../public/assets/<?php echo $favicon_icon; ?>'  // লোগো ফাইলের path (যেমন: uploads/logo.png)
     };
 
     // Status ব্যাজের রঙ (Tailwind ক্লাস পুরো লিখতে হবে, নইলে Tailwind চিনবে না)
     const STATUS_CLASSES = {
-        paid:     'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-emerald-100 text-emerald-800 border-emerald-300',
-        pending:  'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-amber-100 text-amber-800 border-amber-300',
-        failed:   'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-red-100 text-red-800 border-red-300',
+        paid: 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-emerald-100 text-emerald-800 border-emerald-300',
+        pending: 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-amber-100 text-amber-800 border-amber-300',
+        failed: 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-red-100 text-red-800 border-red-300',
         rejected: 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border bg-blue-100 text-blue-800 border-blue-300'
     };
 
     // ---------- Pay Slip modal ----------
     function openPaySlipModal(donation) {
         // সংস্থার তথ্য ও লোগো
-        document.getElementById('ps_org_name').textContent    = ORG.name;
+        document.getElementById('ps_org_name').textContent = ORG.name;
         document.getElementById('ps_org_address').textContent = ORG.address;
         document.getElementById('ps_org_contact').textContent = ORG.contact;
 
@@ -1329,18 +1459,18 @@ function h($value)
         mark.src = ORG.logo;
 
         // Slip No: যেমন DN-000125
-        document.getElementById('ps_id').textContent   = 'DN-' + String(donation.id).padStart(6, '0');
+        document.getElementById('ps_id').textContent = 'DN-' + String(donation.id).padStart(6, '0');
         document.getElementById('ps_date').textContent = donation.donation_date || '-';
 
         // textContent ব্যবহার করা হয়েছে, তাই ডাটায় HTML থাকলেও নিরাপদ
-        document.getElementById('ps_name').textContent   = donation.name || '-';
-        document.getElementById('ps_email').textContent  = donation.email || '-';
-        document.getElementById('ps_phone').textContent  = donation.phone || '-';
-        document.getElementById('ps_type').textContent   = donation.donation_type || '-';
-        document.getElementById('ps_fund').textContent   = donation.fund || '-';
+        document.getElementById('ps_name').textContent = donation.name || '-';
+        document.getElementById('ps_email').textContent = donation.email || '-';
+        document.getElementById('ps_phone').textContent = donation.phone || '-';
+        document.getElementById('ps_type').textContent = donation.donation_type || '-';
+        document.getElementById('ps_fund').textContent = donation.fund || '-';
         document.getElementById('ps_method').textContent = donation.payment_method || '-';
-        document.getElementById('ps_trx').textContent    = donation.transaction_id || '-';
-        document.getElementById('ps_note').textContent   = donation.admin_note || '-';
+        document.getElementById('ps_trx').textContent = donation.transaction_id || '-';
+        document.getElementById('ps_note').textContent = donation.admin_note || '-';
 
         document.getElementById('ps_amount').textContent =
             '৳ ' + Number(donation.amount || 0).toLocaleString('en-US', {
@@ -1349,9 +1479,9 @@ function h($value)
 
         // Status ব্যাজ
         const status = (donation.payment_status || 'pending').toLowerCase();
-        const badge  = document.getElementById('ps_status');
+        const badge = document.getElementById('ps_status');
         badge.textContent = status;
-        badge.className   = STATUS_CLASSES[status] || STATUS_CLASSES.pending;
+        badge.className = STATUS_CLASSES[status] || STATUS_CLASSES.pending;
 
         openModal('paySlipModal');
     }
