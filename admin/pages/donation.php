@@ -1,101 +1,192 @@
 <?php
-include '../database/db.php';
 
-// ১. ডাটা ইনসার্ট এবং আপডেট হ্যান্ডলিং (Prepared Statement সহ)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_sector'])) {
-    $id          = $_POST['sector_id'] ?? '';
-    $title       = trim($_POST['title']);
-    $icon_class  = trim($_POST['icon_class']);
-    $button_text = trim($_POST['button_text']);
-    $button_link = trim($_POST['button_link']);
-    $status      = trim($_POST['status']);
-    $description = trim($_POST['description']);
-
-    if (!empty($id)) {
-        // ডাটা আপডেট করা
-        $stmt = $db->prepare("UPDATE donation_sectors SET title=?, icon_class=?, button_text=?, button_link=?, status=?, description=? WHERE id=?");
-        $stmt->bind_param("ssssssi", $title, $icon_class, $button_text, $button_link, $status, $description, $id);
-        $stmt->execute();
-        $stmt->close();
-    } else {
-        // নতুন ডাটা যোগ করা
-        $stmt = $db->prepare("INSERT INTO donation_sectors (title, icon_class, button_text, button_link, status, description) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssss", $title, $icon_class, $button_text, $button_link, $status, $description);
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    header("Location: dashboard.php?page=donation");
-    exit;
+$DEBUG_MODE = false;
+if ($DEBUG_MODE) {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
 }
 
-//  Delete প্রসেসিং (FIXED)
-if (isset($_POST['action_type'])) {  $delete_id = isset($_POST['delete_id']) ? intval($_POST['delete_id']) : 0;
-    if ($delete_id > 0) {
-        // ২. রেকর্ড ডিলিট করা
-        $del_stmt = mysqli_prepare($db, "DELETE FROM donation_sectors WHERE id = ?");
-        if ($del_stmt) {
-            mysqli_stmt_bind_param($del_stmt, "i", $delete_id);
-            if (!mysqli_stmt_execute($del_stmt)) {
-                db_log_error($db, "delete activity execute");
-            }
-            mysqli_stmt_close($del_stmt);
-        } else {
-            db_log_error($db, "delete activity prepare");
+// ---------- ১. DB কানেকশন ----------
+// dashboard.php আগেই db.php include করে থাকলে $db তৈরি আছে, নাহলে কয়েকটা path-এ খুঁজবে
+if (!isset($db) || !($db instanceof mysqli)) {
+    $db_candidates = [
+        '../database/db.php',
+        __DIR__ . '/../database/db.php',
+        __DIR__ . '/../../database/db.php',
+    ];
+    foreach ($db_candidates as $db_file) {
+        if (file_exists($db_file)) {
+            require_once $db_file;
+            break;
         }
-    } else {
-        error_log("[Activities Page] delete_activity called with invalid delete_id: " . ($_POST['delete_id'] ?? 'not set'));
+    }
+}
+if (!isset($db) || !($db instanceof mysqli)) {
+    echo '<div style="margin:20px;padding:12px;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:8px;font-size:14px">'
+       . 'Database connection পাওয়া যায়নি। db.php এর path এবং $db ভ্যারিয়েবলের নাম চেক করুন।</div>';
+    return;
+}
+
+// PHP ভার্সনভেদে mysqli আচরণ এক রাখতে (exception বন্ধ, আমরা নিজে error চেক করব)
+mysqli_report(MYSQLI_REPORT_OFF);
+@$db->set_charset('utf8mb4');
+
+// ---------- Helper ----------
+if (!function_exists('db_log_error')) {
+    function db_log_error($db, $context = '') {
+        error_log('[Donation Page] ' . $context . ' : ' . ($db instanceof mysqli ? $db->error : 'unknown'));
+    }
+}
+
+if (!function_exists('safe_redirect')) {
+    // header() আগে আউটপুট হয়ে গেলেও redirect কাজ করবে
+    function safe_redirect($url) {
+        if (!headers_sent()) {
+            header('Location: ' . $url);
+        } else {
+            echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+            echo '<noscript><meta http-equiv="refresh" content="0;url=' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"></noscript>';
+        }
+        exit;
+    }
+}
+
+// কোয়েরি ফেইল করলে view যাতে না ভাঙে, তাই খালি result
+if (!class_exists('DonationEmptyResult')) {
+    class DonationEmptyResult {
+        public $num_rows = 0;
+        public function fetch_assoc() { return null; }
+    }
+}
+
+$redirect_url = 'dashboard.php?page=donation';
+$page_error   = '';
+
+// ---------- ২. Insert / Update ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_sector'])) {
+    $id          = (int)($_POST['sector_id'] ?? 0);
+    $title       = trim($_POST['title'] ?? '');
+    $icon_class  = trim($_POST['icon_class'] ?? '');
+    $button_text = trim($_POST['button_text'] ?? '');
+    $button_link = trim($_POST['button_link'] ?? '');
+    $status      = trim($_POST['status'] ?? 'active');
+    $description = trim($_POST['description'] ?? '');
+
+    if (!in_array($status, ['active', 'draft'], true)) {
+        $status = 'draft';
     }
 
-    if (ob_get_length()) ob_end_clean();
-    header("Location: dashboard.php?page=donation");
-    exit;
+    if ($title !== '') {
+        if ($id > 0) {
+            $stmt = $db->prepare("UPDATE donation_sectors SET title=?, icon_class=?, button_text=?, button_link=?, status=?, description=? WHERE id=?");
+            if ($stmt) {
+                $stmt->bind_param("ssssssi", $title, $icon_class, $button_text, $button_link, $status, $description, $id);
+            }
+        } else {
+            $stmt = $db->prepare("INSERT INTO donation_sectors (title, icon_class, button_text, button_link, status, description) VALUES (?, ?, ?, ?, ?, ?)");
+            if ($stmt) {
+                $stmt->bind_param("ssssss", $title, $icon_class, $button_text, $button_link, $status, $description);
+            }
+        }
+
+        if ($stmt) {
+            if (!$stmt->execute()) {
+                db_log_error($db, 'save execute');
+            }
+            $stmt->close();
+        } else {
+            db_log_error($db, 'save prepare');
+        }
+    }
+
+    safe_redirect($redirect_url);
 }
 
-// ৩. সহজ সার্চ এবং পেজিনেশন
+// ---------- ৩. Delete ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action_type'] ?? '') === 'delete_activity') {
+    $delete_id = (int)($_POST['delete_id'] ?? 0);
+
+    if ($delete_id > 0) {
+        $del_stmt = $db->prepare("DELETE FROM donation_sectors WHERE id = ?");
+        if ($del_stmt) {
+            $del_stmt->bind_param("i", $delete_id);
+            if (!$del_stmt->execute()) {
+                db_log_error($db, 'delete execute');
+            }
+            $del_stmt->close();
+        } else {
+            db_log_error($db, 'delete prepare');
+        }
+    }
+
+    safe_redirect($redirect_url);
+}
+
+// ---------- ৪. Search + Pagination ----------
+// ?page=donation হলো router, তাই পেজ নম্বর আলাদা "p" প্যারামিটারে (view-র লিংকও p ব্যবহার করে)
 $search = trim($_GET['search'] ?? '');
-$page   = (int)($_GET['page'] ?? 1); 
-if ($page < 1) { 
-    $page = 1; 
+$page   = (int)($_GET['p'] ?? 1);
+if ($page < 1) {
+    $page = 1;
 }
 
-$limit  = 30; // প্রতি পেজে ৫টি ডাটা
-$offset = ($page - 1) * $limit; 
+$limit  = 30;
+$offset = ($page - 1) * $limit;
 
-// সার্চ ক্যোয়ারী তৈরি
-$search_param = "%$search%";
+$total_rows          = 0;
+$total_sectors_count = 0;
+$active_funds_count  = 0;
+$sectors             = new DonationEmptyResult();
 
-if (!empty($search)) {
-    // Total Count Search
-    $stmt_count = $db->prepare("SELECT COUNT(*) as count FROM donation_sectors WHERE title LIKE ? OR description LIKE ?");
-    $stmt_count->bind_param("ss", $search_param, $search_param);
-    $stmt_count->execute();
-    $total_rows = $stmt_count->get_result()->fetch_assoc()['count'];
-    $stmt_count->close();
+// get_result() ব্যবহার করা হয়নি (live hosting-এ mysqlnd না থাকলে ওটাই পেজ ফাঁকা করে দেয়)
+// সার্চ টেক্সট escape করা হয়েছে, আর limit/offset integer
+$where = '';
+if ($search !== '') {
+    $safe_search = $db->real_escape_string(addcslashes($search, '%_\\'));
+    $where = "WHERE title LIKE '%{$safe_search}%' OR description LIKE '%{$safe_search}%'";
+}
 
-    // Data Fetch Search
-    $stmt_data = $db->prepare("SELECT * FROM donation_sectors WHERE title LIKE ? OR description LIKE ? ORDER BY id DESC LIMIT ?, ?");
-    $stmt_data->bind_param("ssii", $search_param, $search_param, $offset, $limit);
-    $stmt_data->execute();
-    $sectors = $stmt_data->get_result();
-    $stmt_data->close();
+$res = $db->query("SELECT COUNT(*) AS count FROM donation_sectors {$where}");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $total_rows = (int)($row['count'] ?? 0);
+    $res->free();
 } else {
-    // Normal Count
-    $total_rows = $db->query("SELECT COUNT(*) as count FROM donation_sectors")->fetch_assoc()['count'];
-
-    // Normal Fetch
-    $stmt_data = $db->prepare("SELECT * FROM donation_sectors ORDER BY id DESC LIMIT ?, ?");
-    $stmt_data->bind_param("ii", $offset, $limit);
-    $stmt_data->execute();
-    $sectors = $stmt_data->get_result();
-    $stmt_data->close();
+    $page_error = 'ডাটা লোড করা যায়নি: ' . $db->error;
+    db_log_error($db, 'count query');
 }
 
-$total_pages = ceil($total_rows / $limit);
+$data_res = $db->query("SELECT * FROM donation_sectors {$where} ORDER BY id DESC LIMIT {$offset}, {$limit}");
+if ($data_res) {
+    $sectors = $data_res;
+} else {
+    $page_error = 'ডাটা লোড করা যায়নি: ' . $db->error;
+    db_log_error($db, 'data query');
+}
 
-// টোটাল এবং একটিভ সেক্টর কাউন্ট
-$total_sectors_count = $db->query("SELECT COUNT(*) as count FROM donation_sectors")->fetch_assoc()['count'];
-$active_funds_count  = $db->query("SELECT COUNT(*) as count FROM donation_sectors WHERE status='active'")->fetch_assoc()['count'];
+$total_pages = (int)ceil($total_rows / $limit);
+
+$res = $db->query("SELECT COUNT(*) AS count FROM donation_sectors");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $total_sectors_count = (int)($row['count'] ?? 0);
+    $res->free();
+}
+
+$res = $db->query("SELECT COUNT(*) AS count FROM donation_sectors WHERE status='active'");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $active_funds_count = (int)($row['count'] ?? 0);
+    $res->free();
+}
+
+// error হলে blank না হয়ে পেজের উপরে মেসেজ দেখাবে
+if ($page_error !== '') {
+    $shown = $DEBUG_MODE ? $page_error : 'ডাটা লোড করতে সমস্যা হয়েছে। ($DEBUG_MODE = true করে কারণ দেখুন)';
+    echo '<div style="margin:20px;padding:12px;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:8px;font-size:14px">'
+       . htmlspecialchars($shown, ENT_QUOTES, 'UTF-8') . '</div>';
+}
+
 ?>
 
 <div class="p-4 sm:p-6 lg:p-8">
