@@ -3,17 +3,23 @@
  * EXPENSES PAGE - PHP 7.2 compatible, beginner friendly version
  *
  * Live server-e ja problem hochhilo (ebong fix):
- * 1. mysqli_stmt_get_result()  -> mysqlnd na thakle kaj kore na (list/stats/view khali ashto).
- *                                 Ekhon exp_rows() nijei bind_result diye data ane.
- * 2. session_start()           -> $_SESSION check er AGE session start korte hobe. Ekhon sobar upore.
- * 3. const EXP_FROM            -> file duibar load hole "already defined" warning dey. Ekhon define() + defined() check.
- * 4. global $CATS / $statuses  -> include kora file-er bhitor theke global kaj kore na.
- *                                 Ekhon exp_cats() / exp_statuses() function theke ane.
- * 5. Query fail hole silent    -> ager code error dhorto na. Ekhon exp_exec() error hole Exception dey,
- *                                 tai transaction rollback hoy ebong error message dekha jay.
- * 6. $db                       -> include file-er bhitor 'global $db' lage.
- * 7. exp_row()                 -> $is_admin ager code-e kokhono true hoto na (list theke pass hoto na).
- *                                 Ekhon session theke ana hoy, ebong toggle/delete server-e-o Admin chhara block kora hoyeche.
+ * 1. mysqli_stmt_get_result()  -> mysqlnd na thakle kaj kore na. Ekhon exp_rows() bind_result diye data ane.
+ * 2. session_start()           -> $_SESSION check er AGE session start. Ekhon sobar upore.
+ * 3. const EXP_FROM            -> define() + defined() check.
+ * 4. global $CATS / $statuses  -> exp_cats() / exp_statuses() function theke ane.
+ * 5. Query fail hole silent    -> exp_rows()/exp_exec() duitai error hole Exception dey.
+ * 6. $db                       -> 'global $db'.
+ * 7. exp_row()                 -> $is_admin session theke ane, toggle/delete server-e-o Admin chhara block.
+ *
+ * NOTUN FIX (ei version):
+ * 8.  AJAX JSON er age/pore kono extra output (BOM, warning, header.php er echo) thakle ager code-e JS r.json()
+ *     fail korto. Ekhon JSON ke <<EXP_START>> ... <<EXP_END>> diye mora hoyeche, JS shudhu oi ongsho pore.
+ * 9.  json_encode() invalid UTF-8 (jemon purono latin1 data) pele false dey -> "var ACTS = ;" hoye
+ *     pura JavaScript dead hoye jeto. Ekhon exp_js() safe function use kora hoyeche.
+ * 10. JSON_INVALID_UTF8_SUBSTITUTE constant na thakle fallback.
+ * 11. mysqli_set_charset('utf8mb4') fail hole 'utf8' fallback (purono MySQL).
+ * 12. CSRF token header na ashle (server header strip korle) POST field theke-o neya hoy.
+ * 13. mysqli_stmt_execute() fail hole ager SELECT-e silent empty ashto, ekhon error message dekha jay.
  *
  * IMPORTANT: File ta "UTF-8 (without BOM)" encoding-e save korben.
  */
@@ -24,6 +30,14 @@ if (!headers_sent()) {
 }
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
+}
+
+// Purono PHP te ei constant na thakle fallback
+if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+    define('JSON_INVALID_UTF8_SUBSTITUTE', 0);
+}
+if (!defined('JSON_UNESCAPED_UNICODE')) {
+    define('JSON_UNESCAPED_UNICODE', 256);
 }
 
 /* ==========================================================
@@ -95,7 +109,11 @@ if (!defined('EXP_FROM')) {
 }
 
 if (empty($_SESSION['csrf'])) {
-    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+    if (function_exists('random_bytes')) {
+        $_SESSION['csrf'] = bin2hex(random_bytes(16));
+    } else {
+        $_SESSION['csrf'] = md5(uniqid((string) mt_rand(), true));
+    }
 }
 
 /* ==========================================================
@@ -123,14 +141,29 @@ if (!function_exists('go_to')) {
     }
 }
 
-// JSON response pathay (AJAX er jonno)
+// PHP theke JavaScript-e data dewar safe way. json_encode fail korle 'null' (ba $fallback) dey,
+// jate "var X = ;" hoye pura script bhenge na jay.
+function exp_js($v, $fallback = 'null')
+{
+    $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    return ($j === false) ? $fallback : $j;
+}
+
+// JSON response pathay (AJAX er jonno).
+// Marker deya ache, tai age-pore onno output (warning, BOM) thakleo JS thik ongsho pore.
 function exp_json($arr)
 {
     while (ob_get_level()) {
         ob_end_clean();
     }
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($arr, JSON_UNESCAPED_UNICODE);
+    if (!headers_sent()) {
+        header('Content-Type: text/plain; charset=utf-8');
+    }
+    $json = json_encode($arr, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($json === false) {
+        $json = json_encode(array('ok' => false, 'msg' => 'JSON তৈরি করা যায়নি (ডাটায় ভুল অক্ষর থাকতে পারে)।'));
+    }
+    echo '<<EXP_START>>' . $json . '<<EXP_END>>';
     exit;
 }
 
@@ -168,7 +201,11 @@ function exp_rows($db, $sql, $t = '', $p = array())
         throw new Exception('Query error: ' . mysqli_error($db));
     }
     exp_bind($stmt, $t, $p);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        $m = mysqli_stmt_error($stmt);
+        mysqli_stmt_close($stmt);
+        throw new Exception('Query error: ' . $m);
+    }
     mysqli_stmt_store_result($stmt);
 
     $out = array();
@@ -276,7 +313,7 @@ function exp_stats($db, $f)
     $p = array();
 
     $cats = array();
-    foreach ($CATS as $k => $_) {
+    foreach ($CATS as $k => $unused) {
         $cats[$k] = array('a' => exp_money(0), 'c' => 0);
     }
     $w = exp_where($f, $t, $p, 'cat');
@@ -327,7 +364,8 @@ function exp_upload($file, $dir, &$err, $prefix)
     if (!is_dir($dir)) {
         @mkdir($dir, 0755, true);
     }
-    $name = $prefix . '_' . time() . '_' . random_int(1000, 9999) . '.' . $ext;
+    $rand = function_exists('random_int') ? random_int(1000, 9999) : mt_rand(1000, 9999);
+    $name = $prefix . '_' . time() . '_' . $rand . '.' . $ext;
     if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
         $err = 'ছবি সেভ করা যায়নি। ফোল্ডার পারমিশন চেক করুন।';
         return false;
@@ -491,7 +529,10 @@ global $db;
 if (!isset($db) || !$db) {
     die('Database connection not found.');
 }
-mysqli_set_charset($db, 'utf8mb4');
+// utf8mb4 na pele utf8 (purono MySQL er jonno)
+if (!@mysqli_set_charset($db, 'utf8mb4')) {
+    @mysqli_set_charset($db, 'utf8');
+}
 
 /* ==========================================================
    AJAX HANDLER
@@ -501,8 +542,9 @@ $newf = array();   // notun upload hoya file-er list (error hole muche felar jon
 if ($act !== '') {
     try {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $tok = isset($_SERVER['HTTP_X_CSRF']) ? $_SERVER['HTTP_X_CSRF'] : '';
-            if (!hash_equals($_SESSION['csrf'], $tok)) {
+            // Header othoba form field, jeta pay
+            $tok = isset($_SERVER['HTTP_X_CSRF']) ? $_SERVER['HTTP_X_CSRF'] : (isset($_POST['csrf']) ? $_POST['csrf'] : '');
+            if (!hash_equals($_SESSION['csrf'], (string) $tok)) {
                 exp_json(array('ok' => false, 'msg' => 'Invalid session. Page reload korun.'));
             }
         }
@@ -907,6 +949,15 @@ foreach ($CATS as $k => $v) {
 
 $inp = 'w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
+
+// Voucher-er header-er jonno organization info (header.php theke ashe, na thakle faka)
+$org_data = array(
+    'name'    => isset($site_title) ? $site_title : '',
+    'address' => isset($office_address) ? $office_address : '',
+    'phone'   => isset($phone_number) ? $phone_number : '',
+    'email'   => isset($email_address) ? $email_address : '',
+    'logo'    => '../public/assets/' . (isset($favicon_icon) ? $favicon_icon : ''),
+);
 ?>
 
 <section class="page-content space-y-5">
@@ -931,7 +982,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
             <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-receipt"></i></div>
             <div><p class="text-[10px] font-bold text-slate-400 uppercase">Records</p><h3 class="text-xl font-bold text-slate-800" data-stat="total_count">0</h3></div>
         </div>
-        <?php foreach ([['Complete', 'emerald', 'fa-circle-check', 'ring-emerald-500'], ['Pending', 'amber', 'fa-hourglass-half', 'ring-amber-500']] as $s) { ?>
+        <?php foreach (array(array('Complete', 'emerald', 'fa-circle-check', 'ring-emerald-500'), array('Pending', 'amber', 'fa-hourglass-half', 'ring-amber-500')) as $s) { ?>
             <div data-fstatus="<?php echo $s[0]; ?>" data-ring="<?php echo $s[3]; ?>" class="p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-200/80 flex items-center gap-3 cursor-pointer hover:shadow-md transition">
                 <div class="w-10 h-10 rounded-xl bg-<?php echo $s[1]; ?>-50 text-<?php echo $s[1]; ?>-600 flex items-center justify-center shrink-0"><i class="fa-solid <?php echo $s[2]; ?>"></i></div>
                 <div class="min-w-0"><p class="text-[10px] font-bold text-slate-400 uppercase"><?php echo $s[0]; ?> <span class="normal-case" data-stat="st_c:<?php echo $s[0]; ?>"></span></p>
@@ -966,7 +1017,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
             </div>
             <select id="fCat" class="md:col-span-2 <?php echo $inp; ?>">
                 <option value="">All Categories</option>
-                <?php foreach ($CATS as $n => $_) {
+                <?php foreach ($CATS as $n => $unused) {
                     echo '<option' . ($saved['cat'] === $n ? ' selected' : '') . '>' . h($n) . '</option>';
                 } ?>
             </select>
@@ -1032,7 +1083,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                 <h4 class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2"><i class="fa-solid fa-circle-info text-emerald-600 mr-1.5"></i>Expense Details</h4>
                 <div><label class="<?php echo $lbl; ?>">Title / Purpose *</label><input type="text" name="title" id="x_title" class="<?php echo $inp; ?>" placeholder="e.g. Wheelchair purchase for ..."></div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="<?php echo $lbl; ?>">Category *</label><select name="category" id="x_category" class="<?php echo $inp; ?>"><?php foreach ($CATS as $n => $_) {
+                    <div><label class="<?php echo $lbl; ?>">Category *</label><select name="category" id="x_category" class="<?php echo $inp; ?>"><?php foreach ($CATS as $n => $unused) {
                               echo '<option>' . h($n) . '</option>';
                           } ?></select></div>
                     <div><label class="<?php echo $lbl; ?>">Amount (৳) *</label><input type="number" min="0" step="0.01" name="amount" id="x_amount" class="<?php echo $inp; ?>"></div>
@@ -1064,7 +1115,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                 <div>
                     <label class="<?php echo $lbl; ?>">Service Recipient / সেবা গ্রহণকারী</label>
                     <div class="grid grid-cols-3 gap-2" id="x_modes">
-                        <?php foreach ([['none', 'None', 'fa-ban'], ['existing', 'Existing', 'fa-user-check'], ['new', 'New', 'fa-user-plus']] as $m) { ?>
+                        <?php foreach (array(array('none', 'None', 'fa-ban'), array('existing', 'Existing', 'fa-user-check'), array('new', 'New', 'fa-user-plus')) as $m) { ?>
                             <label class="flex items-center justify-center gap-1.5 p-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700">
                                 <input type="radio" name="recipient_mode" value="<?php echo $m[0]; ?>" class="sr-only" <?php echo $m[0] === 'none' ? 'checked' : ''; ?>><i class="fa-solid <?php echo $m[2]; ?>"></i><?php echo $m[1]; ?>
                             </label>
@@ -1085,7 +1136,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                             <span class="text-[11px] font-bold px-2 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700">Serial: <span id="r_serial">Auto</span></span>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
-                            <?php foreach (['r_photo' => 'Photo / ছবি', 'r_guardian_photo' => 'Guardian Photo / অভিভাবকের ছবি'] as $fid => $fl) { ?>
+                            <?php foreach (array('r_photo' => 'Photo / ছবি', 'r_guardian_photo' => 'Guardian Photo / অভিভাবকের ছবি') as $fid => $fl) { ?>
                                 <div>
                                     <label class="<?php echo $lbl; ?> normal-case"><?php echo $fl; ?></label>
                                     <div class="flex items-center gap-2">
@@ -1159,15 +1210,28 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
 
 <script>
 (function () {
-    var CSRF = <?php echo json_encode($_SESSION['csrf']); ?>;
-    var state = <?php echo json_encode($saved); ?>;
-    var ACTS = <?php echo json_encode($ACTS, JSON_UNESCAPED_UNICODE); ?>;
-    var RECS = <?php echo json_encode($RECS, JSON_UNESCAPED_UNICODE); ?>;
-    var RK = <?php echo json_encode($RF_KEYS); ?>;
+    var IS_ADMIN = <?php echo $is_admin ? 'true' : 'false'; ?>;
+    var CSRF = <?php echo exp_js($_SESSION['csrf'], '""'); ?>;
+    var state = <?php echo exp_js($saved, '{}'); ?>;
+    var ACTS = <?php echo exp_js($ACTS, '[]'); ?>;
+    var RECS = <?php echo exp_js($RECS, '[]'); ?>;
+    var RK = <?php echo exp_js($RF_KEYS, '[]'); ?>;
     var $ = function (id) { return document.getElementById(id); };
     var seq = 0, timer = null, delId = 0;
 
     function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+    // Server er uttor theke shudhu JSON ongsho ber kora (age-pore onno output thakleo cholbe)
+    function rj(r) {
+        return r.text().then(function (t) {
+            var S = '<<EXP_START>>', E = '<<EXP_END>>';
+            var a = t.indexOf(S), b = t.lastIndexOf(E);
+            if (a === -1 || b === -1) {
+                throw new Error('Server এর উত্তর বোঝা যায়নি: ' + t.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 250));
+            }
+            return JSON.parse(t.substring(a + S.length, b));
+        });
+    }
     function url(act, params) {
         var u = new URL(location.href);
         ['act', 'es', 'ec', 'est', 'ea', 'df', 'dt', 'pg', 'per', 'id', 'edit'].forEach(function (k) { u.searchParams.delete(k); });
@@ -1175,7 +1239,11 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         for (var k in (params || {})) { u.searchParams.set(k, params[k]); }
         return u.toString();
     }
-    function post(act, fd) { return fetch(url(act), { method: 'POST', body: fd, headers: { 'X-CSRF': CSRF } }).then(function (r) { return r.json(); }); }
+    function getj(act, params) { return fetch(url(act, params), { credentials: 'same-origin' }).then(rj); }
+    function post(act, fd) {
+        fd.append('csrf', CSRF);
+        return fetch(url(act), { method: 'POST', body: fd, headers: { 'X-CSRF': CSRF }, credentials: 'same-origin' }).then(rj);
+    }
     function toast(msg, ok) {
         var t = $('expToast');
         t.className = 'fixed top-4 left-4 right-4 sm:left-auto sm:right-5 sm:w-80 z-[60] px-4 py-3 rounded-xl text-xs font-semibold shadow-lg border ' + (ok ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700');
@@ -1196,11 +1264,10 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     }
     function load() {
         var my = ++seq;
-        fetch(url('list', { es: state.q, ec: state.cat, est: state.status, ea: state.act, df: state.df, dt: state.dt, pg: state.page, per: state.per }))
-            .then(function (r) { return r.json(); })
+        getj('list', { es: state.q, ec: state.cat, est: state.status, ea: state.act, df: state.df, dt: state.dt, pg: state.page, per: state.per })
             .then(function (d) {
                 if (my !== seq) { return; }
-                if (!d.ok) { toast(d.msg, false); return; }
+                if (!d.ok) { $('expBody').innerHTML = '<tr><td colspan="5" class="p-6 text-center text-rose-500">' + esc(d.msg) + '</td></tr>'; return; }
                 state.page = d.page;
                 $('expBody').innerHTML = d.rows; $('expPager').innerHTML = d.pager;
                 $('expInfo').textContent = d.total ? 'Showing ' + d.from + '–' + d.to + ' of ' + d.total : 'No results';
@@ -1212,7 +1279,9 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                 $('fBadge').classList.toggle('hidden', !d.filtered);
                 markCards();
             })
-            .catch(function () { $('expBody').innerHTML = '<tr><td colspan="5" class="p-6 text-center text-rose-500">Load করা যায়নি।</td></tr>'; });
+            .catch(function (err) {
+                $('expBody').innerHTML = '<tr><td colspan="5" class="p-6 text-center text-rose-500">Load করা যায়নি।<br><span class="text-xs text-slate-500">' + esc(err.message) + '</span></td></tr>';
+            });
     }
     $('fSearch').addEventListener('input', function () { clearTimeout(timer); var v = this.value; timer = setTimeout(function () { state.q = v.trim(); state.page = 1; load(); }, 300); });
     [['fCat', 'cat'], ['fStatus', 'status'], ['fAct', 'act'], ['fDf', 'df'], ['fDt', 'dt'], ['fPer', 'per']].forEach(function (p) {
@@ -1225,7 +1294,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         if (s) { state.status = state.status === s.dataset.fstatus ? '' : s.dataset.fstatus; $('fStatus').value = state.status; state.page = 1; load(); }
     });
     window.expClear = function () {
-        fetch(url('clear')).then(function () {
+        getj('clear').then(function () {
             state = { q: '', cat: '', status: '', act: '', df: '', dt: '', per: state.per, page: 1 };
             ['fSearch', 'fCat', 'fStatus', 'fAct', 'fDf', 'fDt'].forEach(function (i) { $(i).value = ''; }); load();
         });
@@ -1238,16 +1307,20 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         if (a === 'view') { expView(id); }
         if (a === 'edit') { expOpenForm(id); }
         if (a === 'delete') { delId = id; $('expDelName').textContent = b.dataset.name; expModal('expDeleteModal', true); }
-        if (a === 'toggle') { var fd = new FormData(); fd.append('id', id); post('toggle', fd).then(function (d) { toast(d.msg, d.ok); load(); }); }
+        if (a === 'toggle') {
+            var fd = new FormData(); fd.append('id', id);
+            post('toggle', fd).then(function (d) { toast(d.msg, d.ok); load(); }).catch(function (err) { toast(err.message, false); });
+        }
     });
     $('expDelConfirm').addEventListener('click', function () {
         var fd = new FormData(); fd.append('id', delId);
-        post('delete', fd).then(function (d) { toast(d.msg, d.ok); expModal('expDeleteModal', false); if (d.ok) { load(); } });
+        post('delete', fd).then(function (d) { toast(d.msg, d.ok); expModal('expDeleteModal', false); if (d.ok) { load(); } })
+            .catch(function (err) { toast(err.message, false); });
     });
 
     /* ---------- VIEW (voucher modal + print) ---------- */
-    var ORG = <?php echo json_encode(['name' => $site_title ?? '', 'address' => $office_address ?? '', 'phone' => $phone_number ?? '', 'email' => $email_address ?? '', 'logo' => '../public/assets/' . ($favicon_icon ?? '')], JSON_UNESCAPED_UNICODE); ?>;
-    var CAT_BADGE = <?php echo json_encode($CAT_BADGES, JSON_UNESCAPED_UNICODE); ?>;
+    var ORG = <?php echo exp_js($org_data, '{}'); ?>;
+    var CAT_BADGE = <?php echo exp_js($CAT_BADGES, '{}'); ?>;
     var viewId = 0, viewNo = '';
     var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -1355,19 +1428,20 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     }
 
     window.expView = function (id) {
-        fetch(url('view', { id: id })).then(function (r) { return r.json(); }).then(function (d) {
+        getj('view', { id: id }).then(function (d) {
             if (!d.ok) { toast(d.msg, false); return; }
             viewId = d.e.id; viewNo = d.e.voucher_no;
             $('expVoucher').innerHTML = buildVoucher(d);
             var done = d.e.status === 'Complete';
+            $('vToggle').classList.toggle('hidden', !IS_ADMIN);   // Shudhu Admin Status toggle korte pare
             $('vToggle').innerHTML = done ? '<i class="fa-solid fa-hourglass-half mr-1"></i>Mark Pending' : '<i class="fa-solid fa-circle-check mr-1"></i>Mark Complete';
-            $('vToggle').className = 'px-4 py-2.5 rounded-xl text-xs font-semibold ' + (done ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100');
+            $('vToggle').className = 'px-4 py-2.5 rounded-xl text-xs font-semibold ' + (done ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100') + (IS_ADMIN ? '' : ' hidden');
             expModal('expViewModal', true);
-        }).catch(function () { toast('Load করা যায়নি।', false); });
+        }).catch(function (err) { toast(err.message, false); });
     };
     $('vToggle').addEventListener('click', function () {
         var fd = new FormData(); fd.append('id', viewId);
-        post('toggle', fd).then(function (d) { toast(d.msg, d.ok); expView(viewId); load(); });
+        post('toggle', fd).then(function (d) { toast(d.msg, d.ok); expView(viewId); load(); }).catch(function (err) { toast(err.message, false); });
     });
     $('vEdit').addEventListener('click', function () { expModal('expViewModal', false); expOpenForm(viewId); });
     $('vPrint').addEventListener('click', function () {
@@ -1427,7 +1501,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         ACTS.forEach(function (a) { if (a.status === 'active' || String(a.id) === String(cur)) { h += '<option value="' + a.id + '"' + (String(a.id) === String(cur) ? ' selected' : '') + '>' + esc(a.title) + '</option>'; } });
         $('x_activity_id').innerHTML = h;
     }
-    function loadRecs() { return fetch(url('recs')).then(function (r) { return r.json(); }).then(function (d) { if (d.ok) { RECS = d.recs; } }); }
+    function loadRecs() { return getj('recs').then(function (d) { if (d.ok) { RECS = d.recs; } }).catch(function () {}); }
 
     document.querySelectorAll('input[name=recipient_mode]').forEach(function (r) {
         r.addEventListener('change', function () { if (mode() === 'new') { clearRec(); } if (mode() === 'existing') { $('x_recipient_id').value = ''; clearRec(); } updRecUI(); });
@@ -1435,7 +1509,8 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
     $('x_recSearch').addEventListener('input', function () { renderRecOptions(); });
     $('x_recipient_id').addEventListener('change', function () {
         if (!this.value) { clearRec(); updRecUI(); return; }
-        fetch(url('rget', { id: this.value })).then(function (r) { return r.json(); }).then(function (d) { if (d.ok) { fillRec(d.data); updRecUI(); } else { toast(d.msg, false); } });
+        getj('rget', { id: this.value }).then(function (d) { if (d.ok) { fillRec(d.data); updRecUI(); } else { toast(d.msg, false); } })
+            .catch(function (err) { toast(err.message, false); });
     });
     $('r_same').addEventListener('change', function () { if (this.checked) { $('r_permanent_address').value = $('r_present_address').value; } });
 
@@ -1451,7 +1526,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         if (!id) { expModal('expFormModal', true); return; }
 
         $('expFormTitle').textContent = 'Edit Expense';
-        fetch(url('get', { id: id })).then(function (r) { return r.json(); }).then(function (d) {
+        getj('get', { id: id }).then(function (d) {
             if (!d.ok) { toast(d.msg, false); return; }
             $('x_id').value = d.data.id;
             xf.forEach(function (k) { $('x_' + k).value = d.data[k] == null ? '' : d.data[k]; });
@@ -1465,7 +1540,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
                 renderRecOptions(d.rec.id); fillRec(d.rec);
             }
             updRecUI(); expModal('expFormModal', true);
-        });
+        }).catch(function (err) { toast(err.message, false); });
     };
 
     $('expForm').addEventListener('submit', function (e) {
@@ -1479,7 +1554,7 @@ $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1';
         post('save', new FormData(this)).then(function (d) {
             toast(d.msg, d.ok);
             if (d.ok) { expModal('expFormModal', false); loadRecs(); load(); }
-        }).catch(function () { toast('Server error.', false); }).finally(function () { btn.disabled = false; btn.textContent = 'Save Expense'; });
+        }).catch(function (err) { toast(err.message, false); }).then(function () { btn.disabled = false; btn.textContent = 'Save Expense'; });
     });
 
     ['expFormModal', 'expDeleteModal', 'expViewModal'].forEach(function (id) { $(id).addEventListener('mousedown', function (e) { if (e.target === this) { expModal(id, false); } }); });
