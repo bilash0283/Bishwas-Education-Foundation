@@ -90,6 +90,10 @@
                         $filePath = 'pages/my_certificates.php';
                         break;
 
+                    case 'contact_messages':
+                        $filePath = 'pages/contact_messages.php';
+                        break;
+
                     default:
                         $filePath = 'pages/404.php';
                         break;
