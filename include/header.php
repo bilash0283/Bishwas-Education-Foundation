@@ -60,7 +60,11 @@ $donate_btn_text = $data['donate_btn_text'] ?? $default_donate_btn_text;
 
             
             <?php
-            $current_page = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+            // $current_page = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+            $current_page = basename($_SERVER['SCRIPT_NAME']);
+                if ($current_page === '') {
+                    $current_page = 'index.php';
+            }
 
             $current_hash = isset($_SERVER['QUERY_STRING'])
                 ? ''
