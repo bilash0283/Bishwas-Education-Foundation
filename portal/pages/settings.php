@@ -1,90 +1,182 @@
 <?php
 /* ==========================================================
-   settings.php  ->  index.php?page=settings
+   settings.php  ->  index.php?page=settings   (PHP 7.2 – 8.4 compatible)
    Settings (Admin only). Ekhon: Member Registration Terms & Conditions
    Pore notun section: $SECTIONS array-te ekta line + ekta <div> add korlei hobe.
    Table: settings.sql age import korun.
+
+   Live server fix list:
+   1. mysqli_stmt_get_result() (mysqlnd) na thakle bind_result fallback
+   2. bind_param(...$p) bodle reference diye bind
+   3. redirect: header already sent hole (live e output_buffering off) JS diye redirect
+   4. json_encode fail hole "var C = ;" hoye JS bhenge jeto -> safe fallback
+   5. mysqli_fetch_row(mysqli_query()) query fail hole fatal error -> guard
+   6. Save fail hole ager code "Clause added" dekhato -> ekhon sotti error dekhay
+   7. ??, [0] dereference -> plain code
    ========================================================== */
+if (!headers_sent()) { ob_start(); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!function_exists('h')) { function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
-mysqli_set_charset($db, 'utf8mb4');
+if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) { define('JSON_INVALID_UTF8_SUBSTITUTE', 0); }
+if (!@mysqli_set_charset($db, 'utf8mb4')) { @mysqli_set_charset($db, 'utf8'); }
+
+// redirect: header jodi already pathano hoye jay (live server) tahole JS diye
+function st_go($url) {
+    if (!headers_sent()) {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Location: ' . $url);
+    } else {
+        echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+    }
+    exit;
+}
+function st_js($v, $fallback) {
+    $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    return ($j === false) ? $fallback : $j;
+}
+function st_first($rows, $key, $default = 0) { return isset($rows[0][$key]) ? $rows[0][$key] : $default; }
+
+// bind_param er jonno reference toiri
+function st_bind($st, $t, &$p) {
+    if ($t === '' || !count($p)) { return; }
+    $args = array($st, $t);
+    foreach ($p as $k => $v) { $args[] = &$p[$k]; }
+    call_user_func_array('mysqli_stmt_bind_param', $args);
+}
+
+// SELECT: sob row array hishebe (mysqlnd lage na)
+function st_rows($db, $sql, $t = '', $p = array()) {
+    $st = mysqli_prepare($db, $sql);
+    if (!$st) { return array(); }
+    st_bind($st, $t, $p);
+    if (!mysqli_stmt_execute($st)) { mysqli_stmt_close($st); return array(); }
+
+    $o = array();
+    if (function_exists('mysqli_stmt_get_result')) {
+        $res = mysqli_stmt_get_result($st);
+        while ($res && ($r = mysqli_fetch_assoc($res))) { $o[] = $r; }
+    } else {
+        mysqli_stmt_store_result($st);
+        $meta = mysqli_stmt_result_metadata($st);
+        if ($meta) {
+            $row = array(); $bind = array($st);
+            while ($f = mysqli_fetch_field($meta)) { $row[$f->name] = null; $bind[] = &$row[$f->name]; }
+            mysqli_free_result($meta);
+            call_user_func_array('mysqli_stmt_bind_result', $bind);
+            while (mysqli_stmt_fetch($st)) {
+                $copy = array();
+                foreach ($row as $k => $v) { $copy[$k] = $v; }
+                $o[] = $copy;
+            }
+        }
+    }
+    mysqli_stmt_close($st);
+    return $o;
+}
+
+// INSERT/UPDATE/DELETE: affected rows (fail hole -1)
+function st_run($db, $sql, $t, $p) {
+    $st = mysqli_prepare($db, $sql);
+    if (!$st) { return -1; }
+    st_bind($st, $t, $p);
+    $ok = mysqli_stmt_execute($st);
+    $n = mysqli_stmt_affected_rows($st);
+    mysqli_stmt_close($st);
+    return $ok ? $n : -1;
+}
 
 /* ---------- Role (database theke verify) ---------- */
-$me = (int)($_SESSION['user_id'] ?? $_SESSION['id'] ?? $_SESSION['uid'] ?? $_SESSION['member_id'] ?? 0);
-$utype = $_SESSION['user_type'] ?? '';
-if ($me > 0) { $ur = mysqli_fetch_row(mysqli_query($db, "SELECT user_type FROM users WHERE id = " . $me . " LIMIT 1")); if ($ur) { $utype = $ur[0]; } }
+$me = 0;
+foreach (array('user_id', 'id', 'uid', 'member_id') as $sk) {
+    if (isset($_SESSION[$sk]) && (int)$_SESSION[$sk] > 0) { $me = (int)$_SESSION[$sk]; break; }
+}
+$utype = isset($_SESSION['user_type']) ? $_SESSION['user_type'] : '';
+if ($me > 0) {
+    $ures = mysqli_query($db, "SELECT user_type FROM users WHERE id = " . $me . " LIMIT 1");
+    $ur = $ures ? mysqli_fetch_row($ures) : null;
+    if ($ur) { $utype = $ur[0]; }
+}
 if ($utype !== 'Admin') {
     echo '<section class="page-content max-w-xl mx-auto"><div class="p-6 bg-white rounded-2xl ring-1 ring-slate-200 text-center space-y-2"><i class="fa-solid fa-lock text-3xl text-slate-300"></i>
           <h3 class="font-bold text-slate-800">Access Restricted</h3><p class="text-xs text-slate-500">Only Admin can open Settings. / শুধু অ্যাডমিন সেটিংস দেখতে পারবেন।</p></div></section>';
     return;
 }
 $dbReady = true;
-try { foreach (['terms_conditions', 'portal_settings'] as $tb) { if (!mysqli_query($db, "SELECT 1 FROM $tb LIMIT 1")) { $dbReady = false; } } } catch (Throwable $e) { $dbReady = false; }
+try {
+    foreach (array('terms_conditions', 'portal_settings') as $tb) {
+        if (!mysqli_query($db, "SELECT 1 FROM $tb LIMIT 1")) { $dbReady = false; }
+    }
+} catch (Throwable $e) { $dbReady = false; }
 if (!$dbReady) {
     echo '<section class="page-content max-w-xl mx-auto"><div class="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-center space-y-2"><i class="fa-solid fa-database text-3xl text-amber-400"></i>
           <h3 class="font-bold text-slate-800">Database tables not found</h3><p class="text-xs text-slate-600">Please import <b>settings.sql</b> in phpMyAdmin first. / আগে settings.sql ইম্পোর্ট করুন।</p></div></section>';
     return;
 }
-if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
-$page = $_GET['page'] ?? 'settings';
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = function_exists('random_bytes') ? bin2hex(random_bytes(16)) : md5(uniqid((string)mt_rand(), true));
+}
+$page = isset($_GET['page']) ? $_GET['page'] : 'settings';
 $base = 'index.php?page=' . urlencode($page);
 
-function st_rows($db, $sql, $t = '', $p = []) {
-    $st = mysqli_prepare($db, $sql);
-    if (!$st) { return []; }
-    if ($t !== '') { mysqli_stmt_bind_param($st, $t, ...$p); }
-    mysqli_stmt_execute($st);
-    $res = mysqli_stmt_get_result($st); $o = [];
-    while ($res && $r = mysqli_fetch_assoc($res)) { $o[] = $r; }
-    mysqli_stmt_close($st);
-    return $o;
-}
-function st_run($db, $sql, $t, $p) { $st = mysqli_prepare($db, $sql); mysqli_stmt_bind_param($st, $t, ...$p); $ok = mysqli_stmt_execute($st); $n = mysqli_stmt_affected_rows($st); mysqli_stmt_close($st); return $ok ? $n : -1; }
-
 /* ---------- Settings sections (pore ekhane aro add korben) ---------- */
-$SECTIONS = [
-    'terms'   => ['Terms & Conditions', 'সদস্য নিবন্ধনের শর্তাবলী', 'fa-file-contract', true],
-    'general' => ['General Information', 'সংস্থার সাধারণ তথ্য', 'fa-building', false],
-    'notify'  => ['Notifications', 'নোটিফিকেশন', 'fa-bell', false],
-    'security'=> ['Security', 'নিরাপত্তা', 'fa-shield-halved', false],
-];
+$SECTIONS = array(
+    'terms'    => array('Terms & Conditions', 'সদস্য নিবন্ধনের শর্তাবলী', 'fa-file-contract', true),
+    'general'  => array('General Information', 'সংস্থার সাধারণ তথ্য', 'fa-building', false),
+    'notify'   => array('Notifications', 'নোটিফিকেশন', 'fa-bell', false),
+    'security' => array('Security', 'নিরাপত্তা', 'fa-shield-halved', false),
+);
 
 /* ---------- ACTIONS ---------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
-    $do = $_POST['do'] ?? ''; $ok = true; $msg = ''; $id = (int)($_POST['id'] ?? 0);
+$post_csrf = isset($_POST['csrf']) ? (string)$_POST['csrf'] : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], $post_csrf)) {
+    $do = isset($_POST['do']) ? $_POST['do'] : ''; $ok = true; $msg = '';
+    $id = (int)(isset($_POST['id']) ? $_POST['id'] : 0);
 
     if ($do === 'save') {
-        $title = trim($_POST['title'] ?? ''); $content = trim($_POST['content'] ?? ''); $status = ($_POST['status'] ?? '') === 'Inactive' ? 'Inactive' : 'Active';
+        $title = trim(isset($_POST['title']) ? $_POST['title'] : '');
+        $content = trim(isset($_POST['content']) ? $_POST['content'] : '');
+        $status = (isset($_POST['status']) ? $_POST['status'] : '') === 'Inactive' ? 'Inactive' : 'Active';
         if ($title === '' || $content === '') { $ok = false; $msg = 'Title and description are required. / শিরোনাম ও বিবরণ দিন।'; }
-        elseif ($id > 0) { st_run($db, "UPDATE terms_conditions SET title = ?, content = ?, status = ?, updated_by = ? WHERE id = ?", 'sssii', [$title, $content, $status, $me ?: null, $id]); $msg = 'Clause updated.'; }
-        else {
-            $max = (int)(st_rows($db, "SELECT COALESCE(MAX(sort_order),0) m FROM terms_conditions")[0]['m'] ?? 0);
-            st_run($db, "INSERT INTO terms_conditions (title, content, status, sort_order, updated_by) VALUES (?,?,?,?,?)", 'sssii', [$title, $content, $status, $max + 1, $me ?: null]); $msg = 'Clause added.';
+        elseif ($id > 0) {
+            $r = st_run($db, "UPDATE terms_conditions SET title = ?, content = ?, status = ?, updated_by = ? WHERE id = ?", 'sssii', array($title, $content, $status, $me ? $me : null, $id));
+            if ($r < 0) { $ok = false; $msg = 'Could not update clause.'; } else { $msg = 'Clause updated.'; }
+        } else {
+            $max = (int)st_first(st_rows($db, "SELECT COALESCE(MAX(sort_order),0) m FROM terms_conditions"), 'm', 0);
+            $r = st_run($db, "INSERT INTO terms_conditions (title, content, status, sort_order, updated_by) VALUES (?,?,?,?,?)", 'sssii', array($title, $content, $status, $max + 1, $me ? $me : null));
+            if ($r < 0) { $ok = false; $msg = 'Could not add clause.'; } else { $msg = 'Clause added.'; }
         }
     } elseif ($do === 'delete') {
-        st_run($db, "DELETE FROM terms_conditions WHERE id = ?", 'i', [$id]); $msg = 'Clause deleted.';
+        st_run($db, "DELETE FROM terms_conditions WHERE id = ?", 'i', array($id)); $msg = 'Clause deleted.';
     } elseif ($do === 'toggle') {
-        st_run($db, "UPDATE terms_conditions SET status = IF(status = 'Active', 'Inactive', 'Active') WHERE id = ?", 'i', [$id]); $msg = 'Status changed.';
+        st_run($db, "UPDATE terms_conditions SET status = IF(status = 'Active', 'Inactive', 'Active') WHERE id = ?", 'i', array($id)); $msg = 'Status changed.';
     } elseif ($do === 'move') {
         $ids = array_map('intval', array_column(st_rows($db, "SELECT id FROM terms_conditions ORDER BY sort_order, id"), 'id'));
-        $i = array_search($id, $ids); $j = $i === false ? -1 : $i + (($_POST['dir'] ?? '') === 'up' ? -1 : 1);
-        if ($i !== false && isset($ids[$j])) { $x = $ids[$i]; $ids[$i] = $ids[$j]; $ids[$j] = $x; foreach ($ids as $k => $cid) { st_run($db, "UPDATE terms_conditions SET sort_order = ? WHERE id = ?", 'ii', [$k + 1, $cid]); } }
+        $i = array_search($id, $ids);
+        $dir = isset($_POST['dir']) ? $_POST['dir'] : '';
+        $j = $i === false ? -1 : $i + ($dir === 'up' ? -1 : 1);
+        if ($i !== false && isset($ids[$j])) {
+            $x = $ids[$i]; $ids[$i] = $ids[$j]; $ids[$j] = $x;
+            foreach ($ids as $k => $cid) { st_run($db, "UPDATE terms_conditions SET sort_order = ? WHERE id = ?", 'ii', array($k + 1, $cid)); }
+        }
         $msg = 'Order updated.';
     } elseif ($do === 'text') {
-        foreach (['terms_heading', 'terms_intro', 'terms_agree_label'] as $k) {
-            st_run($db, "INSERT INTO portal_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", 'ss', [$k, trim($_POST[$k] ?? '')]);
+        foreach (array('terms_heading', 'terms_intro', 'terms_agree_label') as $k) {
+            $r = st_run($db, "INSERT INTO portal_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", 'ss',
+                array($k, trim(isset($_POST[$k]) ? $_POST[$k] : '')));
+            if ($r < 0) { $ok = false; }
         }
-        $msg = 'Heading & intro saved.';
+        $msg = $ok ? 'Heading & intro saved.' : 'Could not save heading & intro.';
     }
-    $_SESSION['st_flash'] = [$ok, $msg];
-    header('Location: ' . $base . '&s=terms'); exit;
+    $_SESSION['st_flash'] = array($ok, $msg);
+    st_go($base . '&s=terms');
 }
-$flash = $_SESSION['st_flash'] ?? null; unset($_SESSION['st_flash']);
+$flash = isset($_SESSION['st_flash']) ? $_SESSION['st_flash'] : null; unset($_SESSION['st_flash']);
 
 /* ---------- DATA ---------- */
-$sec = isset($SECTIONS[$_GET['s'] ?? '']) && $SECTIONS[$_GET['s']][3] ? $_GET['s'] : 'terms';
+$g_s = isset($_GET['s']) ? $_GET['s'] : '';
+$sec = (isset($SECTIONS[$g_s]) && $SECTIONS[$g_s][3]) ? $g_s : 'terms';
 $clauses = st_rows($db, "SELECT t.*, u.member_name editor FROM terms_conditions t LEFT JOIN users u ON u.id = t.updated_by ORDER BY t.sort_order, t.id");
-$cfg = ['terms_heading' => 'Terms & Conditions', 'terms_intro' => 'Please read the following terms carefully before registering as a member.', 'terms_agree_label' => 'I have read and agree to the Terms & Conditions.'];
+$cfg = array('terms_heading' => 'Terms & Conditions', 'terms_intro' => 'Please read the following terms carefully before registering as a member.', 'terms_agree_label' => 'I have read and agree to the Terms & Conditions.');
 foreach (st_rows($db, "SELECT setting_key, setting_value FROM portal_settings WHERE setting_key LIKE 'terms_%'") as $r) { if ($r['setting_value'] !== '') { $cfg[$r['setting_key']] = $r['setting_value']; } }
 $active = count(array_filter($clauses, function ($c) { return $c['status'] === 'Active'; }));
 $last = $clauses ? max(array_column($clauses, 'updated_at')) : null;
@@ -99,16 +191,16 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
         <p class="text-xs text-slate-500 mt-0.5">Manage portal and website settings.</p>
     </div>
 
-    <?php if ($flash) { ?><div class="p-3 rounded-xl text-xs font-semibold border <?= $flash[0] ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700' ?>"><?= h($flash[1]) ?></div><?php } ?>
+    <?php if ($flash) { ?><div class="p-3 rounded-xl text-xs font-semibold border <?php echo $flash[0] ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'; ?>"><?php echo h($flash[1]); ?></div><?php } ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
         <!-- Settings menu -->
         <nav class="lg:col-span-3 bg-white rounded-2xl ring-1 ring-slate-200/80 p-2 flex lg:flex-col gap-1 overflow-x-auto">
             <?php foreach ($SECTIONS as $k => $s) { $on = $s[3]; $cur = $k === $sec; ?>
-            <a <?= $on ? 'href="' . h($base . '&s=' . $k) . '"' : '' ?> class="shrink-0 flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold <?= $cur ? 'bg-emerald-600 text-white shadow-sm' : ($on ? 'text-slate-600 hover:bg-slate-50' : 'text-slate-300 cursor-not-allowed') ?>">
-                <i class="fa-solid <?= $s[2] ?> w-4 text-center"></i>
-                <span class="whitespace-nowrap"><?= h($s[0]) ?><small class="hidden lg:block font-normal opacity-70"><?= h($s[1]) ?></small></span>
+            <a <?php echo $on ? 'href="' . h($base . '&s=' . $k) . '"' : ''; ?> class="shrink-0 flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold <?php echo $cur ? 'bg-emerald-600 text-white shadow-sm' : ($on ? 'text-slate-600 hover:bg-slate-50' : 'text-slate-300 cursor-not-allowed'); ?>">
+                <i class="fa-solid <?php echo $s[2]; ?> w-4 text-center"></i>
+                <span class="whitespace-nowrap"><?php echo h($s[0]); ?><small class="hidden lg:block font-normal opacity-70"><?php echo h($s[1]); ?></small></span>
                 <?php if (!$on) { ?><span class="ml-auto px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 text-[9px] font-bold">Soon</span><?php } ?>
             </a>
             <?php } ?>
@@ -122,7 +214,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-file-contract"></i></div>
                     <div><h3 class="font-bold text-slate-800">Member Registration — Terms & Conditions</h3>
-                        <p class="text-[11px] text-slate-500">Shown to new members on the registration form. <?= $last ? 'Last updated: ' . h(date('d M Y, h:i A', strtotime($last))) : '' ?></p></div>
+                        <p class="text-[11px] text-slate-500">Shown to new members on the registration form. <?php echo $last ? 'Last updated: ' . h(date('d M Y, h:i A', strtotime($last))) : ''; ?></p></div>
                 </div>
                 <div class="grid grid-cols-3 sm:flex gap-2">
                     <button type="button" onclick="stModal('stText', true)" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50"><i class="fa-solid fa-heading mr-1"></i>Intro</button>
@@ -132,8 +224,8 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
             </div>
 
             <div class="grid grid-cols-3 gap-3">
-                <?php foreach ([['Total Clauses', count($clauses), 'slate'], ['Active', $active, 'emerald'], ['Inactive', count($clauses) - $active, 'amber']] as $c) { ?>
-                <div class="p-3.5 bg-white rounded-2xl ring-1 ring-slate-200/80 text-center"><p class="text-[10px] font-bold uppercase text-slate-400"><?= $c[0] ?></p><p class="text-2xl font-bold text-<?= $c[2] ?>-600"><?= $c[1] ?></p></div>
+                <?php foreach (array(array('Total Clauses', count($clauses), 'slate'), array('Active', $active, 'emerald'), array('Inactive', count($clauses) - $active, 'amber')) as $c) { ?>
+                <div class="p-3.5 bg-white rounded-2xl ring-1 ring-slate-200/80 text-center"><p class="text-[10px] font-bold uppercase text-slate-400"><?php echo $c[0]; ?></p><p class="text-2xl font-bold text-<?php echo $c[2]; ?>-600"><?php echo $c[1]; ?></p></div>
                 <?php } ?>
             </div>
 
@@ -146,23 +238,23 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
             <!-- MANAGE -->
             <div id="tab_manage" class="space-y-3">
                 <?php foreach ($clauses as $i => $c) { $act = $c['status'] === 'Active'; ?>
-                <div class="bg-white rounded-2xl ring-1 ring-slate-200/80 p-4 flex gap-3 sm:gap-4 <?= $act ? '' : 'opacity-70' ?>">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shrink-0"><?= $i + 1 ?></div>
+                <div class="bg-white rounded-2xl ring-1 ring-slate-200/80 p-4 flex gap-3 sm:gap-4 <?php echo $act ? '' : 'opacity-70'; ?>">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shrink-0"><?php echo $i + 1; ?></div>
                     <div class="min-w-0 flex-1 space-y-2">
                         <div class="flex flex-wrap items-center gap-2">
-                            <h4 class="font-bold text-sm text-slate-800"><?= h($c['title']) ?></h4>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $act ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' ?>"><?= h($c['status']) ?></span>
+                            <h4 class="font-bold text-sm text-slate-800"><?php echo h($c['title']); ?></h4>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?php echo $act ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'; ?>"><?php echo h($c['status']); ?></span>
                         </div>
-                        <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line line-clamp-4"><?= h($c['content']) ?></p>
-                        <p class="text-[10px] text-slate-400">Updated <?= h(date('d M Y', strtotime($c['updated_at']))) ?><?= $c['editor'] ? ' by ' . h($c['editor']) : '' ?></p>
+                        <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line line-clamp-4"><?php echo h($c['content']); ?></p>
+                        <p class="text-[10px] text-slate-400">Updated <?php echo h(date('d M Y', strtotime($c['updated_at']))); ?><?php echo $c['editor'] ? ' by ' . h($c['editor']) : ''; ?></p>
                         <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                            <form method="POST" action="" class="flex gap-1"><?= $csrf ?><input type="hidden" name="do" value="move"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-                                <button name="dir" value="up" title="Move up" <?= $i === 0 ? 'disabled' : '' ?> class="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"><i class="fa-solid fa-arrow-up text-xs"></i></button>
-                                <button name="dir" value="down" title="Move down" <?= $i === count($clauses) - 1 ? 'disabled' : '' ?> class="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"><i class="fa-solid fa-arrow-down text-xs"></i></button></form>
-                            <form method="POST" action=""><?= $csrf ?><input type="hidden" name="do" value="toggle"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-                                <button class="px-3 h-8 rounded-lg text-[11px] font-bold <?= $act ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' ?>"><i class="fa-solid <?= $act ? 'fa-eye-slash' : 'fa-eye' ?> mr-1"></i><?= $act ? 'Hide' : 'Show' ?></button></form>
-                            <button type="button" onclick="stForm(<?= (int)$c['id'] ?>)" class="px-3 h-8 rounded-lg bg-sky-50 text-sky-700 text-[11px] font-bold hover:bg-sky-100"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-                            <form method="POST" action="" onsubmit="return confirm('Delete this clause? / এই ধারাটি মুছে ফেলবেন?')"><?= $csrf ?><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
+                            <form method="POST" action="" class="flex gap-1"><?php echo $csrf; ?><input type="hidden" name="do" value="move"><input type="hidden" name="id" value="<?php echo (int)$c['id']; ?>">
+                                <button name="dir" value="up" title="Move up" <?php echo $i === 0 ? 'disabled' : ''; ?> class="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"><i class="fa-solid fa-arrow-up text-xs"></i></button>
+                                <button name="dir" value="down" title="Move down" <?php echo $i === count($clauses) - 1 ? 'disabled' : ''; ?> class="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"><i class="fa-solid fa-arrow-down text-xs"></i></button></form>
+                            <form method="POST" action=""><?php echo $csrf; ?><input type="hidden" name="do" value="toggle"><input type="hidden" name="id" value="<?php echo (int)$c['id']; ?>">
+                                <button class="px-3 h-8 rounded-lg text-[11px] font-bold <?php echo $act ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'; ?>"><i class="fa-solid <?php echo $act ? 'fa-eye-slash' : 'fa-eye'; ?> mr-1"></i><?php echo $act ? 'Hide' : 'Show'; ?></button></form>
+                            <button type="button" onclick="stForm(<?php echo (int)$c['id']; ?>)" class="px-3 h-8 rounded-lg bg-sky-50 text-sky-700 text-[11px] font-bold hover:bg-sky-100"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
+                            <form method="POST" action="" onsubmit="return confirm('Delete this clause? / এই ধারাটি মুছে ফেলবেন?')"><?php echo $csrf; ?><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?php echo (int)$c['id']; ?>">
                                 <button class="px-3 h-8 rounded-lg bg-rose-50 text-rose-600 text-[11px] font-bold hover:bg-rose-100"><i class="fa-solid fa-trash mr-1"></i>Delete</button></form>
                         </div>
                     </div>
@@ -175,15 +267,15 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
                 <div class="bg-white rounded-2xl ring-1 ring-slate-200/80 overflow-hidden max-w-3xl">
                     <div class="h-2 bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-400"></div>
                     <div class="p-5 sm:p-8 space-y-5">
-                        <div class="text-center"><h3 class="text-lg sm:text-xl font-bold text-emerald-800"><?= h($cfg['terms_heading']) ?></h3>
-                            <p class="text-xs text-slate-500 mt-1.5"><?= h($cfg['terms_intro']) ?></p></div>
+                        <div class="text-center"><h3 class="text-lg sm:text-xl font-bold text-emerald-800"><?php echo h($cfg['terms_heading']); ?></h3>
+                            <p class="text-xs text-slate-500 mt-1.5"><?php echo h($cfg['terms_intro']); ?></p></div>
                         <ol class="space-y-4">
                             <?php $n = 0; foreach ($clauses as $c) { if ($c['status'] !== 'Active') { continue; } $n++; ?>
-                            <li class="flex gap-3"><span class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0"><?= $n ?></span>
-                                <div><p class="font-bold text-sm text-slate-800"><?= h($c['title']) ?></p><p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line mt-0.5"><?= h($c['content']) ?></p></div></li>
+                            <li class="flex gap-3"><span class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0"><?php echo $n; ?></span>
+                                <div><p class="font-bold text-sm text-slate-800"><?php echo h($c['title']); ?></p><p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line mt-0.5"><?php echo h($c['content']); ?></p></div></li>
                             <?php } if (!$n) { echo '<li class="text-center text-xs text-slate-400">No active clauses.</li>'; } ?>
                         </ol>
-                        <label class="flex items-start gap-2.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700"><input type="checkbox" disabled class="mt-0.5 rounded w-4 h-4"> <?= h($cfg['terms_agree_label']) ?></label>
+                        <label class="flex items-start gap-2.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700"><input type="checkbox" disabled class="mt-0.5 rounded w-4 h-4"> <?php echo h($cfg['terms_agree_label']); ?></label>
                         <button type="button" disabled class="w-full py-3 rounded-xl bg-emerald-600/40 text-white text-xs font-bold cursor-not-allowed">Register</button>
                         <p class="text-center text-[10px] text-slate-400">Preview only — members will see this on the registration page.</p>
                     </div>
@@ -201,10 +293,10 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
         <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0"><h3 class="font-bold text-sm"><i class="fa-solid fa-file-contract text-emerald-400 mr-2"></i><span id="stFormTitle">Add Clause</span></h3>
             <button type="button" onclick="stModal('stForm', false)" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button></div>
         <form method="POST" action="" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
-            <?= $csrf ?><input type="hidden" name="do" value="save"><input type="hidden" name="id" id="f_id" value="0">
-            <div><label class="<?= $lbl ?>">Clause Title * <small class="normal-case">/ ধারার শিরোনাম</small></label><input type="text" name="title" id="f_title" required class="<?= $inp ?>" placeholder="e.g. Membership Fee / সদস্য চাঁদা"></div>
-            <div><label class="<?= $lbl ?>">Description * <small class="normal-case">/ বিবরণ</small></label><textarea name="content" id="f_content" rows="7" required class="<?= $inp ?>" placeholder="Write the full condition here..."></textarea></div>
-            <div><label class="<?= $lbl ?>">Status</label><select name="status" id="f_status" class="<?= $inp ?>"><option>Active</option><option>Inactive</option></select>
+            <?php echo $csrf; ?><input type="hidden" name="do" value="save"><input type="hidden" name="id" id="f_id" value="0">
+            <div><label class="<?php echo $lbl; ?>">Clause Title * <small class="normal-case">/ ধারার শিরোনাম</small></label><input type="text" name="title" id="f_title" required class="<?php echo $inp; ?>" placeholder="e.g. Membership Fee / সদস্য চাঁদা"></div>
+            <div><label class="<?php echo $lbl; ?>">Description * <small class="normal-case">/ বিবরণ</small></label><textarea name="content" id="f_content" rows="7" required class="<?php echo $inp; ?>" placeholder="Write the full condition here..."></textarea></div>
+            <div><label class="<?php echo $lbl; ?>">Status</label><select name="status" id="f_status" class="<?php echo $inp; ?>"><option>Active</option><option>Inactive</option></select>
                 <p class="text-[11px] text-slate-400 mt-1">Inactive clauses are hidden from the registration form.</p></div>
             <div class="flex gap-2 pt-1">
                 <button type="button" onclick="stModal('stForm', false)" class="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">Cancel</button>
@@ -220,10 +312,10 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
         <div class="p-4 bg-slate-900 text-white flex justify-between items-center"><h3 class="font-bold text-sm"><i class="fa-solid fa-heading text-emerald-400 mr-2"></i>Heading, Intro & Agree Text</h3>
             <button type="button" onclick="stModal('stText', false)" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button></div>
         <form method="POST" action="" class="p-4 sm:p-6 space-y-4">
-            <?= $csrf ?><input type="hidden" name="do" value="text">
-            <div><label class="<?= $lbl ?>">Heading</label><input type="text" name="terms_heading" value="<?= h($cfg['terms_heading']) ?>" class="<?= $inp ?>"></div>
-            <div><label class="<?= $lbl ?>">Intro text</label><textarea name="terms_intro" rows="3" class="<?= $inp ?>"><?= h($cfg['terms_intro']) ?></textarea></div>
-            <div><label class="<?= $lbl ?>">Checkbox text <small class="normal-case">(“I agree...”)</small></label><input type="text" name="terms_agree_label" value="<?= h($cfg['terms_agree_label']) ?>" class="<?= $inp ?>"></div>
+            <?php echo $csrf; ?><input type="hidden" name="do" value="text">
+            <div><label class="<?php echo $lbl; ?>">Heading</label><input type="text" name="terms_heading" value="<?php echo h($cfg['terms_heading']); ?>" class="<?php echo $inp; ?>"></div>
+            <div><label class="<?php echo $lbl; ?>">Intro text</label><textarea name="terms_intro" rows="3" class="<?php echo $inp; ?>"><?php echo h($cfg['terms_intro']); ?></textarea></div>
+            <div><label class="<?php echo $lbl; ?>">Checkbox text <small class="normal-case">(“I agree...”)</small></label><input type="text" name="terms_agree_label" value="<?php echo h($cfg['terms_agree_label']); ?>" class="<?php echo $inp; ?>"></div>
             <button class="w-full py-3 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Save</button>
         </form>
     </div>
@@ -231,7 +323,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">'
 
 <script>
 (function () {
-    var C = <?= json_encode($clauses, JSON_UNESCAPED_UNICODE) ?>, $ = function (id) { return document.getElementById(id); };
+    var C = <?php echo st_js(array_values($clauses), '[]'); ?>, $ = function (id) { return document.getElementById(id); };
     window.stModal = function (id, on) { var m = $(id); m.classList.toggle('hidden', !on); m.classList.toggle('flex', on); document.body.style.overflow = on ? 'hidden' : ''; };
     window.stTab = function (t) {
         $('tab_manage').classList.toggle('hidden', t !== 'manage'); $('tab_preview').classList.toggle('hidden', t !== 'preview');

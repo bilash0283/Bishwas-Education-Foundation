@@ -1,13 +1,42 @@
 <?php
+/* ==========================================================
+   my_donations.php  (PHP 7.2 – 8.4 compatible)
 
+   Live server fix list:
+   1. mysqli_stmt_get_result() (mysqlnd) na thakle bind_result fallback
+      (ager code e report, history, KPI shob khali/fatal error hoto)
+   2. bind_param(...$p) bodle reference diye bind
+   3. finfo_open()/finfo_file() (fileinfo extension) na thakle Receipt upload e fatal error -> fallback
+   4. redirect: header already sent hole (live e output_buffering off) JS diye redirect
+      (Add / Edit / Delete er por blank page ashto, flash popup dekhato na)
+   5. json_encode fail hole "var D = ;" hoye JS bhenge jeto -> safe fallback
+   6. ??, [0] dereference -> plain code
+   7. foreach by-reference ($d) soriye index diye likha
+   8. md_run() prepare fail hole fatal error -> guard
+   ========================================================== */
+
+if (!headers_sent()) { ob_start(); }
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
-if (!isset($_SESSION['user_type'])) {
-    header('Location: index.php?page=dashboard');
+if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) { define('JSON_INVALID_UTF8_SUBSTITUTE', 0); }
+
+// redirect: header jodi already pathano hoye jay (live server) tahole JS diye
+function md_go($url)
+{
+    if (!headers_sent()) {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Location: ' . $url);
+    } else {
+        echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+    }
     exit;
 }
-$me = (int) ($_SESSION['user_id'] ?? 0);
+
+if (!isset($_SESSION['user_type'])) {
+    md_go('index.php?page=dashboard');
+}
+$me = (int) (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0);
 $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
 if (!function_exists('h')) {
     function h($s)
@@ -22,33 +51,90 @@ if ($me <= 0 || !$connection) {
     echo $restricted;
     return;
 }
-mysqli_set_charset($connection, 'utf8mb4');
+if (!@mysqli_set_charset($connection, 'utf8mb4')) { @mysqli_set_charset($connection, 'utf8'); }
 if (empty($_SESSION['csrf'])) {
-    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+    $_SESSION['csrf'] = function_exists('random_bytes') ? bin2hex(random_bytes(16)) : md5(uniqid((string) mt_rand(), true));
 }
 
-function md_rows($db, $sql, $t = '', $p = [])
+/* ---------- Small helpers ---------- */
+function md_js($v, $fallback)
+{
+    $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    return ($j === false) ? $fallback : $j;
+}
+function md_first($rows, $key, $default = null)
+{
+    return isset($rows[0][$key]) ? $rows[0][$key] : $default;
+}
+function md_one($rows)
+{
+    return isset($rows[0]) ? $rows[0] : null;
+}
+
+// bind_param er jonno reference toiri
+function md_bind($st, $t, &$p)
+{
+    if ($t === '' || !count($p)) {
+        return;
+    }
+    $args = array($st, $t);
+    foreach ($p as $k => $v) {
+        $args[] = &$p[$k];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', $args);
+}
+
+// SELECT: sob row array hishebe (mysqlnd lage na)
+function md_rows($db, $sql, $t = '', $p = array())
 {
     $st = mysqli_prepare($db, $sql);
     if (!$st) {
-        return [];
+        return array();
     }
-    if ($t !== '') {
-        mysqli_stmt_bind_param($st, $t, ...$p);
+    md_bind($st, $t, $p);
+    if (!mysqli_stmt_execute($st)) {
+        mysqli_stmt_close($st);
+        return array();
     }
-    mysqli_stmt_execute($st);
-    $res = mysqli_stmt_get_result($st);
-    $o = [];
-    while ($res && $r = mysqli_fetch_assoc($res)) {
-        $o[] = $r;
+    $o = array();
+    if (function_exists('mysqli_stmt_get_result')) {
+        $res = mysqli_stmt_get_result($st);
+        while ($res && ($r = mysqli_fetch_assoc($res))) {
+            $o[] = $r;
+        }
+    } else {
+        mysqli_stmt_store_result($st);
+        $meta = mysqli_stmt_result_metadata($st);
+        if ($meta) {
+            $row = array();
+            $bind = array($st);
+            while ($f = mysqli_fetch_field($meta)) {
+                $row[$f->name] = null;
+                $bind[] = &$row[$f->name];
+            }
+            mysqli_free_result($meta);
+            call_user_func_array('mysqli_stmt_bind_result', $bind);
+            while (mysqli_stmt_fetch($st)) {
+                $copy = array();
+                foreach ($row as $k => $v) {
+                    $copy[$k] = $v;
+                }
+                $o[] = $copy;
+            }
+        }
     }
     mysqli_stmt_close($st);
     return $o;
 }
+
+// INSERT/UPDATE/DELETE: true = sofol
 function md_run($db, $sql, $t, $p)
 {
     $st = mysqli_prepare($db, $sql);
-    mysqli_stmt_bind_param($st, $t, ...$p);
+    if (!$st) {
+        return false;
+    }
+    md_bind($st, $t, $p);
     $ok = mysqli_stmt_execute($st);
     mysqli_stmt_close($st);
     return $ok;
@@ -58,7 +144,7 @@ function md_tk($n)
     return '৳' . number_format((float) $n, 2);
 }
 
-$u = md_rows($connection, "SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1", 'i', [$me])[0] ?? null;
+$u = md_one(md_rows($connection, "SELECT member_name, email, mobile_no FROM users WHERE id = ? LIMIT 1", 'i', array($me)));
 if (!$u) {
     echo $restricted;
     return;
@@ -70,14 +156,15 @@ $digits = preg_replace('/\D/', '', (string) $u['mobile_no']);
 $last10 = strlen($digits) >= 10 ? substr($digits, -10) : '';
 $OWN = "(d.donor_id = ? OR (? <> '' AND d.email = ?) OR (? <> '' AND RIGHT(d.phone, 10) = ?))";
 $OWN_T = 'issss';
-$OWN_P = [$me, $email, $email, $last10, $last10];
+$OWN_P = array($me, $email, $email, $last10, $last10);
 
-$methods = ['bKash', 'Nagad', 'Rocket', 'Upay', 'SureCash', 'Bank', 'Cash'];
-$types = ['General', 'Monthly'];
+$methods = array('bKash', 'Nagad', 'Rocket', 'Upay', 'SureCash', 'Bank', 'Cash');
+$types = array('General', 'Monthly');
 $funds = array_column(md_rows($connection, "SELECT title FROM donation_sectors WHERE status = 'active' ORDER BY id DESC"), 'title');
 $receipt_dir = dirname($_SERVER['SCRIPT_FILENAME']) . '/uploads/receipts/';
-$editable = ['pending', 'failed', 'rejected'];
+$editable = array('pending', 'failed', 'rejected');
 
+// Receipt upload (fileinfo extension na thakleo cholbe)
 function md_upload($f, $dir, &$err)
 {
     if (!is_array($f) || $f['error'] === UPLOAD_ERR_NO_FILE) {
@@ -88,10 +175,21 @@ function md_upload($f, $dir, &$err)
         return false;
     }
     $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
-    $fi = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($fi, $f['tmp_name']);
-    finfo_close($fi);
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp']) || !in_array($mime, ['image/jpeg', 'image/png', 'image/webp'])) {
+    if (!in_array($ext, array('jpg', 'jpeg', 'png', 'webp'))) {
+        $err = 'Receipt শুধু JPG, PNG বা WEBP ছবি হতে হবে।';
+        return false;
+    }
+    if (function_exists('finfo_open')) {
+        $fi = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = $fi ? finfo_file($fi, $f['tmp_name']) : '';
+        if ($fi) {
+            finfo_close($fi);
+        }
+        $valid = in_array($mime, array('image/jpeg', 'image/png', 'image/webp'));
+    } else {
+        $valid = (bool) @getimagesize($f['tmp_name']);
+    }
+    if (!$valid) {
         $err = 'Receipt শুধু JPG, PNG বা WEBP ছবি হতে হবে।';
         return false;
     }
@@ -100,9 +198,9 @@ function md_upload($f, $dir, &$err)
         return false;
     }
     if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        @mkdir($dir, 0755, true);
     }
-    $name = time() . '_' . rand(1000, 9999) . '.' . $ext;
+    $name = time() . '_' . mt_rand(1000, 9999) . '.' . $ext;
     if (!move_uploaded_file($f['tmp_name'], $dir . $name)) {
         $err = 'Receipt সেভ করা যায়নি (ফোল্ডার পারমিশন চেক করুন)।';
         return false;
@@ -122,33 +220,37 @@ function md_unlink($dir, $f)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ok = false;
     $msg = '';
-    $do = $_POST['do'] ?? '';
-    $id = (int) ($_POST['id'] ?? 0);
+    $do = isset($_POST['do']) ? $_POST['do'] : '';
+    $id = (int) (isset($_POST['id']) ? $_POST['id'] : 0);
+    $post_csrf = isset($_POST['csrf']) ? (string) $_POST['csrf'] : '';
 
-    if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+    if (!hash_equals($_SESSION['csrf'], $post_csrf)) {
         $msg = 'Session expired. Please reload the page.';
     } elseif ($do === 'delete') {
-        $row = md_rows($connection, "SELECT d.id, d.receipt, d.payment_status FROM donations d WHERE d.id = ? AND $OWN LIMIT 1", 'i' . $OWN_T, array_merge([$id], $OWN_P))[0] ?? null;
+        $row = md_one(md_rows($connection, "SELECT d.id, d.receipt, d.payment_status FROM donations d WHERE d.id = ? AND $OWN LIMIT 1", 'i' . $OWN_T, array_merge(array($id), $OWN_P)));
         if (!$row) {
             $msg = 'Donation পাওয়া যায়নি।';
         } elseif (!in_array(strtolower($row['payment_status']), $editable)) {
             $msg = 'Paid donation মোছা যাবে না।';
         } else {
-            md_run($connection, "DELETE FROM donations WHERE id = ?", 'i', [$id]);
-            md_unlink($receipt_dir, (string) $row['receipt']);
-            $ok = true;
-            $msg = 'Donation deleted successfully. / ডোনেশন মুছে ফেলা হয়েছে।';
+            $ok = md_run($connection, "DELETE FROM donations WHERE id = ?", 'i', array($id));
+            if ($ok) {
+                md_unlink($receipt_dir, (string) $row['receipt']);
+                $msg = 'Donation deleted successfully. / ডোনেশন মুছে ফেলা হয়েছে।';
+            } else {
+                $msg = 'ডিলিট করা যায়নি।';
+            }
         }
     } elseif ($do === 'add' || $do === 'edit') {
-        $amount = (float) ($_POST['amount'] ?? 0);
-        $dtype = $_POST['donation_type'] ?? '';
-        $fund = trim($_POST['fund'] ?? '');
-        $method = $_POST['payment_method'] ?? '';
-        $txn = trim($_POST['transaction_id'] ?? '');
+        $amount = (float) (isset($_POST['amount']) ? $_POST['amount'] : 0);
+        $dtype = isset($_POST['donation_type']) ? $_POST['donation_type'] : '';
+        $fund = trim(isset($_POST['fund']) ? $_POST['fund'] : '');
+        $method = isset($_POST['payment_method']) ? $_POST['payment_method'] : '';
+        $txn = trim(isset($_POST['transaction_id']) ? $_POST['transaction_id'] : '');
         $date = (!empty($_POST['donation_date']) && strtotime($_POST['donation_date'])) ? date('Y-m-d', strtotime($_POST['donation_date'])) : date('Y-m-d');
         $old = null;
         if ($do === 'edit') {
-            $old = md_rows($connection, "SELECT d.id, d.receipt, d.payment_status FROM donations d WHERE d.id = ? AND $OWN LIMIT 1", 'i' . $OWN_T, array_merge([$id], $OWN_P))[0] ?? null;
+            $old = md_one(md_rows($connection, "SELECT d.id, d.receipt, d.payment_status FROM donations d WHERE d.id = ? AND $OWN LIMIT 1", 'i' . $OWN_T, array_merge(array($id), $OWN_P)));
         }
         if ($do === 'edit' && !$old) {
             $msg = 'Donation পাওয়া যায়নি।';
@@ -163,12 +265,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($method !== 'Cash' && $txn === '') {
             $msg = 'Transaction ID দিন (Cash ছাড়া)।';
         } else {
-            $dup = ($txn !== '') ? md_rows($connection, "SELECT id FROM donations WHERE transaction_id = ? AND id <> ? LIMIT 1", 'si', [$txn, $id]) : [];
+            $dup = ($txn !== '') ? md_rows($connection, "SELECT id FROM donations WHERE transaction_id = ? AND id <> ? LIMIT 1", 'si', array($txn, $id)) : array();
             if ($dup) {
                 $msg = 'এই Transaction ID আগেই ব্যবহার করা হয়েছে।';
             } else {
                 $err = '';
-                $new = md_upload($_FILES['receipt'] ?? null, $receipt_dir, $err);
+                $new = md_upload(isset($_FILES['receipt']) ? $_FILES['receipt'] : null, $receipt_dir, $err);
                 if ($new === false) {
                     $msg = $err;
                 } elseif ($do === 'add') {
@@ -177,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         "INSERT INTO donations (donor_id, type, name, email, phone, amount, donation_type, fund, payment_method, transaction_id, payment_status, donation_date, admin_note, receipt, created_at, updated_at)
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())",
                         'issssdssssssss',
-                        [$me, 'Member', $u['member_name'], $u['email'], $u['mobile_no'], $amount, $dtype, $fund, $method, $txn, 'pending', $date, '', $new]
+                        array($me, 'Member', $u['member_name'], $u['email'], $u['mobile_no'], $amount, $dtype, $fund, $method, $txn, 'pending', $date, '', $new)
                     );
                     $msg = $ok ? 'Donation submitted! Admin verify korle Paid hobe. / ডোনেশন জমা হয়েছে।' : 'ডাটা সেভ হয়নি।';
                     if (!$ok) {
@@ -189,7 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $connection,
                         "UPDATE donations SET amount=?, donation_type=?, fund=?, payment_method=?, transaction_id=?, payment_status='pending', donation_date=?, receipt=?, updated_at=NOW() WHERE id=?",
                         'dssssssi',
-                        [$amount, $dtype, $fund, $method, $txn, $date, $receipt, $id]
+                        array($amount, $dtype, $fund, $method, $txn, $date, $receipt, $id)
                     );
                     if ($ok && $new !== '') {
                         md_unlink($receipt_dir, (string) $old['receipt']);
@@ -202,48 +304,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    $_SESSION['md_flash'] = [$ok, $msg];
-    header('Location: ' . $_SERVER['REQUEST_URI']);
-    exit;
+    $_SESSION['md_flash'] = array($ok, $msg);
+    md_go($_SERVER['REQUEST_URI']);
 }
-$flash = $_SESSION['md_flash'] ?? null;
+$flash = isset($_SESSION['md_flash']) ? $_SESSION['md_flash'] : null;
 unset($_SESSION['md_flash']);
 
 /* ==========================================================
    REPORT DATA
    ========================================================== */
-$year = (int) ($_GET['y'] ?? 0) ?: (int) date('Y');
-$mo = max(0, min(12, (int) ($_GET['mo'] ?? 0)));
-$fs = in_array($_GET['st'] ?? '', ['paid', 'pending', 'failed', 'rejected']) ? $_GET['st'] : '';
-$pg = max(1, (int) ($_GET['pg'] ?? 1));
-function md_url($o = [])
+$year = (int) (isset($_GET['y']) ? $_GET['y'] : 0);
+if (!$year) {
+    $year = (int) date('Y');
+}
+$mo = max(0, min(12, (int) (isset($_GET['mo']) ? $_GET['mo'] : 0)));
+$g_st = isset($_GET['st']) ? $_GET['st'] : '';
+$fs = in_array($g_st, array('paid', 'pending', 'failed', 'rejected')) ? $g_st : '';
+$pg = max(1, (int) (isset($_GET['pg']) ? $_GET['pg'] : 1));
+function md_url($o = array())
 {
     global $year, $mo, $fs;
-    return 'index.php?' . http_build_query(array_merge(['page' => $_GET['page'] ?? 'my_donations', 'y' => $year, 'mo' => $mo ?: '', 'st' => $fs], $o));
+    $pg_name = isset($_GET['page']) ? $_GET['page'] : 'my_donations';
+    return 'index.php?' . http_build_query(array_merge(array('page' => $pg_name, 'y' => $year, 'mo' => $mo ? $mo : '', 'st' => $fs), $o));
 }
 
 $SUMS = "COUNT(*) c, COALESCE(SUM(d.amount),0) tot, COALESCE(SUM(CASE WHEN d.payment_status='paid' THEN d.amount END),0) paid,
          COALESCE(SUM(CASE WHEN d.payment_status='pending' THEN d.amount END),0) pend, COALESCE(SUM(d.payment_status IN ('failed','rejected')),0) bad";
-$yearRows = md_rows($connection, "SELECT YEAR(d.donation_date) y, $SUMS FROM donations d WHERE $OWN GROUP BY y ORDER BY y DESC", $OWN_T, $OWN_P);
-$all = ['c' => 0, 'tot' => 0, 'paid' => 0, 'pend' => 0, 'bad' => 0];
+$yearRows = md_rows($connection, "SELECT YEAR(d.donation_date) y, $SUMS FROM donations d WHERE $OWN GROUP BY YEAR(d.donation_date) ORDER BY y DESC", $OWN_T, $OWN_P);
+$all = array('c' => 0, 'tot' => 0, 'paid' => 0, 'pend' => 0, 'bad' => 0);
 foreach ($yearRows as $r) {
-    foreach ($all as $k => $_) {
+    foreach ($all as $k => $unused) {
         $all[$k] += $r[$k];
     }
 }
-$years = array_unique(array_merge([(int) date('Y')], array_map('intval', array_column($yearRows, 'y'))));
+$years = array_unique(array_merge(array((int) date('Y')), array_map('intval', array_column($yearRows, 'y'))));
 rsort($years);
 
-$monthRows = [];
-foreach (md_rows($connection, "SELECT MONTH(d.donation_date) m, $SUMS FROM donations d WHERE $OWN AND YEAR(d.donation_date) = ? GROUP BY m", $OWN_T . 'i', array_merge($OWN_P, [$year])) as $r) {
+$monthRows = array();
+foreach (md_rows($connection, "SELECT MONTH(d.donation_date) m, $SUMS FROM donations d WHERE $OWN AND YEAR(d.donation_date) = ? GROUP BY MONTH(d.donation_date)", $OWN_T . 'i', array_merge($OWN_P, array($year))) as $r) {
     $monthRows[(int) $r['m']] = $r;
 }
-$fundRows = md_rows($connection, "SELECT IF(d.fund='','General',d.fund) k, SUM(d.amount) v FROM donations d WHERE $OWN AND YEAR(d.donation_date) = ? AND d.payment_status = 'paid' GROUP BY k ORDER BY v DESC", $OWN_T . 'i', array_merge($OWN_P, [$year]));
-$last = md_rows($connection, "SELECT MAX(d.donation_date) m FROM donations d WHERE $OWN AND d.payment_status = 'paid'", $OWN_T, $OWN_P)[0]['m'] ?? null;
+$fundRows = md_rows($connection, "SELECT IF(d.fund='','General',d.fund) k, SUM(d.amount) v FROM donations d WHERE $OWN AND YEAR(d.donation_date) = ? AND d.payment_status = 'paid' GROUP BY IF(d.fund='','General',d.fund) ORDER BY v DESC", $OWN_T . 'i', array_merge($OWN_P, array($year)));
+$last = md_first(md_rows($connection, "SELECT MAX(d.donation_date) m FROM donations d WHERE $OWN AND d.payment_status = 'paid'", $OWN_T, $OWN_P), 'm', null);
 
 $w = "WHERE $OWN AND YEAR(d.donation_date) = ?";
 $t = $OWN_T . 'i';
-$p = array_merge($OWN_P, [$year]);
+$p = array_merge($OWN_P, array($year));
 if ($mo) {
     $w .= " AND MONTH(d.donation_date) = ?";
     $t .= 'i';
@@ -254,21 +360,35 @@ if ($fs !== '') {
     $t .= 's';
     $p[] = $fs;
 }
-$total = (int) (md_rows($connection, "SELECT COUNT(*) c FROM donations d $w", $t, $p)[0]['c'] ?? 0);
+$total = (int) md_first(md_rows($connection, "SELECT COUNT(*) c FROM donations d $w", $t, $p), 'c', 0);
 $pages = max(1, (int) ceil($total / 10));
 $pg = min($pg, $pages);
 $list = md_rows($connection, "SELECT d.* FROM donations d $w ORDER BY d.donation_date DESC, d.id DESC LIMIT 10 OFFSET " . (($pg - 1) * 10), $t, $p);
-foreach ($list as &$d) {
-    $d['receipt_url'] = ($d['receipt'] !== '' && is_file($receipt_dir . basename($d['receipt']))) ? 'uploads/receipts/' . $d['receipt'] : '';
-    $d['can_edit'] = in_array(strtolower($d['payment_status']), $editable);
+foreach ($list as $i => $row) {
+    $list[$i]['receipt_url'] = ($row['receipt'] !== '' && is_file($receipt_dir . basename($row['receipt']))) ? 'uploads/receipts/' . $row['receipt'] : '';
+    $list[$i]['can_edit'] = in_array(strtolower($row['payment_status']), $editable);
 }
-unset($d);
 
-$MN = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-$ST = ['paid' => 'bg-emerald-100 text-emerald-700', 'pending' => 'bg-amber-100 text-amber-700', 'failed' => 'bg-orange-100 text-orange-700', 'rejected' => 'bg-rose-100 text-rose-700'];
-$ORG = ['name' => $site_title ?? '', 'address' => $office_address ?? '', 'phone' => $phone_number ?? '', 'email' => $email_address ?? '', 'logo' => '../public/assets/' . ($favicon_icon ?? '')];
+$MN = array('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+$ST = array('paid' => 'bg-emerald-100 text-emerald-700', 'pending' => 'bg-amber-100 text-amber-700', 'failed' => 'bg-orange-100 text-orange-700', 'rejected' => 'bg-rose-100 text-rose-700');
+$ORG = array(
+    'name'    => isset($site_title) ? $site_title : '',
+    'address' => isset($office_address) ? $office_address : '',
+    'phone'   => isset($phone_number) ? $phone_number : '',
+    'email'   => isset($email_address) ? $email_address : '',
+    'logo'    => '../public/assets/' . (isset($favicon_icon) ? $favicon_icon : ''),
+);
 $inp = 'w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 $lbl = 'block text-[11px] font-bold uppercase text-slate-500 mb-1.5';
+
+// Chart data (month-wise)
+$chartData = array();
+for ($m = 1; $m <= 12; $m++) {
+    $chartData[] = array(
+        'paid' => isset($monthRows[$m]) ? (float) $monthRows[$m]['paid'] : 0,
+        'pend' => isset($monthRows[$m]) ? (float) $monthRows[$m]['pend'] : 0,
+    );
+}
 
 /* ---------- Donation form (add + edit duijoner jonno ek-i) ---------- */
 function md_form($p, $funds, $methods, $types, $inp, $lbl)
@@ -277,7 +397,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
     <div>
         <label class="<?= $lbl ?>">Amount / পরিমাণ (৳) <span class="text-rose-500">*</span></label>
         <div class="flex flex-wrap gap-2 mb-2">
-            <?php foreach ([500, 1000, 2000, 5000, 10000] as $a) { ?><button type="button" data-chip="<?= $a ?>"
+            <?php foreach (array(500, 1000, 2000, 5000, 10000) as $a) { ?><button type="button" data-chip="<?= $a ?>"
                     data-target="<?= $p ?>amount"
                     class="px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-emerald-500 hover:text-emerald-700">৳<?= number_format($a) ?></button><?php } ?>
         </div>
@@ -434,12 +554,12 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
 
     <!-- KPI cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <?php foreach ([
-            ['Total Deposit', 'মোট জমা', md_tk($all['tot']), $all['c'] . ' donation(s)', 'sky', 'fa-sack-dollar'],
-            ['Paid', 'গৃহীত', md_tk($all['paid']), 'Verified by admin', 'emerald', 'fa-circle-check'],
-            ['Pending', 'অপেক্ষমান', md_tk($all['pend']), 'Waiting for verification', 'amber', 'fa-hourglass-half'],
-            ['Failed / Rejected', 'বাতিল', (int) $all['bad'], 'Needs attention', 'rose', 'fa-circle-xmark']
-        ] as $c) { ?>
+        <?php foreach (array(
+            array('Total Deposit', 'মোট জমা', md_tk($all['tot']), $all['c'] . ' donation(s)', 'sky', 'fa-sack-dollar'),
+            array('Paid', 'গৃহীত', md_tk($all['paid']), 'Verified by admin', 'emerald', 'fa-circle-check'),
+            array('Pending', 'অপেক্ষমান', md_tk($all['pend']), 'Waiting for verification', 'amber', 'fa-hourglass-half'),
+            array('Failed / Rejected', 'বাতিল', (int) $all['bad'], 'Needs attention', 'rose', 'fa-circle-xmark')
+        ) as $c) { ?>
             <div class="p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-200/80">
                 <div class="flex items-center justify-between">
                     <p class="text-[10px] font-bold uppercase text-slate-400"><?= $c[0] ?> <span
@@ -464,7 +584,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                 <select onchange="location.href=this.value"
                     class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold">
                     <?php foreach ($years as $y) {
-                        echo '<option value="' . h(md_url(['y' => $y, 'mo' => '', 'pg' => 1])) . '"' . ($y == $year ? ' selected' : '') . '>' . $y . '</option>';
+                        echo '<option value="' . h(md_url(array('y' => $y, 'mo' => '', 'pg' => 1))) . '"' . ($y == $year ? ' selected' : '') . '>' . $y . '</option>';
                     } ?></select>
                 <button type="button" onclick="window.print()"
                     class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50"><i
@@ -480,6 +600,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
             <div>
                 <p class="text-xs font-bold text-slate-500 mb-3">Fund-wise (Paid) — <?= $year ?></p>
                 <?php $mx = $fundRows ? max(array_column($fundRows, 'v')) : 1;
+                if ($mx <= 0) { $mx = 1; }
                 foreach ($fundRows as $f) { ?>
                     <div class="mb-3">
                         <div class="flex justify-between text-xs mb-1"><span
@@ -511,18 +632,18 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <?php $yt = ['c' => 0, 'paid' => 0, 'pend' => 0, 'tot' => 0];
+                        <?php $yt = array('c' => 0, 'paid' => 0, 'pend' => 0, 'tot' => 0);
                         for ($m = 1; $m <= 12; $m++) {
-                            $r = $monthRows[$m] ?? null;
+                            $r = isset($monthRows[$m]) ? $monthRows[$m] : null;
                             if ($r) {
-                                foreach ($yt as $k => $_) {
+                                foreach ($yt as $k => $unused) {
                                     $yt[$k] += $r[$k];
                                 }
                             } ?>
                             <tr
                                 class="<?= $mo == $m ? 'bg-emerald-50' : 'hover:bg-slate-50/80' ?> <?= $r ? '' : 'text-slate-300' ?>">
                                 <td class="p-3 font-semibold">
-                                    <?= $r ? '<a class="text-slate-800 hover:text-emerald-600 underline decoration-dotted" href="' . h(md_url(['mo' => $mo == $m ? '' : $m, 'pg' => 1])) . '#history">' . $MN[$m] . '</a>' : $MN[$m] ?>
+                                    <?= $r ? '<a class="text-slate-800 hover:text-emerald-600 underline decoration-dotted" href="' . h(md_url(array('mo' => $mo == $m ? '' : $m, 'pg' => 1))) . '#history">' . $MN[$m] . '</a>' : $MN[$m] ?>
                                 </td>
                                 <td class="p-3"><?= $r ? (int) $r['c'] : '—' ?></td>
                                 <td class="p-3 text-emerald-700 font-semibold"><?= $r ? md_tk($r['paid']) : '—' ?></td>
@@ -558,7 +679,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                         <?php foreach ($yearRows as $r) { ?>
                             <tr class="<?= $r['y'] == $year ? 'bg-emerald-50' : 'hover:bg-slate-50/80' ?>">
                                 <td class="p-3 font-bold"><a class="text-slate-800 hover:text-emerald-600"
-                                        href="<?= h(md_url(['y' => $r['y'], 'mo' => '', 'pg' => 1])) ?>"><?= (int) $r['y'] ?></a>
+                                        href="<?= h(md_url(array('y' => $r['y'], 'mo' => '', 'pg' => 1))) ?>"><?= (int) $r['y'] ?></a>
                                 </td>
                                 <td class="p-3"><?= (int) $r['c'] ?></td>
                                 <td class="p-3 text-emerald-700 font-semibold"><?= md_tk($r['paid']) ?></td>
@@ -595,10 +716,10 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                 <span class="text-xs text-slate-500"><?= $total ?> record(s)</span>
             </div>
             <div class="flex flex-wrap gap-1.5">
-                <?php foreach (['' => 'All', 'paid' => 'Paid', 'pending' => 'Pending', 'failed' => 'Failed', 'rejected' => 'Rejected'] as $k => $l) { ?>
-                    <a href="<?= h(md_url(['st' => $k, 'pg' => 1])) ?>#history"
+                <?php foreach (array('' => 'All', 'paid' => 'Paid', 'pending' => 'Pending', 'failed' => 'Failed', 'rejected' => 'Rejected') as $k => $l) { ?>
+                    <a href="<?= h(md_url(array('st' => $k, 'pg' => 1))) ?>#history"
                         class="px-3.5 py-2 rounded-xl text-xs font-bold <?= $fs === $k ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>"><?= $l ?></a><?php } ?>
-                <?php if ($mo) { ?><a href="<?= h(md_url(['mo' => '', 'pg' => 1])) ?>#history"
+                <?php if ($mo) { ?><a href="<?= h(md_url(array('mo' => '', 'pg' => 1))) ?>#history"
                         class="px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-50 text-sky-700"><?= $MN[$mo] ?> <i
                             class="fa-solid fa-xmark ml-1"></i></a><?php } ?>
             </div>
@@ -620,9 +741,9 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                         $s = strtolower($d['payment_status']); ?>
                         <tr class="hover:bg-slate-50/80">
                             <td class="p-4 whitespace-nowrap"><?= h(date('d M Y', strtotime($d['donation_date']))) ?><span
-                                    class="block text-[10px] text-slate-400">DN-<?= str_pad($d['id'], 6, '0', STR_PAD_LEFT) ?></span>
+                                    class="block text-[10px] text-slate-400">DN-<?= str_pad((string) $d['id'], 6, '0', STR_PAD_LEFT) ?></span>
                             </td>
-                            <td class="p-4 font-semibold text-slate-800"><?= h($d['fund'] ?: 'General') ?><span
+                            <td class="p-4 font-semibold text-slate-800"><?= h($d['fund'] ? $d['fund'] : 'General') ?><span
                                     class="block text-[10px] font-normal text-slate-400"><?= h($d['donation_type']) ?></span>
                             </td>
                             <td class="p-4 font-bold text-slate-800 whitespace-nowrap"><?= md_tk($d['amount']) ?></td>
@@ -630,7 +751,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
                                     class="block text-[10px] text-slate-400 break-all"><?= h($d['transaction_id']) ?></span>
                             </td>
                             <td class="p-4"><span
-                                    class="px-2.5 py-1 rounded-md font-bold text-[10px] <?= $ST[$s] ?? 'bg-slate-100 text-slate-600' ?>"><?= h(ucfirst($d['payment_status'])) ?></span>
+                                    class="px-2.5 py-1 rounded-md font-bold text-[10px] <?= isset($ST[$s]) ? $ST[$s] : 'bg-slate-100 text-slate-600' ?>"><?= h(ucfirst($d['payment_status'])) ?></span>
                             </td>
                             <td class="p-4 text-right whitespace-nowrap no-print">
                                 <button type="button" onclick="mdView(<?= (int) $d['id'] ?>)" title="View"
@@ -672,9 +793,9 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
             <div class="p-4 border-t border-slate-100 flex items-center justify-between no-print"><span
                     class="text-xs text-slate-500">Page <?= $pg ?> / <?= $pages ?></span>
                 <div class="flex gap-2">
-                    <?php if ($pg > 1) { ?><a href="<?= h(md_url(['pg' => $pg - 1])) ?>#history"
+                    <?php if ($pg > 1) { ?><a href="<?= h(md_url(array('pg' => $pg - 1))) ?>#history"
                             class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold">‹ Prev</a><?php } ?>
-                    <?php if ($pg < $pages) { ?><a href="<?= h(md_url(['pg' => $pg + 1])) ?>#history"
+                    <?php if ($pg < $pages) { ?><a href="<?= h(md_url(array('pg' => $pg + 1))) ?>#history"
                             class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold">Next ›</a><?php } ?>
                 </div>
             </div>
@@ -822,7 +943,7 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
     (function () {
-        var D = <?= json_encode($list, JSON_UNESCAPED_UNICODE) ?>, ORG = <?= json_encode($ORG, JSON_UNESCAPED_UNICODE) ?>, USER = <?= json_encode(['name' => $u['member_name'], 'email' => $u['email'], 'phone' => $u['mobile_no']], JSON_UNESCAPED_UNICODE) ?>;
+        var D = <?= md_js(array_values($list), '[]') ?>, ORG = <?= md_js($ORG, '{}') ?>, USER = <?= md_js(array('name' => $u['member_name'], 'email' => $u['email'], 'phone' => $u['mobile_no']), '{}') ?>;
         var ST = { paid: 'bg-emerald-100 text-emerald-700', pending: 'bg-amber-100 text-amber-700', failed: 'bg-orange-100 text-orange-700', rejected: 'bg-rose-100 text-rose-700' };
         var $ = function (id) { return document.getElementById(id); }, cur = null;
         var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -845,9 +966,8 @@ function md_form($p, $funds, $methods, $types, $inp, $lbl)
         });
 
         /* chart */
-        var M = <?= json_encode(array_map(function ($m) use ($monthRows) {
-            return ['paid' => (float) ($monthRows[$m]['paid'] ?? 0), 'pend' => (float) ($monthRows[$m]['pend'] ?? 0)]; }, range(1, 12))) ?>;
-        if (window.Chart) {
+        var M = <?= md_js($chartData, '[]') ?>;
+        if (window.Chart && $('mdChart')) {
             Chart.defaults.font.family = "Inter, 'Hind Siliguri', sans-serif"; Chart.defaults.font.size = 11;
             new Chart($('mdChart'), {
                 type: 'bar', data: {
