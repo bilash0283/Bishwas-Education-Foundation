@@ -53,7 +53,7 @@
                 <a href="index.php#about" class="hover:text-emerald-600 transition duration-300">আমাদের সম্পর্কে</a>
                 <a href="index.php#ongoing-activities" class="hover:text-emerald-600 transition duration-300">চলমান প্রকল্প</a>
                 <a href="index.php#volunteer"
-                    class="hover:text-emerald-600 transition duration-300 ">সদস্য নিবন্ধন</a>
+                    class="hover:text-emerald-600 transition duration-300">সদস্য নিবন্ধন</a>
                 <a href="index.php#contact" class="hover:text-emerald-600 transition duration-300">যোগাযোগ</a>
             </nav>
 
@@ -109,7 +109,7 @@
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">চলমান
                 প্রকল্প</a>
             <a href="index.php#volunteer"
-                class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">সদস্য নিবন্ধন</a>
+                class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">ভলান্টিয়ার</a>
             <a href="index.php#contact"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">যোগাযোগ</a>
 
