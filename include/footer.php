@@ -63,7 +63,7 @@
             <ul class="space-y-2 text-sm">
                 <li><a href="index.php#about" class="hover:text-emerald-500 transition">আমাদের সম্পর্কে</a></li>
                 <li><a href="index.php#ongoing-activities" class="hover:text-emerald-500 transition">চলমান প্রকল্প</a></li>
-                <li><a href="index.php#volunteer" class="hover:text-emerald-500 transition">ভলান্টিয়ার হওয়ার জন্য</a></li>
+                <li><a href="index.php#volunteer" class="hover:text-emerald-500 transition">সদস্য নিবন্ধন</a></li>
                 <li><a href="index.php#photo-gallery" class="hover:text-emerald-500 transition">গ্যালারি ও ভিডিও</a></li>
             </ul>
         </div>
