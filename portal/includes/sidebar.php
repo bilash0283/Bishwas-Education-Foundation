@@ -134,8 +134,8 @@
 
             <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Others</div>
 
-            <a href="?page=certificates" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('certificates', $currentPage); ?>">
-                <i class="fa-solid fa-id-card w-4 text-sm <?php echo getIconClass('certificates', $currentPage, 'text-indigo-500'); ?>"></i> Certificates & ID Cards
+            <a href="?page=my_certificates" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('my_certificates', $currentPage); ?>">
+                <i class="fa-solid fa-id-card w-4 text-sm <?php echo getIconClass('my_certificates', $currentPage, 'text-indigo-500'); ?>"></i> Certificates & ID Cards
             </a>
 
             <a href="?page=notice_board" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('notice_board', $currentPage); ?>">

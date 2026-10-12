@@ -1,12 +1,41 @@
 <?php
+/* ==========================================================
+   my_certificates.php  (member: My ID Card & Certificates)
+   PHP 7.2 – 8.4 compatible
+
+   Live server fix list:
+   1. mysqli_stmt_get_result() (mysqlnd) na thakle bind_result fallback
+      (ager code e user load hoto na -> "Access Restricted" ba fatal error)
+   2. bind_param(...$p) bodle reference diye bind
+   3. mb_strtoupper / mb_substr (mbstring) na thakle fatal error -> fallback
+   4. redirect: header already sent hole (live e output_buffering off) JS diye redirect
+   5. json_encode fail hole "var ME = ;" hoye JS bhenge jeto -> safe fallback
+   6. ??, [0] dereference -> plain code
+   7. str_pad() e int -> string cast
+   ========================================================== */
+
+if (!headers_sent()) { ob_start(); }
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
-if (!isset($_SESSION['user_type'])) {
-    header('Location: index.php?page=dashboard');
+if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) { define('JSON_INVALID_UTF8_SUBSTITUTE', 0); }
+
+// redirect: header jodi already pathano hoye jay (live server) tahole JS diye
+function mc_go($url)
+{
+    if (!headers_sent()) {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Location: ' . $url);
+    } else {
+        echo '<script>window.location.href=' . json_encode($url) . ';</script>';
+    }
     exit;
 }
-$me = (int) ($_SESSION['user_id'] ?? 0);
+
+if (!isset($_SESSION['user_type'])) {
+    mc_go('index.php?page=dashboard');
+}
+$me = (int) (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0);
 $connection = isset($db) ? $db : (isset($conn) ? $conn : null);
 if (!function_exists('h')) {
     function h($s)
@@ -20,32 +49,85 @@ if ($me <= 0 || !$connection) {
     echo $restricted;
     return;
 }
-mysqli_set_charset($connection, 'utf8mb4');
+if (!@mysqli_set_charset($connection, 'utf8mb4')) { @mysqli_set_charset($connection, 'utf8'); }
 
-function mc_rows($db, $sql, $t = '', $p = [])
+/* ---------- Small helpers ---------- */
+function mc_js($v, $fallback)
+{
+    $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    return ($j === false) ? $fallback : $j;
+}
+function mc_upper_first($s)
+{
+    $s = (string) $s;
+    if (function_exists('mb_substr') && function_exists('mb_strtoupper')) {
+        return mb_strtoupper(mb_substr($s, 0, 1, 'UTF-8'), 'UTF-8');
+    }
+    return strtoupper(substr($s, 0, 1));
+}
+
+// bind_param er jonno reference toiri
+function mc_bind($st, $t, &$p)
+{
+    if ($t === '' || !count($p)) {
+        return;
+    }
+    $args = array($st, $t);
+    foreach ($p as $k => $v) {
+        $args[] = &$p[$k];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', $args);
+}
+
+// SELECT: sob row array hishebe (mysqlnd lage na)
+function mc_rows($db, $sql, $t = '', $p = array())
 {
     try {
         $st = mysqli_prepare($db, $sql);
         if (!$st) {
-            return [];
+            return array();
         }
-        if ($t !== '') {
-            mysqli_stmt_bind_param($st, $t, ...$p);
+        mc_bind($st, $t, $p);
+        if (!mysqli_stmt_execute($st)) {
+            mysqli_stmt_close($st);
+            return array();
         }
-        mysqli_stmt_execute($st);
-        $res = mysqli_stmt_get_result($st);
-        $o = [];
-        while ($res && $r = mysqli_fetch_assoc($res)) {
-            $o[] = $r;
+        $o = array();
+        if (function_exists('mysqli_stmt_get_result')) {
+            $res = mysqli_stmt_get_result($st);
+            while ($res && ($r = mysqli_fetch_assoc($res))) {
+                $o[] = $r;
+            }
+        } else {
+            mysqli_stmt_store_result($st);
+            $meta = mysqli_stmt_result_metadata($st);
+            if ($meta) {
+                $row = array();
+                $bind = array($st);
+                while ($f = mysqli_fetch_field($meta)) {
+                    $row[$f->name] = null;
+                    $bind[] = &$row[$f->name];
+                }
+                mysqli_free_result($meta);
+                call_user_func_array('mysqli_stmt_bind_result', $bind);
+                while (mysqli_stmt_fetch($st)) {
+                    $copy = array();
+                    foreach ($row as $k => $v) {
+                        $copy[$k] = $v;
+                    }
+                    $o[] = $copy;
+                }
+            }
         }
         mysqli_stmt_close($st);
         return $o;
     } catch (Throwable $e) {
-        return [];
+        return array();
     }
 }
 
-$u = mc_rows($connection, "SELECT * FROM users WHERE id = ? LIMIT 1", 'i', [$me])[0] ?? null;
+$urows = mc_rows($connection, "SELECT * FROM users WHERE id = ? LIMIT 1", 'i', array($me));
+$u = isset($urows[0]) ? $urows[0] : null;
 if (!$u) {
     echo $restricted;
     return;
@@ -55,7 +137,8 @@ $member_dir = 'public/uploads/members/';
 $id_prefix = 'BEF';
 $photo = (!empty($u['photo']) && is_file($member_dir . basename($u['photo']))) ? $member_dir . basename($u['photo']) : '';
 $isAdmin = ($u['user_type'] === 'Admin');
-$approved = $isAdmin || (($u['status'] ?? '') === 'Active');
+$u_status = isset($u['status']) ? $u['status'] : '';
+$approved = $isAdmin || ($u_status === 'Active');
 $joined = (!empty($u['created_at']) && strtotime($u['created_at'])) ? date('Y-m-d', strtotime($u['created_at'])) : '';
 
 $duration = '';
@@ -66,25 +149,31 @@ if ($joined) {
 }
 
 // Admin-er deya certificate gulo (table na thakle khali)
-$certs = mc_rows($connection, "SELECT id, cert_no, title, event_name, organization, supported_by, description, theme, issue_date, recipient_name FROM certificates WHERE user_id = ? ORDER BY issue_date DESC, id DESC", 'i', [$me]);
+$certs = mc_rows($connection, "SELECT id, cert_no, title, event_name, organization, supported_by, description, theme, issue_date, recipient_name FROM certificates WHERE user_id = ? ORDER BY issue_date DESC, id DESC", 'i', array($me));
 
-$ME = [
+$ME = array(
     'name' => $u['member_name'],
     'type' => $u['user_type'],
-    'id_no' => $id_prefix . '-' . str_pad($me, 5, '0', STR_PAD_LEFT),
+    'id_no' => $id_prefix . '-' . str_pad((string) $me, 5, '0', STR_PAD_LEFT),
     'mobile' => $u['mobile_no'],
     'email' => $u['email'],
-    'blood' => $u['blood_group'] ?? '',
+    'blood' => isset($u['blood_group']) ? $u['blood_group'] : '',
     'photo' => $photo,
     'joined' => $joined,
-    'today' => date('Y-m-d')
-];
-$ORG = ['name' => $site_title ?? '', 'address' => $office_address ?? '', 'phone' => $phone_number ?? '', 'email' => $email_address ?? '', 'logo' => '../public/assets/' . ($favicon_icon ?? '')];
-$themes = [
-    'classic' => ['bg' => '#fdf7b0', 'b1' => '#e11d74', 'b2' => '#16a34a', 'a1' => '#15803d', 'a2' => '#e11d48', 'a3' => '#1e3a8a'],
-    'emerald' => ['bg' => '#f0fdf4', 'b1' => '#047857', 'b2' => '#d4af37', 'a1' => '#065f46', 'a2' => '#b45309', 'a3' => '#064e3b'],
-    'royal' => ['bg' => '#eff6ff', 'b1' => '#1e3a8a', 'b2' => '#d4af37', 'a1' => '#1e40af', 'a2' => '#b45309', 'a3' => '#1e293b'],
-];
+    'today' => date('Y-m-d'),
+);
+$ORG = array(
+    'name'    => isset($site_title) ? $site_title : '',
+    'address' => isset($office_address) ? $office_address : '',
+    'phone'   => isset($phone_number) ? $phone_number : '',
+    'email'   => isset($email_address) ? $email_address : '',
+    'logo'    => '../public/assets/' . (isset($favicon_icon) ? $favicon_icon : ''),
+);
+$themes = array(
+    'classic' => array('bg' => '#fdf7b0', 'b1' => '#e11d74', 'b2' => '#16a34a', 'a1' => '#15803d', 'a2' => '#e11d48', 'a3' => '#1e3a8a'),
+    'emerald' => array('bg' => '#f0fdf4', 'b1' => '#047857', 'b2' => '#d4af37', 'a1' => '#065f46', 'a2' => '#b45309', 'a3' => '#064e3b'),
+    'royal' => array('bg' => '#eff6ff', 'b1' => '#1e3a8a', 'b2' => '#d4af37', 'a1' => '#1e40af', 'a2' => '#b45309', 'a3' => '#1e293b'),
+);
 $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
 ?>
 <section class="page-content space-y-6 max-w-5xl mx-auto">
@@ -100,7 +189,7 @@ $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
             <?php } else { ?>
                 <div
                     class="w-24 h-28 rounded-2xl bg-white/10 border-4 border-white/20 flex items-center justify-center text-4xl font-bold shrink-0">
-                    <?= h(mb_strtoupper(mb_substr($u['member_name'], 0, 1))) ?></div><?php } ?>
+                    <?= h(mc_upper_first($u['member_name'])) ?></div><?php } ?>
             <div class="min-w-0 space-y-2">
                 <p class="text-xs text-emerald-200 font-semibold"><i class="fa-solid fa-id-card mr-1.5"></i>My ID Card &
                     Certificates / আমার আইডি কার্ড ও সার্টিফিকেট</p>
@@ -111,7 +200,7 @@ $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
                         class="px-3 py-1 rounded-full bg-white/15 text-xs font-semibold"><?= h($u['user_type']) ?></span>
                     <span class="px-3 py-1 rounded-full bg-white/10 text-xs"><?= h($ME['id_no']) ?></span>
                     <span
-                        class="px-3 py-1 rounded-full text-xs font-semibold <?= $approved ? 'bg-emerald-400/30 text-emerald-100' : 'bg-amber-400/30 text-amber-100' ?>"><?= $approved ? 'Active Member' : h($u['status'] ?: 'Pending') ?></span>
+                        class="px-3 py-1 rounded-full text-xs font-semibold <?= $approved ? 'bg-emerald-400/30 text-emerald-100' : 'bg-amber-400/30 text-amber-100' ?>"><?= $approved ? 'Active Member' : h($u_status ? $u_status : 'Pending') ?></span>
                 </div>
             </div>
         </div>
@@ -128,12 +217,12 @@ $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
 
     <!-- Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <?php foreach ([
-            ['Member Since', 'সদস্য হয়েছেন', $joined ? date('d M Y', strtotime($joined)) : '—', 'emerald', 'fa-calendar-check'],
-            ['Membership', 'সদস্যপদের সময়', $duration ?: '—', 'sky', 'fa-hourglass-half'],
-            ['Member Type', 'সদস্যের ধরন', $u['user_type'], 'violet', 'fa-user-tag'],
-            ['Certificates', 'প্রাপ্ত সার্টিফিকেট', ($approved ? 1 : 0) + count($certs), 'amber', 'fa-award']
-        ] as $c) { ?>
+        <?php foreach (array(
+            array('Member Since', 'সদস্য হয়েছেন', $joined ? date('d M Y', strtotime($joined)) : '—', 'emerald', 'fa-calendar-check'),
+            array('Membership', 'সদস্যপদের সময়', $duration ? $duration : '—', 'sky', 'fa-hourglass-half'),
+            array('Member Type', 'সদস্যের ধরন', $u['user_type'], 'violet', 'fa-user-tag'),
+            array('Certificates', 'প্রাপ্ত সার্টিফিকেট', ($approved ? 1 : 0) + count($certs), 'amber', 'fa-award')
+        ) as $c) { ?>
             <div class="p-4 bg-white rounded-2xl ring-1 ring-slate-200/80">
                 <div class="flex items-center justify-between">
                     <p class="text-[10px] font-bold uppercase text-slate-400"><?= $c[0] ?></p>
@@ -149,10 +238,10 @@ $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
 
     <!-- ID Card + Membership Certificate -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <?php $docs = [
-            ['idcard', 'My ID Card', 'আমার আইডি কার্ড', 'Official member identity card (front & back)', 'emerald', 'fa-id-card'],
-            ['member', 'Membership Certificate', 'সদস্যপদ সনদ', 'Issued on your joining date as a member of the foundation', 'amber', 'fa-award']
-        ];
+        <?php $docs = array(
+            array('idcard', 'My ID Card', 'আমার আইডি কার্ড', 'Official member identity card (front & back)', 'emerald', 'fa-id-card'),
+            array('member', 'Membership Certificate', 'সদস্যপদ সনদ', 'Issued on your joining date as a member of the foundation', 'amber', 'fa-award')
+        );
         foreach ($docs as $d) { ?>
             <div
                 class="bg-white rounded-3xl ring-1 ring-slate-200/80 overflow-hidden flex flex-col hover:shadow-lg transition">
@@ -263,8 +352,8 @@ $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
     (function () {
-        var ME = <?= json_encode($ME, JSON_UNESCAPED_UNICODE) ?>, ORG = <?= json_encode($ORG, JSON_UNESCAPED_UNICODE) ?>, TH = <?= json_encode($themes) ?>;
-        var CERTS = <?= json_encode($certs, JSON_UNESCAPED_UNICODE) ?>, OK = <?= $approved ? 'true' : 'false' ?>, cur = null;
+        var ME = <?= mc_js($ME, '{}') ?>, ORG = <?= mc_js($ORG, '{}') ?>, TH = <?= mc_js($themes, '{}') ?>;
+        var CERTS = <?= mc_js(array_values($certs), '[]') ?>, OK = <?= $approved ? 'true' : 'false' ?>, cur = null;
         var $ = function (id) { return document.getElementById(id); };
         var MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
@@ -317,7 +406,6 @@ $btnDis = $approved ? '' : 'opacity-40 pointer-events-none';
                 '<div style="width:220px;text-align:center;font-size:16px">' + (c.supported_by ? 'Supported by<br><b>' + esc(c.supported_by) + '</b>' : '') + '</div></div></div>';
         }
         function memberCert() {
-            var since = ME.joined ? ' since <b>' + fdate(ME.joined) + '</b>' : '';
             return certHTML({
                 theme: 'classic', title: 'Certificate of Membership', recipient_name: ME.name, event_name: '', organization: ORG.name, supported_by: '',
                 cert_no: 'MEM-' + (ME.joined ? ME.joined.slice(0, 4) : ME.today.slice(0, 4)) + '-' + ME.id_no.replace(/\D/g, ''), issue_date: ME.today,
