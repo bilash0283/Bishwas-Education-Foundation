@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Oct 10, 2026 at 08:35 AM
+-- Generation Time: Oct 13, 2026 at 08:32 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -152,6 +152,33 @@ INSERT INTO `certificates` (`id`, `cert_no`, `user_id`, `recipient_name`, `title
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `contact_comments`
+--
+
+CREATE TABLE `contact_comments` (
+  `id` int(11) NOT NULL,
+  `contact_id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `comment` text NOT NULL,
+  `status_after` varchar(20) NOT NULL DEFAULT '',
+  `mailed` tinyint(1) NOT NULL DEFAULT 0,
+  `mail_note` varchar(255) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `contact_comments`
+--
+
+INSERT INTO `contact_comments` (`id`, `contact_id`, `user_id`, `comment`, `status_after`, `mailed`, `mail_note`, `created_at`) VALUES
+(1, 8, 6, 'this is test', 'In Progress', 0, '', '2026-10-12 11:50:20'),
+(2, 7, 6, 'sfsfsfsf', 'In Progress', 0, 'Server could not send the mail (check webmail / SPF settings)', '2026-10-12 11:50:44'),
+(3, 7, 6, 'fsfsfsf', 'Replied', 0, '', '2026-10-12 11:51:17'),
+(4, 6, 6, 'Assigned to: All Volunteers', 'New', 0, '', '2026-10-12 11:52:09');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `contact_messages`
 --
 
@@ -162,22 +189,24 @@ CREATE TABLE `contact_messages` (
   `phone` varchar(50) NOT NULL,
   `subject` varchar(100) NOT NULL,
   `message` text NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `assigned_to` int(11) DEFAULT NULL,
+  `status` enum('New','In Progress','Replied','Closed') NOT NULL DEFAULT 'New'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `contact_messages`
 --
 
-INSERT INTO `contact_messages` (`id`, `name`, `email`, `phone`, `subject`, `message`, `created_at`) VALUES
-(1, 'Bilash Kumar', 'bilash@gmail.com', '43353453453', 'zakat', 'fsdfsfsfsf', '2026-09-05 08:14:58'),
-(2, 'Bilash Kumar', 'bilash@gmail.com', '43353453453', 'zakat', 'fsdfsfsfsf', '2026-09-05 08:17:20'),
-(3, 'Bilash Kumar', 'bilash@gmail.com', '43353453453', 'zakat', 'fsdfsfsfsf', '2026-09-05 08:17:25'),
-(4, 'Gokul', 'gokul@gmail.com', '0173425783', 'other', 'I am related this name of success', '2026-09-06 09:55:53'),
-(5, 'Gokul', 'gokul@gmail.com', '0173425783', 'other', 'I am related this name of success', '2026-09-06 09:58:18'),
-(6, 'referf', 'fef@gmail.com', '3455345', 'donation', 'rr33r3', '2026-09-08 06:30:22'),
-(7, 'fsdfsf', 'fsfsfs@gmail.com', '4324234234', 'other', 'rwerwer', '2026-09-09 05:07:54'),
-(8, 'Timothy Roberson', 'zumakof@mailinator.com', '+1 (659) 653-7154', 'zakat', 'Eos incidunt ut cum', '2026-10-10 06:21:44');
+INSERT INTO `contact_messages` (`id`, `name`, `email`, `phone`, `subject`, `message`, `created_at`, `assigned_to`, `status`) VALUES
+(1, 'Bilash Kumar', 'bilash@gmail.com', '43353453453', 'zakat', 'fsdfsfsfsf', '2026-09-05 08:14:58', NULL, 'New'),
+(2, 'Bilash Kumar', 'bilash@gmail.com', '43353453453', 'zakat', 'fsdfsfsfsf', '2026-09-05 08:17:20', NULL, 'New'),
+(3, 'Bilash Kumar', 'bilash@gmail.com', '43353453453', 'zakat', 'fsdfsfsfsf', '2026-09-05 08:17:25', NULL, 'New'),
+(4, 'Gokul', 'gokul@gmail.com', '0173425783', 'other', 'I am related this name of success', '2026-09-06 09:55:53', NULL, 'New'),
+(5, 'Gokul', 'gokul@gmail.com', '0173425783', 'other', 'I am related this name of success', '2026-09-06 09:58:18', NULL, 'New'),
+(6, 'referf', 'fef@gmail.com', '3455345', 'donation', 'rr33r3', '2026-09-08 06:30:22', 0, 'New'),
+(7, 'fsdfsf', 'fsfsfs@gmail.com', '4324234234', 'other', 'rwerwer', '2026-09-09 05:07:54', NULL, 'Replied'),
+(8, 'Timothy Roberson', 'zumakof@mailinator.com', '+1 (659) 653-7154', 'zakat', 'Eos incidunt ut cum', '2026-10-10 06:21:44', NULL, 'In Progress');
 
 -- --------------------------------------------------------
 
@@ -307,8 +336,7 @@ CREATE TABLE `events` (
 
 INSERT INTO `events` (`id`, `title`, `category`, `description`, `image`, `location`, `start_date`, `end_date`, `start_time`, `end_time`, `budget`, `actual_cost`, `expected_beneficiaries`, `max_volunteers`, `organizer`, `contact_phone`, `status`, `created_at`, `updated_at`) VALUES
 (3, 'Sunt sint ipsa du', 'Medical Camp', 'Alias Nam lorem rem', '', 'Nulla laudantium eo', '2026-10-06', '2026-10-15', '01:05:00', '23:05:00', 50.00, 50.00, 87, 61, 'Laborum Obcaecati e', '+1 (393) 806-4132', 'Completed', '2026-10-06 05:45:38', '2026-10-06 06:21:46'),
-(4, 'Dolores reprehenderi', 'Relief', 'Do deserunt nulla qu', '', 'Sint pariatur Cupi', '2026-12-29', '2026-12-29', '16:01:00', '18:12:00', 100.00, 80.00, 93, 89, 'Aut magni veniam in', '+1 (165) 351-8332', 'Completed', '2026-10-06 06:41:06', '2026-10-06 06:41:06'),
-(5, 'Id quam et quo sint', 'Other', 'Ea ex dolor impedit', '', 'Proident cumque pos', '2026-02-02', '2026-04-04', '12:07:00', '21:27:00', 50.00, 500.00, 5, 33, 'Lorem sed soluta des', '+1 (667) 564-6401', 'Completed', '2026-10-06 06:45:07', '2026-10-06 06:46:20');
+(4, 'Dolores reprehenderi', 'Relief', 'Do deserunt nulla qu', '', 'Sint pariatur Cupi', '2026-12-29', '2026-12-29', '16:01:00', '18:12:00', 100.00, 80.00, 93, 89, 'Aut magni veniam in', '+1 (165) 351-8332', 'Completed', '2026-10-06 06:41:06', '2026-10-06 06:41:06');
 
 -- --------------------------------------------------------
 
@@ -591,7 +619,7 @@ CREATE TABLE `notices` (
 --
 
 INSERT INTO `notices` (`id`, `ref_no`, `title`, `recipient`, `body`, `category`, `priority`, `audience`, `signatory_name`, `signatory_title`, `contact`, `attachment`, `is_pinned`, `status`, `publish_date`, `expire_date`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'NTC-2026-00001', 'this is subject', 'All Members', 'Dear ,\r\nthis is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section this is a test dashbaord section', 'General', 'Important', 'Admin,General Member,Associate Member,Life Member,Volunteer Member', 'Bilash Kumar', 'Web Developer', '01787673543', 'ntc_1791357118_2650.png', 0, 'Published', '2026-10-07', '2026-10-08', 6, NULL, '2026-10-07 07:11:58', '2026-10-07 07:11:58');
+(2, 'NTC-2026-00002', 'fffffffffffff', 'fffffffffffff', 'ffffffffffffffffffffff', 'General', 'Urgent', 'Admin,General Member,Associate Member,Life Member,Volunteer Member', 'fffffff', 'ffffffffff', 'ffffffffffff', '', 0, 'Published', '2026-10-12', '2026-10-15', 6, NULL, '2026-10-12 05:18:28', '2026-10-12 05:18:28');
 
 -- --------------------------------------------------------
 
@@ -611,7 +639,8 @@ CREATE TABLE `notice_editors` (
 --
 
 INSERT INTO `notice_editors` (`id`, `user_id`, `granted_by`, `created_at`) VALUES
-(1, 15, 6, '2026-10-07 07:09:21');
+(11, 15, 6, '2026-10-12 05:41:18'),
+(12, 10, 6, '2026-10-12 05:41:18');
 
 -- --------------------------------------------------------
 
@@ -789,7 +818,7 @@ CREATE TABLE `terms_conditions` (
 --
 
 INSERT INTO `terms_conditions` (`id`, `title`, `content`, `status`, `sort_order`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'this is short title', 'this this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test description', 'Active', 1, 6, '2026-10-07 08:41:51', '2026-10-07 10:18:11');
+(1, 'this is short title', 'this this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test descriptionthis this test description', 'Active', 1, 6, '2026-10-07 08:41:51', '2026-10-11 17:57:55');
 
 -- --------------------------------------------------------
 
@@ -892,6 +921,13 @@ ALTER TABLE `certificates`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_user` (`user_id`),
   ADD KEY `idx_event` (`event_name`);
+
+--
+-- Indexes for table `contact_comments`
+--
+ALTER TABLE `contact_comments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_contact` (`contact_id`);
 
 --
 -- Indexes for table `contact_messages`
@@ -1104,6 +1140,12 @@ ALTER TABLE `certificates`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `contact_comments`
+--
+ALTER TABLE `contact_comments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
@@ -1191,13 +1233,13 @@ ALTER TABLE `meeting_editors`
 -- AUTO_INCREMENT for table `notices`
 --
 ALTER TABLE `notices`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `notice_editors`
 --
 ALTER TABLE `notice_editors`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `service_recipients`
