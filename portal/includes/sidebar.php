@@ -38,8 +38,8 @@
                 <i class="fa-solid fa-user-ninja w-4 text-sm <?php echo getIconClass('volunteers', $currentPage, 'text-teal-500'); ?>"></i> Members & Volunteers
             </a>
 
-            <a href="?page=contact_messages" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('contact_messages', $currentPage); ?>">
-                <i class="fa-solid fa-comments w-4 text-sm <?php echo getIconClass('contact_messages', $currentPage, 'text-teal-500'); ?>"></i> Contact Messages
+            <a href="?page=contacts" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('contacts', $currentPage); ?>">
+                <i class="fa-solid fa-comments w-4 text-sm <?php echo getIconClass('contacts', $currentPage, 'text-teal-500'); ?>"></i> Contact Messages
             </a>
 
             <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accounts</div>
@@ -104,8 +104,8 @@
                 <i class="fa-solid fa-user w-4 text-sm <?php echo getIconClass('view_member', $currentPage, 'text-sky-500'); ?>"></i> My Profile
             </a>
 
-            <a href="?page=contact_messages" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('contact_messages', $currentPage); ?>">
-                <i class="fa-solid fa-comments w-4 text-sm <?php echo getIconClass('contact_messages', $currentPage, 'text-teal-500'); ?>"></i> Contact Messages
+            <a href="?page=contacts" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('contacts', $currentPage); ?>">
+                <i class="fa-solid fa-comments w-4 text-sm <?php echo getIconClass('contacts', $currentPage, 'text-teal-500'); ?>"></i> Contact Messages
             </a>
 
             <div class="pt-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accounts</div>
