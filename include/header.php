@@ -20,10 +20,8 @@ $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) 
 $donate_btn_text = $data['donate_btn_text'] ?? $default_donate_btn_text;
 ?>
 
-<?php include 'database/db.php'; ?>
 <!DOCTYPE html>
 <html lang="bn" class="scroll-smooth">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

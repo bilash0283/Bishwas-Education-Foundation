@@ -208,19 +208,19 @@
     </section>
 
     <?php
-    // ডাটাবেস থেকে সেটিং তুলে আনা
-    $about_query = mysqli_query($db, "SELECT * FROM about_vision ORDER BY id ASC LIMIT 1");
-    $about_data  = mysqli_fetch_assoc($about_query);
+        // ডাটাবেস থেকে সেটিং তুলে আনা
+        $about_query = mysqli_query($db, "SELECT * FROM about_vision ORDER BY id ASC LIMIT 1");
+        $about_data  = mysqli_fetch_assoc($about_query);
 
-    // ডাটাবেসে তথ্য না থাকলে ডিফল্ট ডাটা ফলব্যাক হিসেবে ব্যবহার হবে
-    $top_subtitle = !empty($about_data['top_subtitle']) ? $about_data['top_subtitle'] : 'আমাদের লক্ষ্য ও উদ্দেশ্য';
-    $main_title   = !empty($about_data['main_title']) ? $about_data['main_title'] : 'একটি আদর্শ ও আত্মনির্ভরশীল সমাজ বিনির্মাণ';
-    $description  = !empty($about_data['description']) ? $about_data['description'] : 'বিশ্বাস এডুকেশন ফাউন্ডেশন (Bishwas Education Foundation.) একটি সম্পূর্ণ অরাজনৈতিক ও জনকল্যাণমূলক সেবা সংস্থা। সমাজের অবহেলিত ও দরিদ্র শ্রেণির মানুষের মৌলিক চাহিদা পূরণ এবং তাদের কারিগরি শিক্ষার মাধ্যমে স্বাবলম্বী করে তোলাই আমাদের মূল ব্রত।';
-    $point_1      = !empty($about_data['point_1']) ? $about_data['point_1'] : 'স্বচ্ছ ও জবাবদিহিতামূলক তহবিল বণ্টন ব্যবস্থা।';
-    $point_2      = !empty($about_data['point_2']) ? $about_data['point_2'] : 'জ্ঞান, নৈতিকতা ও মানবিক মূল্যবোধের বিকাশ।';
-    $point_3      = !empty($about_data['point_3']) ? $about_data['point_3'] : 'দক্ষতা বৃদ্ধি ও বেকারত্ব দূরীকরণে প্রশিক্ষণ ইনস্টিটিউট।';
-    $quote_badge  = !empty($about_data['quote_badge']) ? $about_data['quote_badge'] : '"মানব সেবাই ইসলামের মূল শিক্ষা।"';
-    $image_src    = !empty($about_data['image']) ? $about_data['image'] : 'public/assets/gallery_img/img-1.jpg';
+        // ডাটাবেসে তথ্য না থাকলে ডিফল্ট ডাটা ফলব্যাক হিসেবে ব্যবহার হবে
+        $top_subtitle = !empty($about_data['top_subtitle']) ? $about_data['top_subtitle'] : 'আমাদের লক্ষ্য ও উদ্দেশ্য';
+        $main_title   = !empty($about_data['main_title']) ? $about_data['main_title'] : 'একটি আদর্শ ও আত্মনির্ভরশীল সমাজ বিনির্মাণ';
+        $description  = !empty($about_data['description']) ? $about_data['description'] : 'বিশ্বাস এডুকেশন ফাউন্ডেশন (Bishwas Education Foundation.) একটি সম্পূর্ণ অরাজনৈতিক ও জনকল্যাণমূলক সেবা সংস্থা। সমাজের অবহেলিত ও দরিদ্র শ্রেণির মানুষের মৌলিক চাহিদা পূরণ এবং তাদের কারিগরি শিক্ষার মাধ্যমে স্বাবলম্বী করে তোলাই আমাদের মূল ব্রত।';
+        $point_1      = !empty($about_data['point_1']) ? $about_data['point_1'] : 'স্বচ্ছ ও জবাবদিহিতামূলক তহবিল বণ্টন ব্যবস্থা।';
+        $point_2      = !empty($about_data['point_2']) ? $about_data['point_2'] : 'জ্ঞান, নৈতিকতা ও মানবিক মূল্যবোধের বিকাশ।';
+        $point_3      = !empty($about_data['point_3']) ? $about_data['point_3'] : 'দক্ষতা বৃদ্ধি ও বেকারত্ব দূরীকরণে প্রশিক্ষণ ইনস্টিটিউট।';
+        $quote_badge  = !empty($about_data['quote_badge']) ? $about_data['quote_badge'] : '"মানব সেবাই ইসলামের মূল শিক্ষা।"';
+        $image_src    = !empty($about_data['image']) ? $about_data['image'] : 'public/assets/gallery_img/img-1.jpg';
     ?>
     <!-- About Me Section -->
     <section id="about" class="bg-gray-100 lg:px-10 px-4 py-20">
