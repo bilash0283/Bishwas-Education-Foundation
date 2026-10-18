@@ -1,37 +1,72 @@
-<?php 
-    include_once '../component/session_manage.php';
 
-    if (isset($_SESSION['cms_admin_id']) && $_SESSION['cms_admin_id'] === true) {
-        header("Location: dashboard.php?page=dashboard");
-        exit();
-    }
 
-    $error_message = "";
+<?php
+include_once '../component/session_manage.php';
+include '../database/db.php';
 
-    if(isset($_POST['cms_login'])) {
-        $email = trim($_POST['email']);
-        $password = $_POST['password'];
+if (isset($_SESSION['cms_admin_id']) && $_SESSION['cms_admin_id'] === true) {
+    header("Location: dashboard.php?page=dashboard");
+    exit();
+}
 
-        // Validate credentials
-        if ($email === 'admin@gmail.com' && $password === '12345') {
-            $_SESSION['cms_admin_id'] = true; // Set session variable to indicate successful login
-            header("Location: dashboard.php?page=dashboard");
-            exit();
+$error_message = "";
+
+if (isset($_POST['cms_login'])) {
+
+    $identity_val = trim($_POST['email']);
+    $password_val = trim($_POST['password']);
+
+    // Validate credentials
+    if (!empty($identity_val) && !empty($password_val)) {
+
+        $identity = mysqli_real_escape_string($db, $identity_val);
+        $hashed_password = md5($password_val);
+
+        $check_user_query = "SELECT * FROM `users` WHERE user_type = 'admin' AND status = 'active' AND (`email` = '$identity' OR `mobile_no` = '$identity') LIMIT 1";
+        $user_result = mysqli_query($db, $check_user_query);
+
+        if (mysqli_num_rows($user_result) === 1) {
+            $user = mysqli_fetch_assoc($user_result);
+
+            if ($user['password'] === $hashed_password) {
+
+                if (strtolower(trim($user['status'])) === 'active') {
+
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['member_name'] = $user['member_name'];
+                    $_SESSION['user_type'] = $user['user_type'];
+                    $_SESSION['user_login_permission'] = true;
+
+                    $_SESSION['cms_admin_id'] = true; // Set session variable to indicate successful login
+                    header("Location: dashboard.php?page=dashboard");
+
+                } else {
+                    $status_title = ucfirst($user['status']);
+                    $error_message = "আপনার অ্যাকাউন্টটি বর্তমানে <strong>{$status_title}</strong> অবস্থায় রয়েছে। অনুগ্রহ করে করুন।";
+                }
+
+            } else {
+                $error_message = "পাসওয়ার্ড ভুল হয়েছে!";
+            }
+
         } else {
-            $error_message = "Invalid email or password.";
+            $error_message = "ইমেইল বা মোবাইল নম্বরটি পাওয়া যায়নি!";
         }
+
+    } else {
+        $error_message = "সকল ফিল্ড সঠিকভাবে পূরণ করুন!";
     }
+}
 
-    include '../database/db.php';
-    // ২. ডাটাবেস থেকে বর্তমান সেটিংস লোড করা (ID = 1)
-    $sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
-    $result = mysqli_query($db, $sql);
-    $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
+// ২. ডাটাবেস থেকে বর্তমান সেটিংস লোড করা (ID = 1)
+$sql = "SELECT * FROM branding_settings WHERE id = 1 LIMIT 1";
+$result = mysqli_query($db, $sql);
+$data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
 
-    // ডিফল্ট ভ্যালু সেটআপ
-    $site_title   = $data['site_title'] ?? 'Bishwas Education Foundation';
-    $site_logo    = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
-    $favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
+// ডিফল্ট ভ্যালু সেটআপ
+$site_title = $data['site_title'] ?? 'Bishwas Education Foundation';
+$site_logo = !empty($data['site_logo']) ? $data['site_logo'] : 'public/assets/logo_BG.png';
+$favicon_icon = !empty($data['favicon_icon']) ? $data['favicon_icon'] : 'public/assets/logo.png';
 ?>
 
 

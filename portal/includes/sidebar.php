@@ -88,6 +88,10 @@
                 <i class="fa-solid fa-gear w-4 text-sm <?php echo getIconClass('settings', $currentPage, 'text-slate-500'); ?>"></i> Settings
             </a>
 
+            <a href="../admin" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all <?php echo getNavClass('website_settings', $currentPage); ?>">
+                <i class="fa-solid fa-globe w-4 text-sm <?php echo getIconClass('website_settings', $currentPage, 'text-slate-500'); ?>"></i> Website Settings
+            </a>
+
         </div>
     <?php } ?>
 
