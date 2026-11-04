@@ -231,7 +231,7 @@ $donate_btn_text = $data['donate_btn_text'] ?? $default_donate_btn_text;
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">চলমান
                 প্রকল্প</a>
             <a href="index.php#volunteer"
-                class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">ভলান্টিয়ার</a>
+                class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">সদস্য নিবন্ধন</a>
             <a href="index.php#contact"
                 class="mobile-link hover:text-emerald-600 transition p-2 rounded-lg hover:bg-emerald-50">যোগাযোগ</a>
 
