@@ -67,15 +67,25 @@ $image_src = !empty($result['blog_image']) ? 'admin/' . htmlspecialchars($result
 
                         // ekdom beshi faka line komiye dewa (3+ newline -> 2)
                         $desc = preg_replace("/\n{3,}/", "\n\n", trim($desc));
-                        ?>
+                    ?>
                         
-                        <div class="p-4 bg-emerald-50/60 border-l-4 border-emerald-600 text-slate-700 font-medium text-sm md:text-base rounded-r-xl mb-6 leading-relaxed whitespace-pre-line">
-                            <?= htmlspecialchars($desc) ?>
-                        </div>
+                    <div class="p-4 bg-emerald-50/60 border-l-4 border-emerald-600 text-slate-700 font-medium text-sm md:text-base rounded-r-xl mb-6 leading-relaxed whitespace-pre-line">
+                        <?= htmlspecialchars($desc) ?>
+                    </div>
+
+                    <?php
+                        $full_content = $result['full_content'];
+
+                        // literal "\r\n" text ke asol newline e convert kora
+                        $full_content = str_replace(['\r\n', '\n', '\r'], "\n", $full_content);
+
+                        // ekdom beshi faka line komiye dewa (3+ newline -> 2)
+                        $full_content = preg_replace("/\n{3,}/", "\n\n", trim($full_content));
+                    ?>
 
                     <!-- Detailed Content -->
                     <div class="prose max-w-none">
-                        <?= htmlspecialchars($result['detailed_content']) ?>
+                        <?= htmlspecialchars($full_content) ?>
                     </div>
                 </div>
 

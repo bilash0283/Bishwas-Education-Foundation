@@ -358,7 +358,7 @@
 
     <?php
     // ড্যাটাবেজ থেকে সর্বশেষ ৩টি অ্যাক্টিভ ব্লগ ফেচ করা
-    $blogs_query = "SELECT * FROM blogs WHERE status = 'active' ORDER BY id DESC LIMIT 3";
+    $blogs_query = "SELECT * FROM blogs WHERE status = 'active' ORDER BY id DESC LIMIT 6";
     $blogs_result = mysqli_query($db, $blogs_query);
     ?>
     <!-- Vlog/Blog Section -->
