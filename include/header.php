@@ -17,6 +17,7 @@ $result = mysqli_query($db, $sql);
 $data = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) : null;
 
 // ইনপুট ফিল্ডের ভ্যালু সেট করা (ডাটা না থাকলে ডিফল্ট মান ব্যবহার হবে)
+$default_donate_btn_text = 'অনুদান দিন';
 $donate_btn_text = $data['donate_btn_text'] ?? $default_donate_btn_text;
 ?>
 
