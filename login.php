@@ -109,6 +109,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                         <i class="fa-solid fa-arrow-right text-sm"></i>
                     </button>
                 </div>
+
+                <div>
+                    <a href="forgot-password.php"
+                        class="group inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-900 transition-colors">
+                        <i class="fa-solid fa-key text-[11px] group-hover:rotate-12 transition-transform"></i>
+                        <span class="relative">
+                            পাসওয়ার্ড ভুলে গেছেন?
+                            <span class="absolute left-0 -bottom-0.5 h-px w-0 bg-emerald-700 group-hover:w-full transition-all duration-300"></span>
+                        </span>
+                    </a>
+                </div>
+
             </form>
         </div>
 
