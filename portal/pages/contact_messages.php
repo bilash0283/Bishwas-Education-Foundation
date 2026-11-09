@@ -656,7 +656,7 @@ $stColor = array('New' => 'rose', 'In Progress' => 'sky', 'Replied' => 'emerald'
     <p class="text-xs text-slate-500"><?php echo $total; ?> message(s)</p>
 
     <!-- Message list -->
-    <div class="space-y-3">
+    <div class="space-y-3 grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         <?php foreach ($msgs as $m) {
             $sc = isset($STATUS[$m['status']]) ? $STATUS[$m['status']] : 'bg-slate-100 text-slate-600';
             $isNew = $m['status'] === 'New'; ?>
