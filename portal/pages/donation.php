@@ -151,13 +151,19 @@ if (!function_exists('don_is_valid_image')) {
         if (function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime = finfo_file($finfo, $tmp_name);
-            finfo_close($finfo);
-            return in_array($mime, $allowed_mime);
+
+            // PHP 8.5: finfo_close() is deprecated
+            return in_array($mime, $allowed_mime, true);
         }
 
         // fileinfo extension nei: getimagesize diye check
         $info = @getimagesize($tmp_name);
-        return ($info !== false && isset($info['mime']) && in_array($info['mime'], $allowed_mime));
+
+        return (
+            $info !== false &&
+            isset($info['mime']) &&
+            in_array($info['mime'], $allowed_mime, true)
+        );
     }
 }
 
